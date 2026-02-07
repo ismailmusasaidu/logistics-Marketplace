@@ -78,7 +78,7 @@ export default function BulkOrderModal({ visible, onClose, onSuccess, customerId
         .from('profiles')
         .select('email')
         .eq('id', customerId)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       setCustomerEmail(data?.email || '');
