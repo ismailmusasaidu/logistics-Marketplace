@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Modal, TextInput, Platform } from 'react-native';
-import { Package, MapPin, Clock, Filter, Edit2, Trash2, X, Plus, User, Phone, Bike, Layers, Search, MessageSquare, Tag, Receipt } from 'lucide-react-native';
-import { supabase, Order, Rider, Profile } from '@/lib/supabase';
+import { Package, MapPin, Clock, Filter, Edit2, Trash2, X, Search, User, Receipt, ShoppingBag } from 'lucide-react-native';
+import { supabase } from '@/lib/supabase';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Toast } from '@/components/Toast';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { OrderReceiptModal } from '@/components/OrderReceiptModal';
 import { Fonts } from '@/constants/fonts';
 
-// Utility function to format relative time
 const formatRelativeTime = (timestamp: string | null): string => {
   if (!timestamp) return 'Not yet';
 
@@ -28,18 +27,51 @@ const formatRelativeTime = (timestamp: string | null): string => {
   return date.toLocaleDateString();
 };
 
-type RiderWithProfile = Rider & { profile: Profile };
+type MarketplaceOrder = {
+  id: string;
+  customer_id: string | null;
+  vendor_id: string | null;
+  vendor_user_id: string | null;
+  order_number: string;
+  status: string;
+  subtotal: number;
+  delivery_fee: number;
+  tax: number;
+  total: number;
+  delivery_address: string | null;
+  delivery_type: string;
+  payment_method: string | null;
+  payment_status: string | null;
+  notes: string | null;
+  confirmed_at: string | null;
+  preparing_at: string | null;
+  ready_for_pickup_at: string | null;
+  out_for_delivery_at: string | null;
+  delivered_at: string | null;
+  cancelled_at: string | null;
+  created_at: string;
+  updated_at: string;
+  customer?: { id: string; full_name: string | null; email: string | null; phone: string | null } | null;
+  vendor?: { id: string; full_name: string | null; email: string | null; business_name: string | null } | null;
+  order_items?: Array<{
+    id: string;
+    quantity: number;
+    unit_price: number;
+    subtotal: number;
+    product?: { id: string; name: string; image_url: string | null } | null;
+  }>;
+};
 
 export default function AdminOrders() {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<MarketplaceOrder[]>([]);
+  const [filteredOrders, setFilteredOrders] = useState<MarketplaceOrder[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [editModalVisible, setEditModalVisible] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [riders, setRiders] = useState<RiderWithProfile[]>([]);
-  const [riderAssignMode, setRiderAssignMode] = useState<'registered' | 'manual'>('registered');
+  const [selectedOrder, setSelectedOrder] = useState<MarketplaceOrder | null>(null);
+  const [editStatus, setEditStatus] = useState<string>('pending');
+  const [editNotes, setEditNotes] = useState('');
   const [toast, setToast] = useState<{
     visible: boolean;
     message: string;
@@ -81,33 +113,26 @@ export default function AdminOrders() {
 
   useEffect(() => {
     loadOrders();
-    loadRiders();
   }, []);
 
   useEffect(() => {
     let filtered = orders;
 
-    if (filter === 'unverified_transfers') {
-      filtered = filtered.filter(o => o.payment_method === 'transfer' && !o.payment_verified);
-    } else if (filter !== 'all') {
+    if (filter !== 'all') {
       filtered = filtered.filter(o => o.status === filter);
     }
 
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
       filtered = filtered.filter(order => {
-        const customer = (order as any).customer;
         return (
           order.order_number.toLowerCase().includes(query) ||
-          order.recipient_name.toLowerCase().includes(query) ||
-          order.recipient_phone?.toLowerCase().includes(query) ||
-          order.pickup_address.toLowerCase().includes(query) ||
-          order.delivery_address.toLowerCase().includes(query) ||
-          order.package_description?.toLowerCase().includes(query) ||
-          order.transfer_reference?.toLowerCase().includes(query) ||
-          customer?.full_name?.toLowerCase().includes(query) ||
-          customer?.email?.toLowerCase().includes(query) ||
-          customer?.phone?.toLowerCase().includes(query)
+          order.delivery_address?.toLowerCase().includes(query) ||
+          order.customer?.full_name?.toLowerCase().includes(query) ||
+          order.customer?.email?.toLowerCase().includes(query) ||
+          order.customer?.phone?.toLowerCase().includes(query) ||
+          order.vendor?.full_name?.toLowerCase().includes(query) ||
+          order.vendor?.business_name?.toLowerCase().includes(query)
         );
       });
     }
@@ -122,29 +147,13 @@ export default function AdminOrders() {
         .select(`
           *,
           customer:profiles!orders_customer_id_fkey(id, full_name, email, phone),
-          rider:riders!orders_rider_id_fkey(
+          vendor:profiles!orders_vendor_id_fkey(id, full_name, email, business_name),
+          order_items(
             id,
-            status,
-            profile:profiles!riders_user_id_fkey(id, full_name, phone)
-          ),
-          bulk_order:bulk_orders(
-            id,
-            bulk_order_number,
-            total_orders,
-            discount_percentage,
-            final_fee,
-            status
-          ),
-          order_complaints(
-            id,
-            complaint_type,
-            description,
-            status,
-            created_at,
-            rider:riders!order_complaints_rider_id_fkey(
-              id,
-              profile:profiles!riders_user_id_fkey(id, full_name, phone)
-            )
+            quantity,
+            unit_price,
+            subtotal,
+            product:products(id, name, image_url)
           )
         `)
         .order('created_at', { ascending: false });
@@ -153,31 +162,16 @@ export default function AdminOrders() {
       setOrders(data || []);
     } catch (error) {
       console.error('Error loading orders:', error);
+      showToast('Failed to load orders', 'error');
     } finally {
       setRefreshing(false);
     }
   };
 
-  const loadRiders = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('riders')
-        .select(`
-          *,
-          profile:profiles!riders_user_id_fkey(*)
-        `)
-        .in('status', ['online', 'offline']);
-
-      if (error) throw error;
-      setRiders(data as any || []);
-    } catch (error) {
-      console.error('Error loading riders:', error);
-    }
-  };
-
-  const handleEdit = (order: Order) => {
+  const handleEdit = (order: MarketplaceOrder) => {
     setSelectedOrder(order);
-    setRiderAssignMode(order.rider_id ? 'registered' : 'manual');
+    setEditStatus(order.status);
+    setEditNotes(order.notes || '');
     setEditModalVisible(true);
   };
 
@@ -185,31 +179,12 @@ export default function AdminOrders() {
     if (!selectedOrder) return;
 
     try {
-      const updateData: any = {
-        status: selectedOrder.status,
-        pickup_address: selectedOrder.pickup_address,
-        delivery_address: selectedOrder.delivery_address,
-        recipient_name: selectedOrder.recipient_name,
-        recipient_phone: selectedOrder.recipient_phone,
-        package_description: selectedOrder.package_description,
-        delivery_fee: selectedOrder.delivery_fee,
-        notes: selectedOrder.notes,
-      };
-
-      if (riderAssignMode === 'registered') {
-        updateData.assigned_rider_id = selectedOrder.rider_id;
-        updateData.assignment_status = 'assigned';
-        updateData.rider_name = null;
-        updateData.rider_phone = null;
-      } else {
-        updateData.rider_id = null;
-        updateData.rider_name = selectedOrder.rider_name;
-        updateData.rider_phone = selectedOrder.rider_phone;
-      }
-
       const { error } = await supabase
         .from('orders')
-        .update(updateData)
+        .update({
+          status: editStatus,
+          notes: editNotes,
+        })
         .eq('id', selectedOrder.id);
 
       if (error) throw error;
@@ -247,62 +222,57 @@ export default function AdminOrders() {
     });
   };
 
-  const handleVerifyPayment = (orderId: string) => {
-    setConfirmDialog({
-      visible: true,
-      title: 'Verify Payment',
-      message: 'Are you sure you want to mark this payment as verified?',
-      onConfirm: async () => {
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-
-          const { error } = await supabase
-            .from('orders')
-            .update({
-              payment_verified: true,
-              payment_verified_at: new Date().toISOString(),
-              payment_verified_by: user?.id,
-            })
-            .eq('id', orderId);
-
-          if (error) throw error;
-
-          showToast('Payment verified successfully!', 'success');
-          loadOrders();
-        } catch (error) {
-          console.error('Error verifying payment:', error);
-          showToast('Failed to verify payment', 'error');
-        }
-      },
-    });
-  };
-
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       pending: '#f59e0b',
       confirmed: '#3b82f6',
-      assigned: '#8b5cf6',
-      picked_up: '#6366f1',
-      in_transit: '#06b6d4',
-      delivered: '#f97316',
+      preparing: '#8b5cf6',
+      ready_for_pickup: '#06b6d4',
+      out_for_delivery: '#f97316',
+      delivered: '#10b981',
       cancelled: '#ef4444',
     };
     return colors[status] || '#6b7280';
   };
 
   const getStatusLabel = (status: string) => {
-    return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+    return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  };
+
+  const getPaymentMethodLabel = (method: string | null) => {
+    const labels: Record<string, string> = {
+      wallet: 'Wallet',
+      transfer: 'Transfer',
+      online: 'Online',
+      cash_on_delivery: 'Cash on Delivery',
+    };
+    return labels[method || ''] || method || 'N/A';
+  };
+
+  const getPaymentStatusColor = (status: string | null) => {
+    const colors: Record<string, string> = {
+      pending: '#f59e0b',
+      completed: '#10b981',
+      failed: '#ef4444',
+    };
+    return colors[status || ''] || '#6b7280';
   };
 
   const filters = [
     { label: 'All', value: 'all' },
     { label: 'Pending', value: 'pending' },
-    { label: 'Active', value: 'in_transit' },
+    { label: 'Confirmed', value: 'confirmed' },
+    { label: 'Preparing', value: 'preparing' },
+    { label: 'Ready', value: 'ready_for_pickup' },
+    { label: 'Out for Delivery', value: 'out_for_delivery' },
     { label: 'Delivered', value: 'delivered' },
-    { label: 'Unverified Transfers', value: 'unverified_transfers' },
+    { label: 'Cancelled', value: 'cancelled' },
   ];
 
-  const statusOptions: Array<'pending' | 'confirmed' | 'assigned' | 'picked_up' | 'in_transit' | 'delivered' | 'cancelled'> = ['pending', 'confirmed', 'assigned', 'picked_up', 'in_transit', 'delivered', 'cancelled'];
+  const statusOptions = [
+    'pending', 'confirmed', 'preparing', 'ready_for_pickup',
+    'out_for_delivery', 'delivered', 'cancelled'
+  ];
 
   return (
     <View style={styles.container}>
@@ -336,7 +306,7 @@ export default function AdminOrders() {
           <Search size={20} color="#6b7280" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search by order number, customer, recipient, address..."
+            placeholder="Search by order number, customer, vendor..."
             value={searchQuery}
             onChangeText={setSearchQuery}
             placeholderTextColor="#9ca3af"
@@ -379,142 +349,68 @@ export default function AdminOrders() {
                 </View>
               </View>
 
-              <View style={styles.orderNumberRow}>
-                <Text style={styles.orderNumber}>{order.order_number}</Text>
-                {(order as any).bulk_order && (
-                  <View style={styles.bulkBadge}>
-                    <Layers size={14} color="#8b5cf6" />
-                    <Text style={styles.bulkBadgeText}>
-                      BULK {(order as any).bulk_order.bulk_order_number}
-                    </Text>
-                  </View>
-                )}
-              </View>
+              <Text style={styles.orderNumber}>{order.order_number}</Text>
 
-              {(order as any).bulk_order && (
-                <View style={styles.bulkInfo}>
-                  <Text style={styles.bulkInfoText}>
-                    Part of {(order as any).bulk_order.total_orders} orders • {(order as any).bulk_order.discount_percentage}% discount
-                  </Text>
-                </View>
-              )}
-
-              {(order as any).customer && (
+              {order.customer && (
                 <View style={styles.customerInfo}>
                   <User size={16} color="#6b7280" />
                   <View style={styles.customerDetails}>
-                    <Text style={styles.customerName}>{(order as any).customer.full_name || 'Unknown'}</Text>
+                    <Text style={styles.customerName}>{order.customer.full_name || 'Unknown Customer'}</Text>
                     <Text style={styles.customerContact}>
-                      {(order as any).customer.phone || (order as any).customer.email || 'No contact'}
+                      {order.customer.phone || order.customer.email || 'No contact'}
                     </Text>
+                  </View>
+                </View>
+              )}
+
+              {order.vendor && (
+                <View style={styles.vendorInfo}>
+                  <ShoppingBag size={16} color="#3b82f6" />
+                  <View style={styles.customerDetails}>
+                    <Text style={styles.vendorName}>{order.vendor.business_name || order.vendor.full_name || 'Unknown Vendor'}</Text>
                   </View>
                 </View>
               )}
 
               <View style={styles.orderDetails}>
-                <View style={styles.addressRow}>
-                  <MapPin size={18} color="#f97316" />
-                  <View style={styles.addressInfo}>
-                    <Text style={styles.addressLabel}>Pickup</Text>
-                    <Text style={styles.addressText}>{order.pickup_address}</Text>
-                  </View>
-                </View>
-
-                <View style={styles.addressRow}>
-                  <MapPin size={18} color="#ef4444" />
-                  <View style={styles.addressInfo}>
-                    <Text style={styles.addressLabel}>Delivery to {order.recipient_name}</Text>
-                    <Text style={styles.addressText}>{order.delivery_address}</Text>
-                  </View>
-                </View>
-
-                {order.scheduled_delivery_time && (
+                {order.delivery_address && (
                   <View style={styles.addressRow}>
-                    <Clock size={18} color="#8b5cf6" />
+                    <MapPin size={18} color="#ef4444" />
                     <View style={styles.addressInfo}>
-                      <Text style={styles.addressLabel}>Scheduled Delivery</Text>
-                      <Text style={styles.addressText}>
-                        {new Date(order.scheduled_delivery_time).toLocaleString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                          hour: 'numeric',
-                          minute: '2-digit',
-                          hour12: true
-                        })}
+                      <Text style={styles.addressLabel}>
+                        {order.delivery_type === 'delivery' ? 'Delivery Address' : 'Pickup'}
                       </Text>
+                      <Text style={styles.addressText}>{order.delivery_address}</Text>
                     </View>
                   </View>
                 )}
 
-                {order.order_size && (
-                  <View style={styles.addressRow}>
-                    <Package size={18} color="#3b82f6" />
-                    <View style={styles.addressInfo}>
-                      <Text style={styles.addressLabel}>Order Size</Text>
-                      <Text style={styles.addressText}>{order.order_size.charAt(0).toUpperCase() + order.order_size.slice(1)}</Text>
-                    </View>
+                {order.order_items && order.order_items.length > 0 && (
+                  <View style={styles.itemsSection}>
+                    <Text style={styles.itemsSectionTitle}>Items ({order.order_items.length})</Text>
+                    {order.order_items.map((item) => (
+                      <View key={item.id} style={styles.itemRow}>
+                        <Text style={styles.itemQuantity}>{item.quantity}x</Text>
+                        <Text style={styles.itemName} numberOfLines={1}>
+                          {item.product?.name || 'Deleted Product'}
+                        </Text>
+                        <Text style={styles.itemPrice}>
+                          {'\u20A6'}{item.subtotal.toLocaleString()}
+                        </Text>
+                      </View>
+                    ))}
                   </View>
                 )}
 
-                {order.order_types && order.order_types.length > 0 && (
-                  <View style={styles.addressRow}>
-                    <Tag size={18} color="#10b981" />
-                    <View style={styles.addressInfo}>
-                      <Text style={styles.addressLabel}>Order Types</Text>
-                      <Text style={styles.addressText}>{order.order_types.join(', ')}</Text>
-                    </View>
-                  </View>
-                )}
-
-                <View style={styles.packageRow}>
-                  <Package size={18} color="#6b7280" />
-                  <View style={styles.packageInfo}>
-                    <Text style={styles.packageLabel}>Package</Text>
-                    <Text style={styles.packageText}>{order.package_description}</Text>
-                  </View>
-                </View>
-
-                {order.pickup_instructions && (
+                {order.notes && (
                   <View style={styles.notesSection}>
-                    <MessageSquare size={18} color="#f97316" />
-                    <View style={styles.notesContent}>
-                      <Text style={[styles.notesLabel, { color: '#f97316' }]}>Pickup Instructions:</Text>
-                      <Text style={styles.notesText}>{order.pickup_instructions}</Text>
-                    </View>
-                  </View>
-                )}
-
-                {order.delivery_instructions && (
-                  <View style={styles.notesSection}>
-                    <MessageSquare size={18} color="#8b5cf6" />
-                    <View style={styles.notesContent}>
-                      <Text style={styles.notesLabel}>Delivery Instructions:</Text>
-                      <Text style={styles.notesText}>{order.delivery_instructions}</Text>
-                    </View>
+                    <Text style={styles.notesLabel}>Notes:</Text>
+                    <Text style={styles.notesText}>{order.notes}</Text>
                   </View>
                 )}
 
                 <View style={styles.timelineContainer}>
                   <Text style={styles.timelineTitle}>Order Timeline</Text>
-                  {order.scheduled_delivery_time && (
-                    <View style={styles.scheduledDeliveryBanner}>
-                      <Clock size={16} color="#8b5cf6" />
-                      <View style={styles.scheduledDeliveryInfo}>
-                        <Text style={styles.scheduledDeliveryLabel}>Scheduled Delivery</Text>
-                        <Text style={styles.scheduledDeliveryTime}>
-                          {new Date(order.scheduled_delivery_time).toLocaleString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            hour12: true
-                          })}
-                        </Text>
-                      </View>
-                    </View>
-                  )}
                   <View style={styles.timelineItem}>
                     <View style={[styles.timelineDot, { backgroundColor: '#10b981' }]} />
                     <View style={styles.timelineContent}>
@@ -531,30 +427,30 @@ export default function AdminOrders() {
                       </View>
                     </View>
                   )}
-                  {order.assigned_at && (
+                  {order.preparing_at && (
                     <View style={styles.timelineItem}>
                       <View style={[styles.timelineDot, { backgroundColor: '#8b5cf6' }]} />
                       <View style={styles.timelineContent}>
-                        <Text style={styles.timelineLabel}>Assigned to Rider</Text>
-                        <Text style={styles.timelineTime}>{formatRelativeTime(order.assigned_at)}</Text>
+                        <Text style={styles.timelineLabel}>Preparing</Text>
+                        <Text style={styles.timelineTime}>{formatRelativeTime(order.preparing_at)}</Text>
                       </View>
                     </View>
                   )}
-                  {order.picked_up_at && (
+                  {order.ready_for_pickup_at && (
                     <View style={styles.timelineItem}>
-                      <View style={[styles.timelineDot, { backgroundColor: '#f59e0b' }]} />
+                      <View style={[styles.timelineDot, { backgroundColor: '#06b6d4' }]} />
                       <View style={styles.timelineContent}>
-                        <Text style={styles.timelineLabel}>Picked Up</Text>
-                        <Text style={styles.timelineTime}>{formatRelativeTime(order.picked_up_at)}</Text>
+                        <Text style={styles.timelineLabel}>Ready for Pickup</Text>
+                        <Text style={styles.timelineTime}>{formatRelativeTime(order.ready_for_pickup_at)}</Text>
                       </View>
                     </View>
                   )}
-                  {order.in_transit_at && (
+                  {order.out_for_delivery_at && (
                     <View style={styles.timelineItem}>
                       <View style={[styles.timelineDot, { backgroundColor: '#f97316' }]} />
                       <View style={styles.timelineContent}>
-                        <Text style={styles.timelineLabel}>In Transit</Text>
-                        <Text style={styles.timelineTime}>{formatRelativeTime(order.in_transit_at)}</Text>
+                        <Text style={styles.timelineLabel}>Out for Delivery</Text>
+                        <Text style={styles.timelineTime}>{formatRelativeTime(order.out_for_delivery_at)}</Text>
                       </View>
                     </View>
                   )}
@@ -578,76 +474,6 @@ export default function AdminOrders() {
                   )}
                 </View>
 
-                {(order as any).order_complaints && (order as any).order_complaints.length > 0 && (
-                  <View style={styles.complaintsSection}>
-                    <Text style={styles.complaintsSectionTitle}>📋 Rider Reports</Text>
-                    {(order as any).order_complaints.map((complaint: any) => (
-                      <View key={complaint.id} style={styles.complaintCard}>
-                        <View style={styles.complaintHeader}>
-                          <View style={[
-                            styles.complaintStatusBadge,
-                            { backgroundColor: complaint.status === 'open' ? '#fef3c7' : complaint.status === 'resolved' ? '#d1fae5' : '#fee2e2' }
-                          ]}>
-                            <Text style={[
-                              styles.complaintStatusText,
-                              { color: complaint.status === 'open' ? '#f59e0b' : complaint.status === 'resolved' ? '#10b981' : '#ef4444' }
-                            ]}>
-                              {complaint.status.toUpperCase()}
-                            </Text>
-                          </View>
-                          <Text style={styles.complaintTime}>
-                            {formatRelativeTime(complaint.created_at)}
-                          </Text>
-                        </View>
-                        <Text style={styles.complaintType}>
-                          {complaint.complaint_type.replace(/_/g, ' ').toUpperCase()}
-                        </Text>
-                        <Text style={styles.complaintDescription}>{complaint.description}</Text>
-                        {complaint.rider?.profile && (
-                          <Text style={styles.complaintReporter}>
-                            Reported by: {complaint.rider.profile.full_name || 'Unknown Rider'}
-                          </Text>
-                        )}
-                      </View>
-                    ))}
-                  </View>
-                )}
-
-                {order.payment_method === 'transfer' && (
-                  <View style={styles.paymentSection}>
-                    <View style={styles.paymentHeader}>
-                      <Text style={styles.paymentTitle}>Bank Transfer Payment</Text>
-                      {order.payment_verified ? (
-                        <View style={styles.verifiedBadge}>
-                          <Text style={styles.verifiedBadgeText}>✓ Verified</Text>
-                        </View>
-                      ) : (
-                        <View style={styles.pendingBadge}>
-                          <Text style={styles.pendingBadgeText}>Pending Verification</Text>
-                        </View>
-                      )}
-                    </View>
-                    {order.transfer_reference && (
-                      <View style={styles.transferRefRow}>
-                        <Text style={styles.transferRefLabel}>Transfer Reference:</Text>
-                        <Text style={styles.transferRefValue}>{order.transfer_reference}</Text>
-                      </View>
-                    )}
-                    {!order.payment_verified && (
-                      <TouchableOpacity
-                        style={styles.verifyButton}
-                        onPress={() => handleVerifyPayment(order.id)}>
-                        <Text style={styles.verifyButtonText}>Mark as Paid</Text>
-                      </TouchableOpacity>
-                    )}
-                    {order.payment_verified_at && (
-                      <Text style={styles.verifiedAtText}>
-                        Verified on {new Date(order.payment_verified_at).toLocaleString()}
-                      </Text>
-                    )}
-                  </View>
-                )}
-
                 <View style={styles.orderFooter}>
                   <View style={styles.footerLeft}>
                     <View style={styles.timeInfo}>
@@ -658,13 +484,16 @@ export default function AdminOrders() {
                     </View>
                     <View style={styles.paymentMethodBadge}>
                       <Text style={styles.paymentMethodText}>
-                        {order.payment_method === 'wallet' ? 'Wallet' :
-                         order.payment_method === 'transfer' ? 'Transfer' :
-                         order.payment_method === 'online' ? 'Online' : 'Cash'}
+                        {getPaymentMethodLabel(order.payment_method)}
+                      </Text>
+                    </View>
+                    <View style={[styles.paymentStatusBadge, { backgroundColor: getPaymentStatusColor(order.payment_status) + '20' }]}>
+                      <Text style={[styles.paymentStatusText, { color: getPaymentStatusColor(order.payment_status) }]}>
+                        {order.payment_status?.toUpperCase() || 'N/A'}
                       </Text>
                     </View>
                   </View>
-                  <Text style={styles.feeText}>₦{order.delivery_fee.toFixed(2)}</Text>
+                  <Text style={styles.feeText}>{'\u20A6'}{order.total.toLocaleString()}</Text>
                 </View>
 
                 <TouchableOpacity
@@ -694,6 +523,15 @@ export default function AdminOrders() {
             </View>
 
             <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+              {selectedOrder && (
+                <View style={styles.orderSummary}>
+                  <Text style={styles.orderSummaryTitle}>{selectedOrder.order_number}</Text>
+                  <Text style={styles.orderSummarySubtitle}>
+                    {selectedOrder.customer?.full_name || 'Unknown Customer'}
+                  </Text>
+                </View>
+              )}
+
               <Text style={styles.label}>Status</Text>
               <View style={styles.statusSelector}>
                 {statusOptions.map((status) => (
@@ -701,12 +539,12 @@ export default function AdminOrders() {
                     key={status}
                     style={[
                       styles.statusOption,
-                      selectedOrder?.status === status && styles.statusOptionActive
+                      editStatus === status && styles.statusOptionActive
                     ]}
-                    onPress={() => setSelectedOrder(prev => prev ? { ...prev, status } : null)}>
+                    onPress={() => setEditStatus(status)}>
                     <Text style={[
                       styles.statusOptionText,
-                      selectedOrder?.status === status && styles.statusOptionTextActive
+                      editStatus === status && styles.statusOptionTextActive
                     ]}>
                       {getStatusLabel(status)}
                     </Text>
@@ -714,151 +552,15 @@ export default function AdminOrders() {
                 ))}
               </View>
 
-              <Text style={styles.label}>Pickup Address</Text>
-              <TextInput
-                style={styles.input}
-                value={selectedOrder?.pickup_address}
-                onChangeText={(text) => setSelectedOrder(prev => prev ? { ...prev, pickup_address: text } : null)}
-                placeholder="Enter pickup address"
-              />
-
-              <Text style={styles.label}>Delivery Address</Text>
-              <TextInput
-                style={styles.input}
-                value={selectedOrder?.delivery_address}
-                onChangeText={(text) => setSelectedOrder(prev => prev ? { ...prev, delivery_address: text } : null)}
-                placeholder="Enter delivery address"
-              />
-
-              <Text style={styles.label}>Recipient Name</Text>
-              <TextInput
-                style={styles.input}
-                value={selectedOrder?.recipient_name}
-                onChangeText={(text) => setSelectedOrder(prev => prev ? { ...prev, recipient_name: text } : null)}
-                placeholder="Enter recipient name"
-              />
-
-              <Text style={styles.label}>Recipient Phone</Text>
-              <TextInput
-                style={styles.input}
-                value={selectedOrder?.recipient_phone}
-                onChangeText={(text) => setSelectedOrder(prev => prev ? { ...prev, recipient_phone: text } : null)}
-                placeholder="Enter recipient phone"
-                keyboardType="phone-pad"
-              />
-
-              <Text style={styles.label}>Package Description</Text>
-              <TextInput
-                style={styles.input}
-                value={selectedOrder?.package_description}
-                onChangeText={(text) => setSelectedOrder(prev => prev ? { ...prev, package_description: text } : null)}
-                placeholder="Enter package description"
-              />
-
-              <Text style={styles.label}>Delivery Fee</Text>
-              <TextInput
-                style={styles.input}
-                value={selectedOrder?.delivery_fee.toString()}
-                onChangeText={(text) => setSelectedOrder(prev => prev ? { ...prev, delivery_fee: parseFloat(text) || 0 } : null)}
-                placeholder="Enter delivery fee"
-                keyboardType="decimal-pad"
-              />
-
               <Text style={styles.label}>Notes</Text>
               <TextInput
                 style={[styles.input, styles.textArea]}
-                value={selectedOrder?.notes || ''}
-                onChangeText={(text) => setSelectedOrder(prev => prev ? { ...prev, notes: text } : null)}
+                value={editNotes}
+                onChangeText={setEditNotes}
                 placeholder="Enter notes"
                 multiline
                 numberOfLines={3}
               />
-
-              <View style={styles.riderSection}>
-                <View style={styles.riderHeader}>
-                  <Bike size={20} color="#8b5cf6" />
-                  <Text style={styles.riderSectionTitle}>Assign Rider</Text>
-                </View>
-
-                <View style={styles.modeSelector}>
-                  <TouchableOpacity
-                    style={[styles.modeButton, riderAssignMode === 'registered' && styles.modeButtonActive]}
-                    onPress={() => setRiderAssignMode('registered')}>
-                    <Text style={[styles.modeButtonText, riderAssignMode === 'registered' && styles.modeButtonTextActive]}>
-                      Registered Rider
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.modeButton, riderAssignMode === 'manual' && styles.modeButtonActive]}
-                    onPress={() => setRiderAssignMode('manual')}>
-                    <Text style={[styles.modeButtonText, riderAssignMode === 'manual' && styles.modeButtonTextActive]}>
-                      Manual Entry
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                {riderAssignMode === 'registered' ? (
-                  <>
-                    <Text style={styles.label}>Select Rider</Text>
-                    {riders.length === 0 ? (
-                      <Text style={styles.noRidersText}>No registered riders available</Text>
-                    ) : (
-                      <ScrollView style={styles.ridersList} nestedScrollEnabled>
-                        {riders.map((rider) => (
-                          <TouchableOpacity
-                            key={rider.id}
-                            style={[
-                              styles.riderCard,
-                              selectedOrder?.rider_id === rider.id && styles.riderCardActive
-                            ]}
-                            onPress={() => setSelectedOrder(prev => prev ? { ...prev, rider_id: rider.id } : null)}>
-                            <View style={styles.riderInfo}>
-                              <Text style={styles.riderName}>{rider.profile.full_name}</Text>
-                              <Text style={styles.riderDetails}>
-                                {rider.vehicle_type.charAt(0).toUpperCase() + rider.vehicle_type.slice(1)} • {rider.vehicle_number}
-                              </Text>
-                              <View style={styles.riderStats}>
-                                <Text style={styles.riderStat}>⭐ {rider.rating.toFixed(1)}</Text>
-                                <Text style={styles.riderStat}>📦 {rider.total_deliveries} deliveries</Text>
-                                <View style={[styles.statusDot, { backgroundColor: rider.status === 'online' ? '#f97316' : '#6b7280' }]} />
-                                <Text style={[styles.riderStat, { color: rider.status === 'online' ? '#f97316' : '#6b7280' }]}>
-                                  {rider.status}
-                                </Text>
-                              </View>
-                            </View>
-                            {selectedOrder?.rider_id === rider.id && (
-                              <View style={styles.selectedBadge}>
-                                <Text style={styles.selectedBadgeText}>✓</Text>
-                              </View>
-                            )}
-                          </TouchableOpacity>
-                        ))}
-                      </ScrollView>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <Text style={styles.riderSectionSubtitle}>Enter rider contact information manually</Text>
-
-                    <Text style={styles.label}>Rider Name</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={selectedOrder?.rider_name || ''}
-                      onChangeText={(text) => setSelectedOrder(prev => prev ? { ...prev, rider_name: text } : null)}
-                      placeholder="Enter rider name"
-                    />
-
-                    <Text style={styles.label}>Rider Phone</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={selectedOrder?.rider_phone || ''}
-                      onChangeText={(text) => setSelectedOrder(prev => prev ? { ...prev, rider_phone: text } : null)}
-                      placeholder="Enter rider phone number"
-                      keyboardType="phone-pad"
-                    />
-                  </>
-                )}
-              </View>
             </ScrollView>
 
             <View style={styles.modalFooter}>
@@ -919,7 +621,7 @@ const styles = StyleSheet.create({
     color: '#111827',
   },
   badge: {
-    backgroundColor: '#8b5cf6',
+    backgroundColor: '#0ea5e9',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
@@ -947,7 +649,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f3f4f6',
   },
   filterButtonActive: {
-    backgroundColor: '#8b5cf6',
+    backgroundColor: '#0ea5e9',
   },
   filterText: {
     fontSize: 14,
@@ -1051,7 +753,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     backgroundColor: '#f9fafb',
     borderRadius: 8,
-    marginBottom: 12,
+    marginBottom: 8,
   },
   customerDetails: {
     flex: 1,
@@ -1065,6 +767,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6b7280',
     marginTop: 2,
+  },
+  vendorInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#eff6ff',
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  vendorName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1e40af',
   },
   orderDetails: {
     gap: 12,
@@ -1086,322 +803,54 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#111827',
   },
-  packageRow: {
-    flexDirection: 'row',
-    gap: 12,
+  itemsSection: {
+    backgroundColor: '#f9fafb',
+    padding: 12,
+    borderRadius: 8,
   },
-  packageInfo: {
+  itemsSectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    gap: 8,
+  },
+  itemQuantity: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#6b7280',
+    width: 30,
+  },
+  itemName: {
+    fontSize: 13,
+    color: '#111827',
     flex: 1,
   },
-  packageLabel: {
-    fontSize: 12,
-    color: '#6b7280',
+  itemPrice: {
+    fontSize: 13,
     fontWeight: '600',
-    marginBottom: 4,
-  },
-  packageText: {
-    fontSize: 14,
     color: '#111827',
   },
   notesSection: {
-    flexDirection: 'row',
-    gap: 12,
-    backgroundColor: '#faf5ff',
+    backgroundColor: '#fffbeb',
     padding: 12,
     borderRadius: 8,
-    marginTop: 8,
-  },
-  notesContent: {
-    flex: 1,
   },
   notesLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#8b5cf6',
+    color: '#92400e',
     marginBottom: 4,
   },
   notesText: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#78350f',
     lineHeight: 20,
-  },
-  orderFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 8,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
-  },
-  timeInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  timeText: {
-    fontSize: 12,
-    color: '#6b7280',
-  },
-  feeText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#8b5cf6',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#ffffff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '90%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  modalBody: {
-    padding: 24,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 12,
-    padding: 12,
-    fontSize: 16,
-    color: '#111827',
-    marginBottom: 16,
-  },
-  textArea: {
-    height: 80,
-    textAlignVertical: 'top',
-  },
-  statusSelector: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16,
-  },
-  statusOption: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    backgroundColor: '#ffffff',
-  },
-  statusOptionActive: {
-    backgroundColor: '#8b5cf6',
-    borderColor: '#8b5cf6',
-  },
-  statusOptionText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#6b7280',
-  },
-  statusOptionTextActive: {
-    color: '#ffffff',
-  },
-  modalFooter: {
-    flexDirection: 'row',
-    padding: 24,
-    gap: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-  },
-  cancelButton: {
-    flex: 1,
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: '#f3f4f6',
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  saveButton: {
-    flex: 1,
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: '#8b5cf6',
-    alignItems: 'center',
-  },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#ffffff',
-  },
-  riderSection: {
-    backgroundColor: '#f9fafb',
-    padding: 16,
-    borderRadius: 12,
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  riderHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
-  },
-  riderSectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#8b5cf6',
-  },
-  riderSectionSubtitle: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginBottom: 16,
-  },
-  modeSelector: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 16,
-    marginTop: 8,
-  },
-  modeButton: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: '#d1d5db',
-    backgroundColor: '#ffffff',
-    alignItems: 'center',
-  },
-  modeButtonActive: {
-    backgroundColor: '#8b5cf6',
-    borderColor: '#8b5cf6',
-  },
-  modeButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6b7280',
-  },
-  modeButtonTextActive: {
-    color: '#ffffff',
-  },
-  ridersList: {
-    maxHeight: 250,
-    marginBottom: 16,
-  },
-  riderCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: '#e5e7eb',
-    backgroundColor: '#ffffff',
-    marginBottom: 8,
-  },
-  riderCardActive: {
-    borderColor: '#8b5cf6',
-    backgroundColor: '#f5f3ff',
-  },
-  riderInfo: {
-    flex: 1,
-  },
-  riderName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  riderDetails: {
-    fontSize: 13,
-    color: '#6b7280',
-    marginBottom: 6,
-  },
-  riderStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  riderStat: {
-    fontSize: 12,
-    color: '#6b7280',
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginLeft: 4,
-  },
-  selectedBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#8b5cf6',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  selectedBadgeText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  noRidersText: {
-    fontSize: 14,
-    color: '#9ca3af',
-    textAlign: 'center',
-    paddingVertical: 24,
-  },
-  orderNumberRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
-  },
-  bulkBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#f3e8ff',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#8b5cf6',
-  },
-  bulkBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#8b5cf6',
-  },
-  bulkInfo: {
-    backgroundColor: '#faf5ff',
-    padding: 8,
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  bulkInfoText: {
-    fontSize: 12,
-    color: '#7c3aed',
-    fontWeight: '500',
   },
   timelineContainer: {
     marginTop: 16,
@@ -1447,85 +896,35 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6b7280',
   },
-  paymentSection: {
-    marginTop: 16,
-    padding: 12,
-    backgroundColor: '#f9fafb',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  paymentHeader: {
+  orderFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
-  },
-  paymentTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  verifiedBadge: {
-    backgroundColor: '#dcfce7',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  verifiedBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#16a34a',
-  },
-  pendingBadge: {
-    backgroundColor: '#fef3c7',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  pendingBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#92400e',
-  },
-  transferRefRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  transferRefLabel: {
-    fontSize: 13,
-    color: '#6b7280',
-    fontWeight: '500',
-  },
-  transferRefValue: {
-    fontSize: 14,
-    color: '#111827',
-    fontWeight: '700',
-  },
-  verifyButton: {
-    backgroundColor: '#f97316',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  verifyButtonText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  verifiedAtText: {
-    fontSize: 11,
-    color: '#6b7280',
     marginTop: 8,
-    fontStyle: 'italic',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f3f4f6',
   },
   footerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    flexWrap: 'wrap',
+    flex: 1,
+  },
+  timeInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  timeText: {
+    fontSize: 12,
+    color: '#6b7280',
+  },
+  feeText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0ea5e9',
   },
   paymentMethodBadge: {
     backgroundColor: '#e0f2fe',
@@ -1538,88 +937,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#0369a1',
   },
-  scheduledDeliveryBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: '#f5f3ff',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#8b5cf6',
-  },
-  scheduledDeliveryInfo: {
-    flex: 1,
-  },
-  scheduledDeliveryLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#8b5cf6',
-    marginBottom: 4,
-  },
-  scheduledDeliveryTime: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#6b21a8',
-  },
-  complaintsSection: {
-    marginTop: 16,
-    padding: 16,
-    backgroundColor: '#fef3c7',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#fbbf24',
-  },
-  complaintsSectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#92400e',
-    marginBottom: 12,
-  },
-  complaintCard: {
-    backgroundColor: '#ffffff',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#fde68a',
-  },
-  complaintHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  complaintStatusBadge: {
-    paddingHorizontal: 10,
+  paymentStatusBadge: {
+    paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 6,
   },
-  complaintStatusText: {
+  paymentStatusText: {
     fontSize: 11,
     fontWeight: '700',
-  },
-  complaintTime: {
-    fontSize: 12,
-    color: '#6b7280',
-  },
-  complaintType: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#b45309',
-    marginBottom: 6,
-  },
-  complaintDescription: {
-    fontSize: 14,
-    color: '#374151',
-    lineHeight: 20,
-    marginBottom: 8,
-  },
-  complaintReporter: {
-    fontSize: 12,
-    color: '#6b7280',
-    fontStyle: 'italic',
   },
   receiptButton: {
     flexDirection: 'row',
@@ -1639,5 +964,124 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontFamily: Fonts.semiBold,
     color: '#f97316',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '90%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  modalBody: {
+    padding: 24,
+  },
+  orderSummary: {
+    backgroundColor: '#f9fafb',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  orderSummaryTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  orderSummarySubtitle: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginTop: 4,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 16,
+    color: '#111827',
+    marginBottom: 16,
+  },
+  textArea: {
+    height: 80,
+    textAlignVertical: 'top',
+  },
+  statusSelector: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  statusOption: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    backgroundColor: '#ffffff',
+  },
+  statusOptionActive: {
+    backgroundColor: '#0ea5e9',
+    borderColor: '#0ea5e9',
+  },
+  statusOptionText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  statusOptionTextActive: {
+    color: '#ffffff',
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    padding: 24,
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+  },
+  cancelButton: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: '#f3f4f6',
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  saveButton: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: '#0ea5e9',
+    alignItems: 'center',
+  },
+  saveButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
   },
 });
