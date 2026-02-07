@@ -1,12 +1,19 @@
 import { Tabs, router } from 'expo-router';
 import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
-import { Home, Package, Users, User } from 'lucide-react-native';
+import { Home, Package, Users, User, ArrowLeft } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffect } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CartIconWithBadge from '@/components/marketplace/CartIconWithBadge';
 import WishlistIconWithBadge from '@/components/marketplace/WishlistIconWithBadge';
 import { Fonts } from '@/constants/fonts';
+
+const hubListener = {
+  tabPress: (e: any) => {
+    e.preventDefault();
+    router.navigate('/hub');
+  },
+};
 
 export default function TabLayout() {
   const { session, loading, profile } = useAuth();
@@ -55,6 +62,15 @@ export default function TabLayout() {
         },
       }}
     >
+      <Tabs.Screen
+        name="back-to-hub"
+        options={{
+          title: 'Hub',
+          tabBarIcon: ({ size }) => <ArrowLeft size={size} color="#94a3b8" />,
+        }}
+        listeners={hubListener}
+      />
+
       <Tabs.Screen
         name="index"
         options={{

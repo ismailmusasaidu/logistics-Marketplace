@@ -1,8 +1,15 @@
-import { Tabs } from 'expo-router';
-import { Package, User, LayoutDashboard, Bike, Users, DollarSign, Building2, MapPin, Headphones } from 'lucide-react-native';
+import { Tabs, router } from 'expo-router';
+import { Package, User, LayoutDashboard, Bike, Users, DollarSign, Building2, MapPin, Headphones, ArrowLeft } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const hubListener = {
+  tabPress: (e: any) => {
+    e.preventDefault();
+    router.navigate('/hub');
+  },
+};
 
 export default function TabLayout() {
   const { profile } = useAuth();
@@ -28,6 +35,16 @@ export default function TabLayout() {
             paddingTop: 8,
           },
         }}>
+        <Tabs.Screen
+          name="back-to-hub"
+          options={{
+            title: 'Hub',
+            tabBarIcon: ({ size }) => (
+              <ArrowLeft size={size} color="#6b7280" />
+            ),
+          }}
+          listeners={hubListener}
+        />
         <Tabs.Screen
           name="customer-home"
           options={{
@@ -85,6 +102,16 @@ export default function TabLayout() {
             paddingTop: 8,
           },
         }}>
+        <Tabs.Screen
+          name="back-to-hub"
+          options={{
+            title: 'Hub',
+            tabBarIcon: ({ size }) => (
+              <ArrowLeft size={size} color="#6b7280" />
+            ),
+          }}
+          listeners={hubListener}
+        />
         <Tabs.Screen
           name="rider-home"
           options={{
@@ -147,6 +174,16 @@ export default function TabLayout() {
             paddingHorizontal: 4,
           },
         }}>
+        <Tabs.Screen
+          name="back-to-hub"
+          options={{
+            title: 'Hub',
+            tabBarIcon: ({ size }) => (
+              <ArrowLeft size={size} color="#6b7280" />
+            ),
+          }}
+          listeners={hubListener}
+        />
         <Tabs.Screen
           name="admin-dashboard"
           options={{
