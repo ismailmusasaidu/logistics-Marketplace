@@ -1,24 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, TextInput, ActivityIndicator } from 'react-native';
-import { User, Mail, Bike, Star, LogOut, TrendingUp, Edit, Save, X, Phone, MessageSquare, Eye } from 'lucide-react-native';
+import { User, Mail, LogOut, Edit, Save, X, Phone, Calendar } from 'lucide-react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase, Rider, Rating } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
 import { Fonts } from '@/constants/fonts';
-import RatingsListModal from '@/components/RatingsListModal';
-
-type RatingWithCustomer = Rating & {
-  profiles: {
-    full_name: string;
-  };
-};
 
 export default function RiderProfile() {
   const { profile, signOut, refreshProfile } = useAuth();
-  const [riderData, setRiderData] = useState<Rider | null>(null);
-  const [ratings, setRatings] = useState<RatingWithCustomer[]>([]);
-  const [loadingRatings, setLoadingRatings] = useState(true);
-  const [ratingsModalVisible, setRatingsModalVisible] = useState(false);
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -26,60 +16,6 @@ export default function RiderProfile() {
   const [phone, setPhone] = useState(profile?.phone || '');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-
-  useEffect(() => {
-    loadRiderData();
-    loadRatings();
-  }, []);
-
-  const loadRiderData = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('riders')
-        .select('*')
-        .eq('user_id', profile?.id)
-        .maybeSingle();
-
-      if (error) throw error;
-      setRiderData(data);
-    } catch (error) {
-      console.error('Error loading rider data:', error);
-    }
-  };
-
-  const loadRatings = async () => {
-    try {
-      setLoadingRatings(true);
-
-      const { data: riderInfo, error: riderError } = await supabase
-        .from('riders')
-        .select('id')
-        .eq('user_id', profile?.id)
-        .maybeSingle();
-
-      if (riderError) throw riderError;
-      if (!riderInfo) return;
-
-      const { data, error } = await supabase
-        .from('ratings')
-        .select(`
-          *,
-          profiles:customer_id (
-            full_name
-          )
-        `)
-        .eq('rider_id', riderInfo.id)
-        .order('created_at', { ascending: false })
-        .limit(20);
-
-      if (error) throw error;
-      setRatings(data as RatingWithCustomer[] || []);
-    } catch (error) {
-      console.error('Error loading ratings:', error);
-    } finally {
-      setLoadingRatings(false);
-    }
-  };
 
   const handleEdit = () => {
     setFullName(profile?.full_name || '');
@@ -149,80 +85,73 @@ export default function RiderProfile() {
   };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Profile</Text>
-        {!isEditing && (
-          <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
-            <Edit size={24} color="#f97316" strokeWidth={2.5} />
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {error && (
-        <View style={styles.errorBanner}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      )}
-
-      {success && (
-        <View style={styles.successBanner}>
-          <Text style={styles.successText}>{success}</Text>
-        </View>
-      )}
-
-      <View  style={styles.profileCard}>
-        <View style={styles.avatarContainer}>
-          <View style={styles.avatar}>
-            <User size={48} color="#ffffff" />
-          </View>
-        </View>
-
-        {isEditing ? (
-          <View style={styles.editSection}>
-            <Text style={styles.inputLabel}>Full Name</Text>
-            <TextInput
-              style={styles.input}
-              value={fullName}
-              onChangeText={setFullName}
-              placeholder="Enter your full name"
-              editable={!loading}
-            />
-          </View>
-        ) : (
-          <>
-            <Text style={styles.name}>{profile?.full_name || 'No name set'}</Text>
-            <View style={styles.roleBadge}>
-              <Text style={styles.roleText}>Rider</Text>
-            </View>
-
-            {riderData && (
-              <View style={styles.ratingContainer}>
-                <Star size={20} color="#fbbf24" fill="#fbbf24" />
-                <Text style={styles.ratingText}>{riderData.rating.toFixed(1)} Rating</Text>
-              </View>
-            )}
-
-            <TouchableOpacity style={styles.editProfileButton} onPress={handleEdit}>
-              <Edit size={18} color="#f97316" />
-              <Text style={styles.editProfileButtonText}>Edit Profile</Text>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Profile</Text>
+          {!isEditing && (
+            <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
+              <Edit size={24} color="#f97316" strokeWidth={2.5} />
             </TouchableOpacity>
-          </>
-        )}
-      </View>
+          )}
+        </View>
 
-      {riderData && (
-        <View  style={styles.section}>
-          <Text style={styles.sectionTitle}>Vehicle Information</Text>
+        {error && (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
+
+        {success && (
+          <View style={styles.successBanner}>
+            <Text style={styles.successText}>{success}</Text>
+          </View>
+        )}
+
+        <View style={styles.profileCard}>
+          <View style={styles.avatarContainer}>
+            <View style={styles.avatar}>
+              <User size={48} color="#ffffff" />
+            </View>
+          </View>
+
+          {isEditing ? (
+            <View style={styles.editSection}>
+              <Text style={styles.inputLabel}>Full Name</Text>
+              <TextInput
+                style={styles.input}
+                value={fullName}
+                onChangeText={setFullName}
+                placeholder="Enter your full name"
+                editable={!loading}
+              />
+            </View>
+          ) : (
+            <>
+              <Text style={styles.name}>{profile?.full_name || 'No name set'}</Text>
+              <View style={styles.roleBadge}>
+                <Text style={styles.roleText}>Rider</Text>
+              </View>
+
+              <TouchableOpacity style={styles.editProfileButton} onPress={handleEdit}>
+                <Edit size={18} color="#f97316" />
+                <Text style={styles.editProfileButtonText}>Edit Profile</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Account Information</Text>
 
           <View style={styles.infoCard}>
             <View style={styles.infoRow}>
               <View style={styles.iconContainer}>
-                <Bike size={20} color="#f97316" />
+                <Mail size={20} color="#f97316" />
               </View>
               <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Vehicle Type</Text>
-                <Text style={styles.infoValue}>{riderData.vehicle_type.toUpperCase()}</Text>
+                <Text style={styles.infoLabel}>Email</Text>
+                <Text style={styles.infoValue}>{profile?.email}</Text>
               </View>
             </View>
 
@@ -230,188 +159,97 @@ export default function RiderProfile() {
 
             <View style={styles.infoRow}>
               <View style={styles.iconContainer}>
-                <TrendingUp size={20} color="#f97316" />
+                <Phone size={20} color="#f97316" />
               </View>
               <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Total Deliveries</Text>
-                <Text style={styles.infoValue}>{riderData.total_deliveries}</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-      )}
-
-      <View  style={styles.section}>
-        <Text style={styles.sectionTitle}>Account Information</Text>
-
-        <View style={styles.infoCard}>
-          <View style={styles.infoRow}>
-            <View style={styles.iconContainer}>
-              <Mail size={20} color="#f97316" />
-            </View>
-            <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Email</Text>
-              <Text style={styles.infoValue}>{profile?.email}</Text>
-            </View>
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.infoRow}>
-            <View style={styles.iconContainer}>
-              <Phone size={20} color="#f97316" />
-            </View>
-            <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Phone</Text>
-              {isEditing ? (
-                <TextInput
-                  style={styles.inputInline}
-                  value={phone}
-                  onChangeText={setPhone}
-                  placeholder="Enter your phone number"
-                  editable={!loading}
-                  keyboardType="phone-pad"
-                />
-              ) : (
-                <Text style={styles.infoValue}>{profile?.phone || 'Not provided'}</Text>
-              )}
-            </View>
-          </View>
-        </View>
-      </View>
-
-      {isEditing && (
-        <View style={styles.section}>
-          <View style={styles.buttonRow}>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.cancelButton]}
-              onPress={handleCancel}
-              disabled={loading}
-            >
-              <X size={20} color="#ef4444" />
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.actionButton, styles.saveButton]}
-              onPress={handleSave}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator size="small" color="#ffffff" />
-              ) : (
-                <>
-                  <Save size={20} color="#ffffff" />
-                  <Text style={styles.saveButtonText}>Save</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>My Ratings</Text>
-
-        {loadingRatings ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#f97316" />
-          </View>
-        ) : ratings.length === 0 ? (
-          <View style={styles.emptyRatings}>
-            <Star size={48} color="#d1d5db" />
-            <Text style={styles.emptyRatingsText}>No ratings yet</Text>
-            <Text style={styles.emptyRatingsSubtext}>
-              Complete deliveries to receive customer feedback
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.ratingsContainer}>
-            <View style={styles.ratingsSummary}>
-              <View style={styles.averageRatingCard}>
-                <Text style={styles.averageRatingNumber}>
-                  {riderData?.rating.toFixed(1) || '0.0'}
-                </Text>
-                <View style={styles.starsRow}>
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Star
-                      key={star}
-                      size={16}
-                      color="#fbbf24"
-                      fill={star <= Math.round(riderData?.rating || 0) ? '#fbbf24' : 'transparent'}
-                    />
-                  ))}
-                </View>
-                <Text style={styles.ratingsCount}>
-                  Based on {ratings.length} {ratings.length === 1 ? 'rating' : 'ratings'}
-                </Text>
-              </View>
-            </View>
-
-            {ratings.slice(0, 3).map((rating) => (
-              <View key={rating.id} style={styles.ratingCard}>
-                <View style={styles.ratingHeader}>
-                  <View style={styles.ratingStars}>
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star
-                        key={star}
-                        size={14}
-                        color="#fbbf24"
-                        fill={star <= rating.rating ? '#fbbf24' : 'transparent'}
-                      />
-                    ))}
-                  </View>
-                  <Text style={styles.ratingDate}>
-                    {new Date(rating.created_at).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
-                  </Text>
-                </View>
-
-                <Text style={styles.ratingCustomer}>
-                  {rating.profiles?.full_name || 'Anonymous Customer'}
-                </Text>
-
-                {rating.comment && (
-                  <View style={styles.commentContainer}>
-                    <MessageSquare size={14} color="#6b7280" />
-                    <Text style={styles.ratingComment}>{rating.comment}</Text>
-                  </View>
+                <Text style={styles.infoLabel}>Phone</Text>
+                {isEditing ? (
+                  <TextInput
+                    style={styles.inputInline}
+                    value={phone}
+                    onChangeText={setPhone}
+                    placeholder="Enter your phone number"
+                    editable={!loading}
+                    keyboardType="phone-pad"
+                  />
+                ) : (
+                  <Text style={styles.infoValue}>{profile?.phone || 'Not provided'}</Text>
                 )}
               </View>
-            ))}
+            </View>
 
-            {ratings.length > 3 && (
-              <TouchableOpacity
-                style={styles.viewAllButton}
-                onPress={() => setRatingsModalVisible(true)}
-              >
-                <Eye size={18} color="#f97316" />
-                <Text style={styles.viewAllButtonText}>
-                  View All {ratings.length} Ratings
+            <View style={styles.divider} />
+
+            <View style={styles.infoRow}>
+              <View style={styles.iconContainer}>
+                <User size={20} color="#f97316" />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Role</Text>
+                <Text style={styles.infoValue}>{profile?.role ? profile.role.charAt(0).toUpperCase() + profile.role.slice(1) : 'N/A'}</Text>
+              </View>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.infoRow}>
+              <View style={styles.iconContainer}>
+                <Calendar size={20} color="#f97316" />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Member Since</Text>
+                <Text style={styles.infoValue}>
+                  {profile?.created_at
+                    ? new Date(profile.created_at).toLocaleDateString('en-US', {
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })
+                    : 'N/A'}
                 </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {isEditing && (
+          <View style={styles.section}>
+            <View style={styles.buttonRow}>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.cancelButton]}
+                onPress={handleCancel}
+                disabled={loading}
+              >
+                <X size={20} color="#ef4444" />
+                <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-            )}
+
+              <TouchableOpacity
+                style={[styles.actionButton, styles.saveButton]}
+                onPress={handleSave}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <>
+                    <Save size={20} color="#ffffff" />
+                    <Text style={styles.saveButtonText}>Save</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         )}
-      </View>
 
-      <View  style={styles.section}>
-        <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-          <LogOut size={20} color="#ef4444" />
-          <Text style={styles.signOutText}>Sign Out</Text>
-        </TouchableOpacity>
-      </View>
-
-      <RatingsListModal
-        visible={ratingsModalVisible}
-        onClose={() => setRatingsModalVisible(false)}
-        ratings={ratings}
-        averageRating={riderData?.rating || 0}
-      />
-    </ScrollView>
+        <View style={styles.section}>
+          <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+            <LogOut size={20} color="#ef4444" />
+            <Text style={styles.signOutText}>Sign Out</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -422,7 +260,6 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 24,
-    paddingTop: 60,
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
@@ -518,13 +355,6 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.poppinsBold,
     letterSpacing: 0.5,
   },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 8,
-    marginBottom: 16,
-  },
   editProfileButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -540,11 +370,6 @@ const styles = StyleSheet.create({
     color: '#f97316',
     fontSize: 15,
     fontFamily: Fonts.poppinsBold,
-  },
-  ratingText: {
-    fontSize: 16,
-    fontFamily: Fonts.poppinsSemiBold,
-    color: '#111827',
   },
   section: {
     marginHorizontal: 24,
@@ -678,127 +503,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: Fonts.poppinsBold,
     color: '#ffffff',
-  },
-  loadingContainer: {
-    paddingVertical: 40,
-    alignItems: 'center',
-  },
-  emptyRatings: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 40,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  emptyRatingsText: {
-    fontSize: 16,
-    fontFamily: Fonts.poppinsSemiBold,
-    color: '#6b7280',
-    marginTop: 16,
-  },
-  emptyRatingsSubtext: {
-    fontSize: 14,
-    fontFamily: Fonts.poppinsRegular,
-    color: '#9ca3af',
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  ratingsContainer: {
-    gap: 12,
-  },
-  ratingsSummary: {
-    marginBottom: 8,
-  },
-  averageRatingCard: {
-    backgroundColor: '#fffbeb',
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#fef3c7',
-  },
-  averageRatingNumber: {
-    fontSize: 48,
-    fontFamily: Fonts.poppinsBold,
-    color: '#f59e0b',
-    marginBottom: 8,
-  },
-  starsRow: {
-    flexDirection: 'row',
-    gap: 4,
-    marginBottom: 8,
-  },
-  ratingsCount: {
-    fontSize: 14,
-    fontFamily: Fonts.poppinsRegular,
-    color: '#6b7280',
-  },
-  ratingCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  ratingHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  ratingStars: {
-    flexDirection: 'row',
-    gap: 2,
-  },
-  ratingDate: {
-    fontSize: 12,
-    fontFamily: Fonts.poppinsRegular,
-    color: '#9ca3af',
-  },
-  ratingCustomer: {
-    fontSize: 14,
-    fontFamily: Fonts.poppinsSemiBold,
-    color: '#374151',
-    marginBottom: 8,
-  },
-  commentContainer: {
-    flexDirection: 'row',
-    gap: 8,
-    backgroundColor: '#f9fafb',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 4,
-  },
-  ratingComment: {
-    flex: 1,
-    fontSize: 14,
-    fontFamily: Fonts.poppinsRegular,
-    color: '#6b7280',
-    lineHeight: 20,
-  },
-  viewAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: '#fff7ed',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: '#fed7aa',
-  },
-  viewAllButtonText: {
-    fontSize: 15,
-    fontFamily: Fonts.poppinsSemiBold,
-    color: '#f97316',
   },
 });

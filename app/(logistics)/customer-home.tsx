@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, M
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Package, MapPin, Clock, Plus, X, User, Phone, ChevronDown, ChevronUp, Layers, Navigation, Search, Tag, Receipt, Star } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase, Order, OrderTracking } from '@/lib/supabase';
+import { supabase, Order } from '@/lib/supabase';
 import BulkOrderModal from '@/components/BulkOrderModal';
 import { CheckoutModal } from '@/components/CheckoutModal';
 import { PricingBreakdown } from '@/components/PricingBreakdown';
@@ -25,8 +25,6 @@ export default function CustomerHome() {
   const [modalVisible, setModalVisible] = useState(false);
   const [checkoutModalVisible, setCheckoutModalVisible] = useState(false);
   const [bulkModalVisible, setBulkModalVisible] = useState(false);
-  const [orderTracking, setOrderTracking] = useState<Record<string, OrderTracking[]>>({});
-  const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
   const [newOrder, setNewOrder] = useState({
     pickupAddress: '',
     pickupInstructions: '',
@@ -93,50 +91,8 @@ export default function CustomerHome() {
       )
       .subscribe();
 
-    const trackingChannel = supabase
-      .channel('customer-tracking-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'order_tracking',
-        },
-        (payload) => {
-          if (payload.eventType === 'INSERT') {
-            const newTracking = payload.new as OrderTracking;
-            setOrderTracking(prev => ({
-              ...prev,
-              [newTracking.order_id]: [
-                ...(prev[newTracking.order_id] || []),
-                newTracking
-              ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-            }));
-          }
-        }
-      )
-      .subscribe();
-
-    const complaintsChannel = supabase
-      .channel('customer-complaints-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'order_complaints',
-        },
-        (payload) => {
-          console.log('Complaint change detected:', payload);
-          loadOrders();
-        }
-      )
-      .subscribe();
-
     return () => {
       supabase.removeChannel(ordersChannel);
-      supabase.removeChannel(trackingChannel);
-      supabase.removeChannel(complaintsChannel);
     };
   }, [profile?.id]);
 
@@ -149,55 +105,13 @@ export default function CustomerHome() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      console.log('Loaded orders:', data);
-      console.log('Orders with complaints:', data?.filter((o: any) => o.order_complaints && o.order_complaints.length > 0));
-      console.log('First order with complaints:', data?.find((o: any) => o.order_complaints && o.order_complaints.length > 0));
-      console.log('Orders with rider info:', data?.filter(o => o.rider_name || o.rider_phone));
       setOrders(data || []);
-
-      if (data && data.length > 0) {
-        const orderIds = data.map(o => o.id);
-        const { data: trackingData } = await supabase
-          .from('order_tracking')
-          .select('*')
-          .in('order_id', orderIds)
-          .order('created_at', { ascending: false });
-
-        if (trackingData) {
-          const trackingByOrder: Record<string, OrderTracking[]> = {};
-          trackingData.forEach((tracking) => {
-            if (!trackingByOrder[tracking.order_id]) {
-              trackingByOrder[tracking.order_id] = [];
-            }
-            trackingByOrder[tracking.order_id].push(tracking);
-          });
-          setOrderTracking(trackingByOrder);
-        }
-
-        try {
-          const { data: ratingsData } = await supabase
-            .from('ratings')
-            .select('order_id')
-            .eq('customer_id', profile?.id)
-            .in('order_id', orderIds);
-
-          if (ratingsData) {
-            const ratedOrderIds = new Set(ratingsData.map(r => r.order_id));
-            setRatedOrders(ratedOrderIds);
-          }
-        } catch {
-        }
-      }
     } catch (error) {
       console.error('Error loading orders:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
-
-  const handleCall = (phoneNumber: string) => {
-    Linking.openURL(`tel:${phoneNumber}`);
   };
 
   const calculateDistanceAndPricing = useCallback(async () => {
@@ -321,6 +235,22 @@ export default function CustomerHome() {
     }
   };
 
+  const buildNotesFromForm = () => {
+    const parts: string[] = [];
+    if (newOrder.packageDescription) parts.push(`Package: ${newOrder.packageDescription}`);
+    if (newOrder.recipientName) parts.push(`Recipient: ${newOrder.recipientName}`);
+    if (newOrder.recipientPhone) parts.push(`Recipient Phone: ${newOrder.recipientPhone}`);
+    if (newOrder.pickupInstructions) parts.push(`Pickup Instructions: ${newOrder.pickupInstructions}`);
+    if (newOrder.deliveryInstructions) parts.push(`Delivery Instructions: ${newOrder.deliveryInstructions}`);
+    if (newOrder.orderSize) parts.push(`Size: ${newOrder.orderSize}`);
+    if (newOrder.orderTypes.length > 0) parts.push(`Types: ${newOrder.orderTypes.join(', ')}`);
+    return parts.length > 0 ? parts.join(' | ') : null;
+  };
+
+  const buildDeliveryAddress = () => {
+    return `Pickup: ${newOrder.pickupAddress} -> Delivery: ${newOrder.deliveryAddress}`;
+  };
+
   const verifyAndCreateOrder = async (reference: string, orderDetails: any) => {
     console.log('=== Starting verification ===');
     console.log('Reference:', reference);
@@ -380,24 +310,12 @@ export default function CustomerHome() {
         .insert({
           customer_id: orderDetails.customer_id,
           order_number: orderDetails.order_number,
-          pickup_address: orderDetails.pickup_address,
-          pickup_lat: orderDetails.pickup_lat,
-          pickup_lng: orderDetails.pickup_lng,
-          pickup_instructions: orderDetails.pickup_instructions,
           delivery_address: orderDetails.delivery_address,
-          delivery_lat: orderDetails.delivery_lat,
-          delivery_lng: orderDetails.delivery_lng,
-          delivery_instructions: orderDetails.delivery_instructions,
-          recipient_name: orderDetails.recipient_name,
-          recipient_phone: orderDetails.recipient_phone,
-          package_description: orderDetails.package_description,
           delivery_fee: orderDetails.delivery_fee,
           payment_method: 'online',
           payment_status: 'completed',
           status: 'pending',
-          scheduled_delivery_time: orderDetails.scheduled_delivery_time,
-          order_size: orderDetails.order_size || null,
-          order_types: orderDetails.order_types || null,
+          notes: orderDetails.notes,
         })
         .select()
         .single();
@@ -467,34 +385,21 @@ export default function CustomerHome() {
 
     try {
       const orderNumber = `ORD-${Date.now()}`;
+      const deliveryAddress = buildDeliveryAddress();
+      const notes = buildNotesFromForm();
 
       if (paymentMethod === 'online') {
         if (!paystackReference) {
           throw new Error('Payment reference is required for online payment');
         }
 
-        const pickupZoneId = await matchAddressToZone(newOrder.pickupAddress);
-
         const orderDetails = {
           customer_id: profile.id,
           order_number: orderNumber,
-          pickup_address: newOrder.pickupAddress,
-          pickup_lat: 0,
-          pickup_lng: 0,
-          pickup_instructions: newOrder.pickupInstructions || null,
-          pickup_zone_id: pickupZoneId,
-          delivery_address: newOrder.deliveryAddress,
-          delivery_lat: 0,
-          delivery_lng: 0,
-          delivery_instructions: newOrder.deliveryInstructions || null,
-          recipient_name: newOrder.recipientName,
-          recipient_phone: newOrder.recipientPhone,
-          package_description: newOrder.packageDescription,
+          delivery_address: deliveryAddress,
           delivery_fee: pricingBreakdown.finalPrice,
+          notes: notes,
           validatedPromo: validatedPromo,
-          scheduled_delivery_time: scheduledTime ? scheduledTime.toISOString() : null,
-          order_size: newOrder.orderSize || null,
-          order_types: newOrder.orderTypes.length > 0 ? newOrder.orderTypes : null,
         };
 
         console.log('Payment completed with reference:', paystackReference);
@@ -509,40 +414,21 @@ export default function CustomerHome() {
         return;
       }
 
-      const pickupZoneId = await matchAddressToZone(newOrder.pickupAddress);
-
       const insertData: any = {
         customer_id: profile.id,
         order_number: orderNumber,
-        pickup_address: newOrder.pickupAddress,
-        pickup_lat: 0,
-        pickup_lng: 0,
-        pickup_instructions: newOrder.pickupInstructions || null,
-        pickup_zone_id: pickupZoneId,
-        delivery_address: newOrder.deliveryAddress,
-        delivery_lat: 0,
-        delivery_lng: 0,
-        delivery_instructions: newOrder.deliveryInstructions || null,
-        recipient_name: newOrder.recipientName,
-        recipient_phone: newOrder.recipientPhone,
-        package_description: newOrder.packageDescription,
+        delivery_address: deliveryAddress,
         delivery_fee: pricingBreakdown.finalPrice,
         payment_method: paymentMethod,
         payment_status: 'pending',
         status: 'pending',
-        scheduled_delivery_time: scheduledTime ? scheduledTime.toISOString() : null,
-        order_size: newOrder.orderSize || null,
-        order_types: newOrder.orderTypes.length > 0 ? newOrder.orderTypes : null,
+        notes: notes,
       };
-
-      if (paymentMethod === 'transfer' && paystackReference) {
-        insertData.transfer_customer_reference = paystackReference;
-      }
 
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .insert(insertData)
-        .select('*, transfer_reference')
+        .select()
         .single();
 
       if (orderError) throw orderError;
@@ -571,7 +457,7 @@ export default function CustomerHome() {
       if (paymentMethod === 'wallet') {
         paymentMsg = 'Order placed and paid via wallet!';
       } else if (paymentMethod === 'transfer') {
-        paymentMsg = `Order placed! Transfer Reference: ${orderData.transfer_reference} - Please include this reference in your bank transfer notes for faster processing.`;
+        paymentMsg = 'Order placed! Please complete bank transfer.';
         toastType = 'info';
       } else {
         paymentMsg = 'Order placed! Pay cash on delivery.';
@@ -612,9 +498,9 @@ export default function CustomerHome() {
     const colors: Record<string, string> = {
       pending: '#f59e0b',
       confirmed: '#3b82f6',
-      assigned: '#8b5cf6',
-      picked_up: '#6366f1',
-      in_transit: '#06b6d4',
+      preparing: '#8b5cf6',
+      ready_for_pickup: '#6366f1',
+      out_for_delivery: '#06b6d4',
       delivered: '#f97316',
       cancelled: '#ef4444',
     };
@@ -623,18 +509,6 @@ export default function CustomerHome() {
 
   const getStatusLabel = (status: string) => {
     return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
-  };
-
-  const toggleOrderExpanded = (orderId: string) => {
-    setExpandedOrders(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(orderId)) {
-        newSet.delete(orderId);
-      } else {
-        newSet.add(orderId);
-      }
-      return newSet;
-    });
   };
 
   const handleViewReceipt = (orderId: string) => {
@@ -664,22 +538,6 @@ export default function CustomerHome() {
     showToast('Rating submitted successfully!', 'success');
   };
 
-  const formatTrackingTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-  };
-
   const activeOrders = orders.filter(o => !['delivered', 'cancelled'].includes(o.status));
   const completedOrders = orders.filter(o => ['delivered', 'cancelled'].includes(o.status));
 
@@ -689,11 +547,8 @@ export default function CustomerHome() {
     const query = searchQuery.toLowerCase();
     return (
       order.order_number.toLowerCase().includes(query) ||
-      order.pickup_address.toLowerCase().includes(query) ||
       order.delivery_address.toLowerCase().includes(query) ||
-      order.package_description.toLowerCase().includes(query) ||
-      (order.recipient_name && order.recipient_name.toLowerCase().includes(query)) ||
-      (order.rider_name && order.rider_name.toLowerCase().includes(query))
+      (order.notes && order.notes.toLowerCase().includes(query))
     );
   });
 
@@ -722,7 +577,7 @@ export default function CustomerHome() {
 
         <View style={styles.statsContainer}>
           <View  style={styles.statCard}>
-            <Text style={styles.statNumber}>{orders.filter(o => o.status === 'in_transit').length}</Text>
+            <Text style={styles.statNumber}>{orders.filter(o => o.status === 'out_for_delivery').length}</Text>
             <Text style={styles.statLabel}>In Transit</Text>
           </View>
           <View  style={styles.statCard}>
@@ -783,160 +638,21 @@ export default function CustomerHome() {
                   <View style={styles.addressRow}>
                     <MapPin size={20} color="#f97316" />
                     <View style={styles.addressInfo}>
-                      <Text style={styles.addressLabel}>Pickup</Text>
-                      <Text style={styles.addressText}>{order.pickup_address}</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.addressRow}>
-                    <MapPin size={20} color="#ef4444" />
-                    <View style={styles.addressInfo}>
-                      <Text style={styles.addressLabel}>Delivery</Text>
+                      <Text style={styles.addressLabel}>Delivery Address</Text>
                       <Text style={styles.addressText}>{order.delivery_address}</Text>
                     </View>
                   </View>
 
-                  {order.scheduled_delivery_time && (
-                    <View style={styles.addressRow}>
-                      <Clock size={20} color="#8b5cf6" />
-                      <View style={styles.addressInfo}>
-                        <Text style={styles.addressLabel}>Scheduled Delivery</Text>
-                        <Text style={styles.addressText}>
-                          {new Date(order.scheduled_delivery_time).toLocaleString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            hour12: true
-                          })}
-                        </Text>
-                      </View>
-                    </View>
-                  )}
-
-                  {order.order_size && (
+                  {order.notes && (
                     <View style={styles.addressRow}>
                       <Package size={20} color="#3b82f6" />
                       <View style={styles.addressInfo}>
-                        <Text style={styles.addressLabel}>Order Size</Text>
-                        <Text style={styles.addressText}>{order.order_size.charAt(0).toUpperCase() + order.order_size.slice(1)}</Text>
+                        <Text style={styles.addressLabel}>Notes</Text>
+                        <Text style={styles.addressText}>{order.notes}</Text>
                       </View>
                     </View>
-                  )}
-
-                  {order.order_types && order.order_types.length > 0 && (
-                    <View style={styles.addressRow}>
-                      <Tag size={20} color="#10b981" />
-                      <View style={styles.addressInfo}>
-                        <Text style={styles.addressLabel}>Order Types</Text>
-                        <Text style={styles.addressText}>{order.order_types.join(', ')}</Text>
-                      </View>
-                    </View>
-                  )}
-
-                  {(order.rider_name && order.rider_phone) ? (
-                    <View style={styles.riderInfo}>
-                      <View style={styles.riderHeader}>
-                        <User size={16} color="#f97316" />
-                        <Text style={styles.riderLabel}>Assigned Rider</Text>
-                      </View>
-                      <View style={styles.riderDetails}>
-                        <View style={styles.riderDetail}>
-                          <Text style={styles.riderName}>{order.rider_name}</Text>
-                        </View>
-                        <TouchableOpacity
-                          style={styles.callButton}
-                          onPress={() => handleCall(order.rider_phone!)}>
-                          <Phone size={16} color="#f97316" />
-                          <Text style={styles.callButtonText}>{order.rider_phone}</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  ) : (
-                    console.log('No rider info for order:', order.order_number, 'rider_name:', order.rider_name, 'rider_phone:', order.rider_phone),
-                    null
                   )}
                 </View>
-
-                {orderTracking[order.id] && orderTracking[order.id].length > 0 && (
-                  <>
-                    <TouchableOpacity
-                      style={styles.trackingToggle}
-                      onPress={() => toggleOrderExpanded(order.id)}>
-                      <Clock size={16} color="#6b7280" />
-                      <Text style={styles.trackingToggleText}>
-                        Tracking History ({orderTracking[order.id]?.length || 0})
-                      </Text>
-                      {expandedOrders.has(order.id) ? (
-                        <ChevronUp size={16} color="#6b7280" />
-                      ) : (
-                        <ChevronDown size={16} color="#6b7280" />
-                      )}
-                    </TouchableOpacity>
-
-                    {expandedOrders.has(order.id) && (
-                      <View style={styles.trackingTimeline}>
-                        {orderTracking[order.id].map((tracking, idx) => (
-                          <View key={tracking.id} style={styles.trackingItem}>
-                            <View style={styles.trackingDot} />
-                            {idx < orderTracking[order.id].length - 1 && (
-                              <View style={styles.trackingLine} />
-                            )}
-                            <View style={styles.trackingContent}>
-                              <View style={styles.trackingHeader}>
-                                <Text style={styles.trackingStatus}>
-                                  {getStatusLabel(tracking.status)}
-                                </Text>
-                                <Text style={styles.trackingTime}>
-                                  {formatTrackingTime(tracking.created_at)}
-                                </Text>
-                              </View>
-                              {tracking.notes && (
-                                <Text style={styles.trackingNotes}>{tracking.notes}</Text>
-                              )}
-                            </View>
-                          </View>
-                        ))}
-                      </View>
-                    )}
-                  </>
-                )}
-
-                {(order as any).order_complaints && (order as any).order_complaints.length > 0 && (
-                  <View style={styles.complaintsSection}>
-                    <Text style={styles.complaintsSectionTitle}>Rider Reports</Text>
-                    {(order as any).order_complaints.map((complaint: any) => (
-                      <View key={complaint.id} style={styles.complaintCard}>
-                        <View style={styles.complaintHeader}>
-                          <View style={[
-                            styles.complaintStatusBadge,
-                            { backgroundColor: complaint.status === 'open' ? '#fef3c7' : complaint.status === 'resolved' ? '#d1fae5' : '#fee2e2' }
-                          ]}>
-                            <Text style={[
-                              styles.complaintStatusText,
-                              { color: complaint.status === 'open' ? '#f59e0b' : complaint.status === 'resolved' ? '#10b981' : '#ef4444' }
-                            ]}>
-                              {complaint.status.toUpperCase()}
-                            </Text>
-                          </View>
-                          <Text style={styles.complaintTime}>
-                            {new Date(complaint.created_at).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              hour: 'numeric',
-                              minute: '2-digit'
-                            })}
-                          </Text>
-                        </View>
-                        <Text style={styles.complaintType}>
-                          {complaint.complaint_type.replace(/_/g, ' ').toUpperCase()}
-                        </Text>
-                        <Text style={styles.complaintDescription}>{complaint.description}</Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
 
                 <View style={styles.orderDetails}>
                   <View style={styles.orderFooter}>
@@ -969,7 +685,7 @@ export default function CustomerHome() {
               <Search size={20} color="#6b7280" />
               <TextInput
                 style={styles.searchInput}
-                placeholder="Search by order number, address, package..."
+                placeholder="Search by order number, address..."
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 placeholderTextColor="#9ca3af"
@@ -1054,88 +770,12 @@ export default function CustomerHome() {
                       <View style={styles.historyAddressRow}>
                         <MapPin size={14} color="#f97316" />
                         <Text style={styles.historyAddressText} numberOfLines={1}>
-                          {order.pickup_address}
-                        </Text>
-                      </View>
-                      <View style={styles.historyAddressRow}>
-                        <MapPin size={14} color="#ef4444" />
-                        <Text style={styles.historyAddressText} numberOfLines={1}>
                           {order.delivery_address}
                         </Text>
                       </View>
-                      {order.scheduled_delivery_time && (
-                        <View style={styles.historyAddressRow}>
-                          <Clock size={14} color="#8b5cf6" />
-                          <Text style={styles.historyAddressText} numberOfLines={1}>
-                            Scheduled: {new Date(order.scheduled_delivery_time).toLocaleString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              hour: 'numeric',
-                              minute: '2-digit'
-                            })}
-                          </Text>
-                        </View>
-                      )}
-                      {order.order_size && (
-                        <View style={styles.historyAddressRow}>
-                          <Package size={14} color="#3b82f6" />
-                          <Text style={styles.historyAddressText} numberOfLines={1}>
-                            Size: {order.order_size.charAt(0).toUpperCase() + order.order_size.slice(1)}
-                          </Text>
-                        </View>
-                      )}
-                      {order.order_types && order.order_types.length > 0 && (
-                        <View style={styles.historyAddressRow}>
-                          <Tag size={14} color="#10b981" />
-                          <Text style={styles.historyAddressText} numberOfLines={1}>
-                            Types: {order.order_types.join(', ')}
-                          </Text>
-                        </View>
-                      )}
                     </View>
 
-                    {(order as any).order_complaints && (order as any).order_complaints.length > 0 && (
-                      <View style={[styles.complaintsSection, { marginTop: 12 }]}>
-                        <Text style={styles.complaintsSectionTitle}>Rider Reports</Text>
-                        {(order as any).order_complaints.map((complaint: any) => (
-                          <View key={complaint.id} style={styles.complaintCard}>
-                            <View style={styles.complaintHeader}>
-                              <View style={[
-                                styles.complaintStatusBadge,
-                                { backgroundColor: complaint.status === 'open' ? '#fef3c7' : complaint.status === 'resolved' ? '#d1fae5' : '#fee2e2' }
-                              ]}>
-                                <Text style={[
-                                  styles.complaintStatusText,
-                                  { color: complaint.status === 'open' ? '#f59e0b' : complaint.status === 'resolved' ? '#10b981' : '#ef4444' }
-                                ]}>
-                                  {complaint.status.toUpperCase()}
-                                </Text>
-                              </View>
-                              <Text style={styles.complaintTime}>
-                                {new Date(complaint.created_at).toLocaleDateString('en-US', {
-                                  month: 'short',
-                                  day: 'numeric',
-                                  hour: 'numeric',
-                                  minute: '2-digit'
-                                })}
-                              </Text>
-                            </View>
-                            <Text style={styles.complaintType}>
-                              {complaint.complaint_type.replace(/_/g, ' ').toUpperCase()}
-                            </Text>
-                            <Text style={styles.complaintDescription}>{complaint.description}</Text>
-                          </View>
-                        ))}
-                      </View>
-                    )}
-
                     <View style={styles.historyFooter}>
-                      <View style={styles.historyPackageInfo}>
-                        <Package size={14} color="#6b7280" />
-                        <Text style={styles.historyPackageText} numberOfLines={1}>
-                          {order.package_description}
-                        </Text>
-                      </View>
                       <View style={[styles.historyStatusBadge, {
                         backgroundColor: order.status === 'delivered' ? '#d1fae5' : '#fee2e2'
                       }]}>
@@ -1147,15 +787,6 @@ export default function CustomerHome() {
                       </View>
                     </View>
 
-                    {order.rider_name && (
-                      <View style={styles.historyRiderInfo}>
-                        <User size={12} color="#6b7280" />
-                        <Text style={styles.historyRiderName}>
-                          Delivered by {order.rider_name}
-                        </Text>
-                      </View>
-                    )}
-
                     <View style={styles.historyActions}>
                       <TouchableOpacity
                         style={styles.receiptButton}
@@ -1163,7 +794,7 @@ export default function CustomerHome() {
                         <Receipt size={16} color="#f97316" />
                         <Text style={styles.receiptButtonText}>View Receipt</Text>
                       </TouchableOpacity>
-                      {order.status === 'delivered' && order.rider_id && !ratedOrders.has(order.id) && (
+                      {order.status === 'delivered' && !ratedOrders.has(order.id) && (
                         <TouchableOpacity
                           style={styles.ratingButton}
                           onPress={() => handleOpenRating(order)}>
@@ -1444,9 +1075,9 @@ export default function CustomerHome() {
           visible={ratingModalVisible}
           onClose={handleCloseRating}
           orderId={selectedOrderForRating.id}
-          riderId={selectedOrderForRating.rider_id || ''}
+          riderId={''}
           customerId={profile?.id || ''}
-          riderName={selectedOrderForRating.rider_name || 'Your Rider'}
+          riderName={'Your Rider'}
           onSuccess={handleRatingSuccess}
         />
       )}
@@ -1682,129 +1313,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: Fonts.poppinsBold,
   },
-  riderInfo: {
-    backgroundColor: '#ffedd5',
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#d1fae5',
-  },
-  riderHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 8,
-  },
-  riderLabel: {
-    fontSize: 12,
-    fontFamily: Fonts.poppinsSemiBold,
-    color: '#f97316',
-  },
-  riderDetails: {
-    gap: 8,
-  },
-  riderDetail: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  riderName: {
-    fontSize: 14,
-    fontFamily: Fonts.poppinsBold,
-    color: '#111827',
-  },
-  callButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#ffffff',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#a7f3d0',
-  },
-  callButtonText: {
-    fontSize: 13,
-    fontFamily: Fonts.poppinsSemiBold,
-    color: '#f97316',
-  },
-  trackingToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginHorizontal: -16,
-    marginTop: 12,
-    backgroundColor: '#f9fafb',
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  trackingToggleText: {
-    flex: 1,
-    fontSize: 13,
-    fontFamily: Fonts.poppinsSemiBold,
-    color: '#6b7280',
-  },
-  trackingTimeline: {
-    marginTop: 16,
-    paddingLeft: 8,
-    paddingBottom: 8,
-  },
-  trackingItem: {
-    flexDirection: 'row',
-    position: 'relative',
-    marginBottom: 16,
-  },
-  trackingDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#f97316',
-    marginTop: 4,
-    borderWidth: 2,
-    borderColor: '#ffffff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  trackingLine: {
-    position: 'absolute',
-    left: 5.5,
-    top: 16,
-    width: 1,
-    height: '100%',
-    backgroundColor: '#e5e7eb',
-  },
-  trackingContent: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  trackingHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  trackingStatus: {
-    fontSize: 14,
-    fontFamily: Fonts.poppinsSemiBold,
-    color: '#111827',
-  },
-  trackingTime: {
-    fontSize: 12,
-    fontFamily: Fonts.poppinsRegular,
-    color: '#9ca3af',
-  },
-  trackingNotes: {
-    fontSize: 13,
-    fontFamily: Fonts.poppinsRegular,
-    color: '#6b7280',
-    lineHeight: 18,
-  },
   headerButtons: {
     flexDirection: 'row',
     gap: 12,
@@ -1879,12 +1387,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: Fonts.poppinsRegular,
     color: '#6b7280',
-  },
-  hint: {
-    fontSize: 12,
-    fontFamily: Fonts.poppinsRegular,
-    color: '#9ca3af',
-    marginTop: 4,
   },
   orderTypesContainer: {
     flexDirection: 'row',
@@ -2039,18 +1541,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
   },
-  historyPackageInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    flex: 1,
-  },
-  historyPackageText: {
-    flex: 1,
-    fontSize: 12,
-    fontFamily: Fonts.poppinsRegular,
-    color: '#6b7280',
-  },
   historyStatusBadge: {
     paddingVertical: 4,
     paddingHorizontal: 10,
@@ -2059,20 +1549,6 @@ const styles = StyleSheet.create({
   historyStatusText: {
     fontSize: 11,
     fontFamily: Fonts.poppinsBold,
-  },
-  historyRiderInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
-  },
-  historyRiderName: {
-    fontSize: 12,
-    fontFamily: Fonts.poppinsRegular,
-    color: '#6b7280',
   },
   searchContainer: {
     flexDirection: 'row',
@@ -2126,60 +1602,6 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.poppinsRegular,
     color: '#6b7280',
     textAlign: 'center',
-  },
-  complaintsSection: {
-    marginTop: 16,
-    padding: 12,
-    backgroundColor: '#fef3c7',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#fbbf24',
-  },
-  complaintsSectionTitle: {
-    fontSize: 14,
-    fontFamily: Fonts.poppinsBold,
-    color: '#92400e',
-    marginBottom: 8,
-  },
-  complaintCard: {
-    backgroundColor: '#ffffff',
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#fde68a',
-  },
-  complaintHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  complaintStatusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-  },
-  complaintStatusText: {
-    fontSize: 10,
-    fontFamily: Fonts.poppinsBold,
-  },
-  complaintTime: {
-    fontSize: 11,
-    fontFamily: Fonts.poppinsRegular,
-    color: '#6b7280',
-  },
-  complaintType: {
-    fontSize: 12,
-    fontFamily: Fonts.poppinsBold,
-    color: '#b45309',
-    marginBottom: 4,
-  },
-  complaintDescription: {
-    fontSize: 13,
-    fontFamily: Fonts.poppinsRegular,
-    color: '#374151',
-    lineHeight: 18,
   },
   receiptButton: {
     flexDirection: 'row',

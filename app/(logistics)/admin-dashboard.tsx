@@ -34,7 +34,7 @@ export default function AdminDashboard() {
       const [ordersRes, customersRes, ridersRes] = await Promise.all([
         supabase.from('orders').select('*'),
         supabase.from('profiles').select('id').eq('role', 'customer'),
-        supabase.from('riders').select('*'),
+        supabase.from('profiles').select('id').eq('role', 'rider'),
       ]);
 
       const orders = ordersRes.data || [];
