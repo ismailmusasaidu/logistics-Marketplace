@@ -2,8 +2,9 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-nati
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
-import { Truck, ShoppingBag, ArrowRight, LogOut } from 'lucide-react-native';
+import { Truck, ShoppingBag, ArrowRight, LogOut, Shield } from 'lucide-react-native';
 import { Fonts } from '@/constants/fonts';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function Hub() {
   const router = useRouter();
@@ -29,52 +30,128 @@ export default function Hub() {
     router.replace('/auth/login');
   };
 
+  const showLogistics = profile?.role === 'customer' || profile?.role === 'admin' || profile?.role === 'rider';
+  const showMarketplace = profile?.role === 'customer' || profile?.role === 'admin' || profile?.role === 'vendor';
+  const isSingleOption = (showLogistics ? 1 : 0) + (showMarketplace ? 1 : 0) === 1;
+
+  const getRoleLabel = () => {
+    switch (profile?.role) {
+      case 'admin': return 'Administrator';
+      case 'vendor': return 'Vendor';
+      case 'rider': return 'Rider';
+      default: return 'Customer';
+    }
+  };
+
+  const getSubtitle = () => {
+    if (profile?.role === 'vendor') return 'Manage your store and orders';
+    if (profile?.role === 'rider') return 'View and manage your deliveries';
+    if (profile?.role === 'admin') return 'Choose a module to manage';
+    return 'Choose a service to continue';
+  };
+
+  const getLogisticsDescription = () => {
+    if (profile?.role === 'admin') return 'Manage riders, orders, zones, pricing, and delivery operations';
+    if (profile?.role === 'rider') return 'View assigned deliveries, update statuses, and manage your profile';
+    return 'Send packages, track deliveries, and manage your logistics orders';
+  };
+
+  const getMarketplaceDescription = () => {
+    if (profile?.role === 'admin') return 'Manage vendors, products, categories, orders, and marketplace settings';
+    if (profile?.role === 'vendor') return 'Manage your store, products, orders, and track your sales';
+    return 'Browse products, shop from vendors, and manage your orders';
+  };
+
+  const getLogisticsTitle = () => {
+    if (profile?.role === 'admin') return 'Logistics Management';
+    if (profile?.role === 'rider') return 'Rider Dashboard';
+    return 'Logistics';
+  };
+
+  const getMarketplaceTitle = () => {
+    if (profile?.role === 'admin') return 'Marketplace Management';
+    if (profile?.role === 'vendor') return 'Vendor Dashboard';
+    return 'Marketplace';
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
+          <View style={styles.roleBadge}>
+            <Shield size={12} color="#ff8c00" />
+            <Text style={styles.roleBadgeText}>{getRoleLabel()}</Text>
+          </View>
           <Text style={styles.greeting}>
             Welcome{profile?.full_name ? `, ${profile.full_name}` : ''}
           </Text>
-          <Text style={styles.subtitle}>Choose a service to continue</Text>
+          <Text style={styles.subtitle}>{getSubtitle()}</Text>
         </View>
 
         <View style={styles.cardsContainer}>
-          <TouchableOpacity style={styles.card} onPress={handleLogistics} activeOpacity={0.85}>
-            <View style={styles.cardIconContainer}>
-              <View style={[styles.iconCircle, { backgroundColor: '#e0f2fe' }]}>
-                <Truck size={32} color="#0284c7" />
-              </View>
-            </View>
-            <View style={styles.cardContent}>
-              <Text style={styles.cardTitle}>Logistics</Text>
-              <Text style={styles.cardDescription}>
-                Send packages, track deliveries, and manage your logistics orders
-              </Text>
-              <View style={styles.cardFooter}>
-                <Text style={styles.cardAction}>Open Logistics</Text>
-                <ArrowRight size={16} color="#0284c7" />
-              </View>
-            </View>
-          </TouchableOpacity>
+          {showLogistics && (
+            <TouchableOpacity
+              style={[styles.card, isSingleOption && styles.cardSingle]}
+              onPress={handleLogistics}
+              activeOpacity={0.85}
+            >
+              <LinearGradient
+                colors={['#f0f9ff', '#e0f2fe']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.cardGradient}
+              >
+                <View style={styles.cardHeader}>
+                  <View style={[styles.iconCircle, { backgroundColor: '#0284c7' }]}>
+                    <Truck size={28} color="#ffffff" />
+                  </View>
+                  <ArrowRight size={20} color="#0284c7" style={styles.arrowIcon} />
+                </View>
+                <View style={styles.cardContent}>
+                  <Text style={styles.cardTitle}>{getLogisticsTitle()}</Text>
+                  <Text style={styles.cardDescription}>{getLogisticsDescription()}</Text>
+                </View>
+                <View style={[styles.cardActionBar, { backgroundColor: '#0284c7' }]}>
+                  <Text style={styles.cardActionText}>
+                    {profile?.role === 'admin' ? 'Open Management' : profile?.role === 'rider' ? 'Open Dashboard' : 'Open Logistics'}
+                  </Text>
+                  <ArrowRight size={14} color="#ffffff" />
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
 
-          <TouchableOpacity style={styles.card} onPress={handleMarketplace} activeOpacity={0.85}>
-            <View style={styles.cardIconContainer}>
-              <View style={[styles.iconCircle, { backgroundColor: '#fef3c7' }]}>
-                <ShoppingBag size={32} color="#d97706" />
-              </View>
-            </View>
-            <View style={styles.cardContent}>
-              <Text style={styles.cardTitle}>Marketplace</Text>
-              <Text style={styles.cardDescription}>
-                Browse products, shop from vendors, and manage your store
-              </Text>
-              <View style={styles.cardFooter}>
-                <Text style={[styles.cardAction, { color: '#d97706' }]}>Open Marketplace</Text>
-                <ArrowRight size={16} color="#d97706" />
-              </View>
-            </View>
-          </TouchableOpacity>
+          {showMarketplace && (
+            <TouchableOpacity
+              style={[styles.card, isSingleOption && styles.cardSingle]}
+              onPress={handleMarketplace}
+              activeOpacity={0.85}
+            >
+              <LinearGradient
+                colors={['#fffbeb', '#fef3c7']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.cardGradient}
+              >
+                <View style={styles.cardHeader}>
+                  <View style={[styles.iconCircle, { backgroundColor: '#d97706' }]}>
+                    <ShoppingBag size={28} color="#ffffff" />
+                  </View>
+                  <ArrowRight size={20} color="#d97706" style={styles.arrowIcon} />
+                </View>
+                <View style={styles.cardContent}>
+                  <Text style={styles.cardTitle}>{getMarketplaceTitle()}</Text>
+                  <Text style={styles.cardDescription}>{getMarketplaceDescription()}</Text>
+                </View>
+                <View style={[styles.cardActionBar, { backgroundColor: '#d97706' }]}>
+                  <Text style={styles.cardActionText}>
+                    {profile?.role === 'admin' ? 'Open Management' : profile?.role === 'vendor' ? 'Open Dashboard' : 'Open Marketplace'}
+                  </Text>
+                  <ArrowRight size={14} color="#ffffff" />
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
         </View>
 
         <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut} activeOpacity={0.7}>
@@ -97,8 +174,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   header: {
-    marginBottom: 40,
+    marginBottom: 32,
     alignItems: 'center',
+  },
+  roleBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#fff7ed',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+  },
+  roleBadgeText: {
+    fontSize: 12,
+    fontFamily: Fonts.semiBold,
+    color: '#c2410c',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   greeting: {
     fontSize: 28,
@@ -118,29 +214,42 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   card: {
-    backgroundColor: '#ffffff',
     borderRadius: 20,
-    padding: 24,
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: '#f1f5f9',
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 6,
   },
-  cardIconContainer: {
-    marginBottom: 16,
+  cardSingle: {
+    maxWidth: 480,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  cardGradient: {
+    padding: 24,
+    borderRadius: 20,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
   },
   iconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 56,
+    height: 56,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  arrowIcon: {
+    opacity: 0.4,
+  },
   cardContent: {
     gap: 8,
+    marginBottom: 20,
   },
   cardTitle: {
     fontSize: 22,
@@ -150,19 +259,21 @@ const styles = StyleSheet.create({
   cardDescription: {
     fontSize: 14,
     fontFamily: Fonts.regular,
-    color: '#64748b',
+    color: '#475569',
     lineHeight: 21,
   },
-  cardFooter: {
+  cardActionBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginTop: 8,
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 12,
   },
-  cardAction: {
+  cardActionText: {
     fontSize: 14,
     fontFamily: Fonts.semiBold,
-    color: '#0284c7',
+    color: '#ffffff',
   },
   signOutButton: {
     flexDirection: 'row',

@@ -7,7 +7,8 @@ import { router } from 'expo-router';
 import { Fonts } from '@/constants/fonts';
 
 export default function VendorPendingScreen() {
-  const { signOut } = useAuth();
+  const { signOut, profile } = useAuth();
+  const isRider = profile?.role === 'rider';
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -39,7 +40,12 @@ export default function VendorPendingScreen() {
     router.replace('/auth/login');
   };
 
-  const steps = [
+  const steps = isRider ? [
+    { icon: CheckCircle, text: 'Our team will review your application' },
+    { icon: Mail, text: 'We may contact you for additional details' },
+    { icon: Mail, text: "You'll receive an email once approved" },
+    { icon: ShieldCheck, text: 'After approval, access your rider dashboard' },
+  ] : [
     { icon: CheckCircle, text: 'Our team will review your business information' },
     { icon: Mail, text: 'We may contact you for additional details' },
     { icon: Mail, text: "You'll receive an email once approved" },
@@ -71,7 +77,7 @@ export default function VendorPendingScreen() {
 
           <Text style={styles.headerTitle}>Under Review</Text>
           <Text style={styles.headerSubtitle}>
-            Your vendor application has been submitted
+            Your {isRider ? 'rider' : 'vendor'} application has been submitted
           </Text>
         </Animated.View>
       </LinearGradient>

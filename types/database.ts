@@ -1,4 +1,4 @@
-export type UserRole = 'customer' | 'vendor' | 'admin';
+export type UserRole = 'customer' | 'vendor' | 'rider' | 'admin';
 
 export type VendorStatus = 'pending' | 'approved' | 'rejected';
 

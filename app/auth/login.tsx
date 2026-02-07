@@ -15,7 +15,7 @@ import { Link, router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { Fonts } from '@/constants/fonts';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Eye, EyeOff, ShoppingBag } from 'lucide-react-native';
+import { Eye, EyeOff, Layers } from 'lucide-react-native';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -90,10 +90,10 @@ export default function LoginScreen() {
           ]}
         >
           <View style={styles.logoIcon}>
-            <ShoppingBag size={32} color="#ff8c00" strokeWidth={2.5} />
+            <Layers size={32} color="#ff8c00" strokeWidth={2.5} />
           </View>
           <Text style={styles.brandName}>Danhausa</Text>
-          <Text style={styles.brandTagline}>Marketplace</Text>
+          <Text style={styles.brandTagline}>Logistics & Marketplace</Text>
         </Animated.View>
       </LinearGradient>
 
@@ -116,7 +116,7 @@ export default function LoginScreen() {
             ]}
           >
             <Text style={styles.welcomeTitle}>Welcome Back</Text>
-            <Text style={styles.welcomeSubtitle}>Sign in to continue shopping</Text>
+            <Text style={styles.welcomeSubtitle}>Sign in to your account</Text>
 
             {error ? (
               <View style={styles.errorBox}>

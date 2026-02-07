@@ -12,17 +12,18 @@ import {
   Platform,
 } from 'react-native';
 import { Link, router } from 'expo-router';
-import { supabase } from '@/lib/supabase';
+import { coreBackend } from '@/lib/coreBackend';
 import { UserRole } from '@/types/database';
 import { Fonts } from '@/constants/fonts';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Eye,
   EyeOff,
-  ShoppingBag,
+  Layers,
   Store,
   User,
   Briefcase,
+  Bike,
 } from 'lucide-react-native';
 
 export default function RegisterScreen() {
@@ -94,7 +95,7 @@ export default function RegisterScreen() {
     setError('');
 
     try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      const { data: authData, error: authError } = await coreBackend.auth.signUp({
         email,
         password,
       });
@@ -102,13 +103,14 @@ export default function RegisterScreen() {
       if (authError) throw authError;
 
       if (authData.user) {
+        const needsApproval = accountType === 'vendor' || accountType === 'rider';
         const profileData: any = {
           id: authData.user.id,
           email,
           full_name: fullName,
           phone: phone || null,
           role: accountType,
-          vendor_status: accountType === 'vendor' ? 'pending' : 'approved',
+          vendor_status: needsApproval ? 'pending' : 'approved',
         };
 
         if (accountType === 'vendor') {
@@ -119,13 +121,13 @@ export default function RegisterScreen() {
           profileData.business_license = businessLicense || null;
         }
 
-        const { error: profileError } = await supabase.from('profiles').insert(profileData);
+        const { error: profileError } = await coreBackend.from('profiles').insert(profileData);
 
         if (profileError) throw profileError;
 
         await new Promise(resolve => setTimeout(resolve, 500));
 
-        if (accountType === 'vendor') {
+        if (needsApproval) {
           setError('');
           router.replace('/auth/vendor-pending');
         } else {
@@ -160,7 +162,7 @@ export default function RegisterScreen() {
           ]}
         >
           <View style={styles.logoIcon}>
-            <ShoppingBag size={28} color="#ff8c00" strokeWidth={2.5} />
+            <Layers size={28} color="#ff8c00" strokeWidth={2.5} />
           </View>
           <Text style={styles.brandName}>Join Danhausa</Text>
           <Text style={styles.brandTagline}>Create your account</Text>
@@ -266,6 +268,44 @@ export default function RegisterScreen() {
                   ]}
                 >
                   Open a store
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.accountTypeButton,
+                  accountType === 'rider' && styles.accountTypeActive,
+                ]}
+                onPress={() => setAccountType('rider')}
+                activeOpacity={0.8}
+              >
+                <View
+                  style={[
+                    styles.accountTypeIcon,
+                    accountType === 'rider' && styles.accountTypeIconActive,
+                  ]}
+                >
+                  <Bike
+                    size={20}
+                    color={accountType === 'rider' ? '#ffffff' : '#ff8c00'}
+                    strokeWidth={2}
+                  />
+                </View>
+                <Text
+                  style={[
+                    styles.accountTypeText,
+                    accountType === 'rider' && styles.accountTypeTextActive,
+                  ]}
+                >
+                  Deliver
+                </Text>
+                <Text
+                  style={[
+                    styles.accountTypeDesc,
+                    accountType === 'rider' && styles.accountTypeDescActive,
+                  ]}
+                >
+                  Become a rider
                 </Text>
               </TouchableOpacity>
             </View>
@@ -434,6 +474,14 @@ export default function RegisterScreen() {
               </>
             )}
 
+            {accountType === 'rider' && (
+              <View style={styles.vendorNote}>
+                <Text style={styles.vendorNoteText}>
+                  Your rider account will be reviewed and approved by our team. This usually takes 24-48 hours.
+                </Text>
+              </View>
+            )}
+
             <TouchableOpacity
               style={[styles.submitButton, loading && styles.submitButtonDisabled]}
               onPress={handleRegister}
@@ -450,7 +498,7 @@ export default function RegisterScreen() {
                   <ActivityIndicator color="#ffffff" />
                 ) : (
                   <Text style={styles.submitText}>
-                    {accountType === 'vendor' ? 'Submit Application' : 'Create Account'}
+                    {accountType === 'vendor' || accountType === 'rider' ? 'Submit Application' : 'Create Account'}
                   </Text>
                 )}
               </LinearGradient>

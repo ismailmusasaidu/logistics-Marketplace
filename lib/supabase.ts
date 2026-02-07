@@ -21,7 +21,7 @@ export type Profile = {
   email: string;
   full_name: string;
   phone: string | null;
-  role: 'customer' | 'rider' | 'admin';
+  role: 'customer' | 'rider' | 'vendor' | 'admin';
   avatar_url: string | null;
   wallet_balance: number;
   created_at: string;
