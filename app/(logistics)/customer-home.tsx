@@ -144,16 +144,7 @@ export default function CustomerHome() {
     try {
       const { data, error } = await supabase
         .from('orders')
-        .select(`
-          *,
-          order_complaints(
-            id,
-            complaint_type,
-            description,
-            status,
-            created_at
-          )
-        `)
+        .select('*')
         .eq('customer_id', profile?.id)
         .order('created_at', { ascending: false });
 
@@ -183,15 +174,18 @@ export default function CustomerHome() {
           setOrderTracking(trackingByOrder);
         }
 
-        const { data: ratingsData } = await supabase
-          .from('ratings')
-          .select('order_id')
-          .eq('customer_id', profile?.id)
-          .in('order_id', orderIds);
+        try {
+          const { data: ratingsData } = await supabase
+            .from('ratings')
+            .select('order_id')
+            .eq('customer_id', profile?.id)
+            .in('order_id', orderIds);
 
-        if (ratingsData) {
-          const ratedOrderIds = new Set(ratingsData.map(r => r.order_id));
-          setRatedOrders(ratedOrderIds);
+          if (ratingsData) {
+            const ratedOrderIds = new Set(ratingsData.map(r => r.order_id));
+            setRatedOrders(ratedOrderIds);
+          }
+        } catch {
         }
       }
     } catch (error) {
