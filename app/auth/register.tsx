@@ -95,33 +95,39 @@ export default function RegisterScreen() {
     setError('');
 
     try {
+      const needsApproval = accountType === 'vendor' || accountType === 'rider';
+
       const { data: authData, error: authError } = await coreBackend.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            full_name: fullName,
+            role: accountType,
+            phone: phone || '',
+          },
+        },
       });
 
       if (authError) throw authError;
 
       if (authData.user) {
-        const needsApproval = accountType === 'vendor' || accountType === 'rider';
-        const profileData: any = {
-          id: authData.user.id,
-          email,
-          full_name: fullName,
-          phone: phone || null,
-          role: accountType,
+        const updateData: any = {
           vendor_status: needsApproval ? 'pending' : 'approved',
         };
 
         if (accountType === 'vendor') {
-          profileData.business_name = businessName;
-          profileData.business_description = businessDescription || null;
-          profileData.business_address = businessAddress;
-          profileData.business_phone = businessPhone;
-          profileData.business_license = businessLicense || null;
+          updateData.business_name = businessName;
+          updateData.business_description = businessDescription || null;
+          updateData.business_address = businessAddress;
+          updateData.business_phone = businessPhone;
+          updateData.business_license = businessLicense || null;
         }
 
-        const { error: profileError } = await coreBackend.from('profiles').insert(profileData);
+        const { error: profileError } = await coreBackend
+          .from('profiles')
+          .update(updateData)
+          .eq('id', authData.user.id);
 
         if (profileError) throw profileError;
 
