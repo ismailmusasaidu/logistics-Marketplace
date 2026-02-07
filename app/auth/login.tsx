@@ -23,7 +23,8 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const { signIn } = useAuth();
+  const [loginSucceeded, setLoginSucceeded] = useState(false);
+  const { signIn, profile, session } = useAuth();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -50,6 +51,20 @@ export default function LoginScreen() {
     ]).start();
   }, []);
 
+  useEffect(() => {
+    if (!loginSucceeded || !session || !profile) return;
+
+    const needsApproval =
+      (profile.role === 'vendor' || profile.role === 'rider') &&
+      profile.vendor_status !== 'approved';
+
+    if (needsApproval) {
+      router.replace('/auth/vendor-pending');
+    } else {
+      router.replace('/hub');
+    }
+  }, [loginSucceeded, session, profile]);
+
   const handleLogin = async () => {
     if (!email || !password) {
       setError('Please fill in all fields');
@@ -61,8 +76,7 @@ export default function LoginScreen() {
 
     try {
       await signIn(email, password);
-      await new Promise(resolve => setTimeout(resolve, 500));
-      router.replace('/hub');
+      setLoginSucceeded(true);
     } catch (err: any) {
       setError(err.message || 'Failed to sign in');
       setLoading(false);

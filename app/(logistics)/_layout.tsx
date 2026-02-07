@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Tabs, router } from 'expo-router';
 import { Package, User, LayoutDashboard, Bike, Users, DollarSign, Building2, MapPin, Headphones, ArrowLeft } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,6 +15,17 @@ const hubListener = {
 export default function TabLayout() {
   const { profile } = useAuth();
   const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    if (!profile) return;
+    const needsApproval =
+      (profile.role === 'vendor' || profile.role === 'rider') &&
+      profile.vendor_status !== 'approved';
+
+    if (needsApproval) {
+      router.replace('/auth/vendor-pending');
+    }
+  }, [profile]);
 
   if (!profile) {
     return null;

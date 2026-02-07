@@ -11,7 +11,15 @@ export default function Index() {
     if (!loading) {
       const redirect = setTimeout(() => {
         if (session && profile) {
-          router.replace('/hub');
+          const needsApproval =
+            (profile.role === 'vendor' || profile.role === 'rider') &&
+            profile.vendor_status !== 'approved';
+
+          if (needsApproval) {
+            router.replace('/auth/vendor-pending');
+          } else {
+            router.replace('/hub');
+          }
         } else {
           router.replace('/auth/login');
         }

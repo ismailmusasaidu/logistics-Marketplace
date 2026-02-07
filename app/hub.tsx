@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,6 +10,17 @@ import { LinearGradient } from 'expo-linear-gradient';
 export default function Hub() {
   const router = useRouter();
   const { profile, signOut } = useAuth();
+
+  useEffect(() => {
+    if (!profile) return;
+    const needsApproval =
+      (profile.role === 'vendor' || profile.role === 'rider') &&
+      profile.vendor_status !== 'approved';
+
+    if (needsApproval) {
+      router.replace('/auth/vendor-pending');
+    }
+  }, [profile]);
 
   const handleLogistics = () => {
     if (!profile) return;

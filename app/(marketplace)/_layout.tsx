@@ -22,6 +22,16 @@ export default function TabLayout() {
   useEffect(() => {
     if (!loading && (!session || !profile)) {
       router.replace('/auth/login');
+      return;
+    }
+    if (!loading && profile) {
+      const needsApproval =
+        (profile.role === 'vendor' || profile.role === 'rider') &&
+        profile.vendor_status !== 'approved';
+
+      if (needsApproval) {
+        router.replace('/auth/vendor-pending');
+      }
     }
   }, [session, profile, loading]);
 
