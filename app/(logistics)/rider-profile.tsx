@@ -1,11 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, TextInput, ActivityIndicator } from 'react-native';
-import { User, Mail, LogOut, Edit, Save, X, Phone, Calendar } from 'lucide-react-native';
+import { User, Mail, LogOut, Edit, Save, X, Phone, Calendar, Bike, FileText, Hash } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
 import { Fonts } from '@/constants/fonts';
+
+interface RiderInfo {
+  id: string;
+  vehicle_type: string;
+  vehicle_number: string;
+  license_number: string;
+  zone_id: string | null;
+}
 
 export default function RiderProfile() {
   const { profile, signOut, refreshProfile } = useAuth();
@@ -14,12 +22,48 @@ export default function RiderProfile() {
   const [loading, setLoading] = useState(false);
   const [fullName, setFullName] = useState(profile?.full_name || '');
   const [phone, setPhone] = useState(profile?.phone || '');
+  const [riderInfo, setRiderInfo] = useState<RiderInfo | null>(null);
+  const [vehicleType, setVehicleType] = useState('bike');
+  const [vehicleNumber, setVehicleNumber] = useState('');
+  const [licenseNumber, setLicenseNumber] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadRiderInfo();
+  }, [profile?.id]);
+
+  const loadRiderInfo = async () => {
+    if (!profile?.id) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('riders')
+        .select('*')
+        .eq('user_id', profile.id)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        setRiderInfo(data);
+        setVehicleType(data.vehicle_type);
+        setVehicleNumber(data.vehicle_number);
+        setLicenseNumber(data.license_number);
+      }
+    } catch (err) {
+      console.error('Error loading rider info:', err);
+    }
+  };
 
   const handleEdit = () => {
     setFullName(profile?.full_name || '');
     setPhone(profile?.phone || '');
+    if (riderInfo) {
+      setVehicleType(riderInfo.vehicle_type);
+      setVehicleNumber(riderInfo.vehicle_number);
+      setLicenseNumber(riderInfo.license_number);
+    }
     setError(null);
     setSuccess(null);
     setIsEditing(true);
@@ -28,6 +72,11 @@ export default function RiderProfile() {
   const handleCancel = () => {
     setFullName(profile?.full_name || '');
     setPhone(profile?.phone || '');
+    if (riderInfo) {
+      setVehicleType(riderInfo.vehicle_type);
+      setVehicleNumber(riderInfo.vehicle_number);
+      setLicenseNumber(riderInfo.license_number);
+    }
     setError(null);
     setSuccess(null);
     setIsEditing(false);
@@ -36,12 +85,17 @@ export default function RiderProfile() {
   const handleSave = async () => {
     if (!profile?.id) return;
 
+    if (!vehicleNumber.trim() || !licenseNumber.trim()) {
+      setError('Vehicle number and license number are required');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setSuccess(null);
 
     try {
-      const { error: updateError } = await supabase
+      const { error: profileError } = await supabase
         .from('profiles')
         .update({
           full_name: fullName.trim() || null,
@@ -50,9 +104,34 @@ export default function RiderProfile() {
         })
         .eq('id', profile.id);
 
-      if (updateError) throw updateError;
+      if (profileError) throw profileError;
+
+      if (riderInfo) {
+        const { error: riderError } = await supabase
+          .from('riders')
+          .update({
+            vehicle_type: vehicleType,
+            vehicle_number: vehicleNumber.trim(),
+            license_number: licenseNumber.trim(),
+          })
+          .eq('id', riderInfo.id);
+
+        if (riderError) throw riderError;
+      } else {
+        const { error: riderError } = await supabase
+          .from('riders')
+          .insert({
+            user_id: profile.id,
+            vehicle_type: vehicleType,
+            vehicle_number: vehicleNumber.trim(),
+            license_number: licenseNumber.trim(),
+          });
+
+        if (riderError) throw riderError;
+      }
 
       await refreshProfile();
+      await loadRiderInfo();
       setSuccess('Profile updated successfully');
       setIsEditing(false);
       setTimeout(() => setSuccess(null), 3000);
@@ -210,6 +289,106 @@ export default function RiderProfile() {
               </View>
             </View>
           </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Vehicle Information</Text>
+
+          {!riderInfo && !isEditing && (
+            <View style={styles.setupPrompt}>
+              <Bike size={48} color="#f97316" />
+              <Text style={styles.setupPromptTitle}>Complete Your Rider Profile</Text>
+              <Text style={styles.setupPromptText}>
+                Add your vehicle information to get assigned to delivery zones and start receiving orders.
+              </Text>
+              <TouchableOpacity style={styles.setupPromptButton} onPress={handleEdit}>
+                <Text style={styles.setupPromptButtonText}>Add Vehicle Info</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {(riderInfo || isEditing) && (
+            <View style={styles.infoCard}>
+              <View style={styles.infoRow}>
+                <View style={styles.iconContainer}>
+                  <Bike size={20} color="#f97316" />
+                </View>
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoLabel}>Vehicle Type</Text>
+                  {isEditing ? (
+                    <View style={styles.vehicleTypeContainer}>
+                      {['bike', 'motorcycle', 'car', 'van'].map((type) => (
+                        <TouchableOpacity
+                          key={type}
+                          style={[
+                            styles.vehicleTypeButton,
+                            vehicleType === type && styles.vehicleTypeButtonActive
+                          ]}
+                          onPress={() => setVehicleType(type)}
+                          disabled={loading}
+                        >
+                          <Text style={[
+                            styles.vehicleTypeText,
+                            vehicleType === type && styles.vehicleTypeTextActive
+                          ]}>
+                            {type.charAt(0).toUpperCase() + type.slice(1)}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  ) : (
+                    <Text style={styles.infoValue}>
+                      {riderInfo?.vehicle_type ? riderInfo.vehicle_type.charAt(0).toUpperCase() + riderInfo.vehicle_type.slice(1) : 'Not set'}
+                    </Text>
+                  )}
+                </View>
+              </View>
+
+              <View style={styles.divider} />
+
+              <View style={styles.infoRow}>
+                <View style={styles.iconContainer}>
+                  <Hash size={20} color="#f97316" />
+                </View>
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoLabel}>Vehicle Number</Text>
+                  {isEditing ? (
+                    <TextInput
+                      style={styles.inputInline}
+                      value={vehicleNumber}
+                      onChangeText={setVehicleNumber}
+                      placeholder="Enter vehicle number/plate"
+                      editable={!loading}
+                    />
+                  ) : (
+                    <Text style={styles.infoValue}>{riderInfo?.vehicle_number || 'Not set'}</Text>
+                  )}
+                </View>
+              </View>
+
+              <View style={styles.divider} />
+
+              <View style={styles.infoRow}>
+                <View style={styles.iconContainer}>
+                  <FileText size={20} color="#f97316" />
+                </View>
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoLabel}>License Number</Text>
+                  {isEditing ? (
+                    <TextInput
+                      style={styles.inputInline}
+                      value={licenseNumber}
+                      onChangeText={setLicenseNumber}
+                      placeholder="Enter driver's license number"
+                      editable={!loading}
+                    />
+                  ) : (
+                    <Text style={styles.infoValue}>{riderInfo?.license_number || 'Not set'}</Text>
+                  )}
+                </View>
+              </View>
+            </View>
+          )}
         </View>
 
         {isEditing && (
@@ -503,5 +682,69 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: Fonts.poppinsBold,
     color: '#ffffff',
+  },
+  setupPrompt: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 32,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  setupPromptTitle: {
+    fontSize: 18,
+    fontFamily: Fonts.poppinsBold,
+    color: '#111827',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  setupPromptText: {
+    fontSize: 14,
+    fontFamily: Fonts.poppinsRegular,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  setupPromptButton: {
+    backgroundColor: '#f97316',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  setupPromptButtonText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontFamily: Fonts.poppinsBold,
+  },
+  vehicleTypeContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
+  },
+  vehicleTypeButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    backgroundColor: '#ffffff',
+  },
+  vehicleTypeButtonActive: {
+    borderColor: '#f97316',
+    backgroundColor: '#fed7aa',
+  },
+  vehicleTypeText: {
+    fontSize: 14,
+    fontFamily: Fonts.poppinsMedium,
+    color: '#6b7280',
+  },
+  vehicleTypeTextActive: {
+    color: '#f97316',
+    fontFamily: Fonts.poppinsBold,
   },
 });
