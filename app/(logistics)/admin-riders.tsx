@@ -93,24 +93,34 @@ export default function AdminRiders() {
         .from('profiles')
         .select('*')
         .eq('id', riderId)
-        .single();
+        .maybeSingle();
 
       if (profileError) throw profileError;
+      if (!profileData) {
+        throw new Error('Rider profile not found');
+      }
 
       const { data: riderData, error: riderError } = await supabase
         .from('riders')
         .select('total_deliveries, rating, zone_id, zones(name)')
         .eq('user_id', riderId)
-        .single();
+        .maybeSingle();
 
-      if (riderError) throw riderError;
+      if (riderError) {
+        console.error('Error loading rider data:', riderError);
+      }
+
+      let zoneName = null;
+      if (riderData?.zones && typeof riderData.zones === 'object' && 'name' in riderData.zones) {
+        zoneName = (riderData.zones as any).name;
+      }
 
       const details: RiderDetails = {
         ...profileData,
         total_deliveries: riderData?.total_deliveries || 0,
         rating: riderData?.rating || 0,
         zone_id: riderData?.zone_id || null,
-        zone_name: riderData?.zones?.name || null,
+        zone_name: zoneName,
       };
 
       setSelectedRider(details);
