@@ -130,6 +130,9 @@ export interface Order {
   delivery_type: 'pickup' | 'delivery';
   payment_method: PaymentMethod;
   payment_status: PaymentStatus;
+  discount_amount?: number;
+  promo_code?: string;
+  promo_id?: string;
   notes?: string;
   created_at: string;
   updated_at: string;

@@ -52,6 +52,9 @@ export type Order = {
   delivery_type: 'pickup' | 'delivery';
   payment_method: 'wallet' | 'online' | 'cash_on_delivery' | 'transfer';
   payment_status: 'pending' | 'completed' | 'failed';
+  discount_amount: number;
+  promo_code: string | null;
+  promo_id: string | null;
   notes: string | null;
   confirmed_at: string | null;
   preparing_at: string | null;
