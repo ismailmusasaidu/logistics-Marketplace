@@ -82,7 +82,7 @@ export default function DeliveryAddressForm({
       setGeocodeError('');
 
       const fullAddress = `${addressLine1}, ${addressLine2 ? addressLine2 + ', ' : ''}${city}, ${state}, ${postalCode}`;
-      const origin = `${storeLocation.latitude},${storeLocation.longitude}`;
+      const pickupAddress = `${storeLocation.latitude},${storeLocation.longitude}`;
       const apiUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/calculate-distance`;
 
       const response = await fetch(apiUrl, {
@@ -92,15 +92,15 @@ export default function DeliveryAddressForm({
           'Authorization': `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
         },
         body: JSON.stringify({
-          origin,
-          destination: fullAddress,
+          pickupAddress,
+          deliveryAddress: fullAddress,
         }),
       });
 
       const data = await response.json();
 
-      if (data.success && data.distanceKm) {
-        setGeocodedCoordinates({ lat: data.distanceKm, lon: 0 });
+      if (data.distance !== undefined) {
+        setGeocodedCoordinates({ lat: data.distance, lon: 0 });
         setGeocodeError('');
       } else if (data.error) {
         setGeocodeError(data.error);
