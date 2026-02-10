@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase } from '@/lib/supabase';
+import { coreBackend as supabase } from '@/lib/coreBackend';
 import { useAuth } from './AuthContext';
 
 interface WishlistItem {
