@@ -16,6 +16,7 @@ import {
   Shield,
   ShoppingBag,
   UserCircle,
+  Bike,
   Edit3,
   Trash2,
   X,
@@ -38,7 +39,7 @@ interface UserProfile {
   full_name: string;
   email: string;
   phone: string | null;
-  role: 'customer' | 'vendor' | 'admin';
+  role: 'customer' | 'vendor' | 'rider' | 'admin';
   created_at: string;
   is_suspended: boolean;
   suspended_at: string | null;
@@ -48,27 +49,31 @@ interface UserManagementProps {
   onBack?: () => void;
 }
 
-const roleIcons = {
+const roleIcons: Record<string, any> = {
   admin: Shield,
   vendor: ShoppingBag,
+  rider: Bike,
   customer: UserCircle,
 };
 
-const roleColors = {
+const roleColors: Record<string, string> = {
   admin: '#ef4444',
   vendor: '#ff8c00',
+  rider: '#06b6d4',
   customer: '#3b82f6',
 };
 
-const roleBgColors = {
+const roleBgColors: Record<string, string> = {
   admin: '#fef2f2',
   vendor: '#fff7ed',
+  rider: '#ecfeff',
   customer: '#eff6ff',
 };
 
-const roleLabels = {
+const roleLabels: Record<string, string> = {
   admin: 'Admin',
   vendor: 'Vendor',
+  rider: 'Rider',
   customer: 'Customer',
 };
 
@@ -76,6 +81,7 @@ const FILTER_TABS = [
   { key: 'all', label: 'All' },
   { key: 'customer', label: 'Customers' },
   { key: 'vendor', label: 'Vendors' },
+  { key: 'rider', label: 'Riders' },
   { key: 'admin', label: 'Admins' },
   { key: 'suspended', label: 'Suspended' },
 ];
@@ -91,7 +97,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
   const [editForm, setEditForm] = useState({
     full_name: '',
     phone: '',
-    role: 'customer' as 'customer' | 'vendor' | 'admin',
+    role: 'customer' as 'customer' | 'vendor' | 'rider' | 'admin',
   });
   const [updating, setUpdating] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -387,7 +393,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
       </View>
 
       <View style={styles.statsRow}>
-        {(['admin', 'vendor', 'customer'] as const).map((role) => {
+        {(['admin', 'vendor', 'rider', 'customer'] as const).map((role) => {
           const Icon = roleIcons[role];
           const color = roleColors[role];
           const bg = roleBgColors[role];
@@ -577,7 +583,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                 <View style={styles.formGroup}>
                   <Text style={styles.formLabel}>Role</Text>
                   <View style={styles.roleOptions}>
-                    {(['customer', 'vendor', 'admin'] as const).map((role) => {
+                    {(['customer', 'vendor', 'rider', 'admin'] as const).map((role) => {
                       const Icon = roleIcons[role];
                       const color = roleColors[role];
                       const isSelected = editForm.role === role;
