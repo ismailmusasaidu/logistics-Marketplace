@@ -396,6 +396,7 @@ export default function BulkOrderModal({ visible, onClose, onSuccess, customerId
           scheduled_delivery_time: scheduledDeliveryTime,
           order_size: delivery.orderSize || null,
           order_types: delivery.orderTypes.length > 0 ? delivery.orderTypes : null,
+          order_source: 'logistics',
         };
       }));
 

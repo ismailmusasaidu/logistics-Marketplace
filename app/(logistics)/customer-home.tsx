@@ -102,6 +102,7 @@ export default function CustomerHome() {
         .from('orders')
         .select('*')
         .eq('customer_id', profile?.id)
+        .eq('order_source', 'logistics')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -316,6 +317,7 @@ export default function CustomerHome() {
           payment_status: 'completed',
           status: 'pending',
           notes: orderDetails.notes,
+          order_source: 'logistics',
         })
         .select()
         .single();
@@ -423,6 +425,7 @@ export default function CustomerHome() {
         payment_status: 'pending',
         status: 'pending',
         notes: notes,
+        order_source: 'logistics',
       };
 
       const { data: orderData, error: orderError } = await supabase

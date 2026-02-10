@@ -140,6 +140,7 @@ export default function VendorOrderManagement({ onBack }: VendorOrderManagementP
         `
         )
         .eq('vendor_id', vendorId)
+        .eq('order_source', 'marketplace')
         .order('created_at', { ascending: false });
 
       if (error) throw error;

@@ -188,7 +188,9 @@ export default function OrderManagement({ onBack }: OrderManagementProps) {
 
       const data = await response.json();
 
-      const formattedOrders: OrderWithCustomer[] = data.map((order: any) => ({
+      const marketplaceOrders = data.filter((order: any) => order.order_source === 'marketplace');
+
+      const formattedOrders: OrderWithCustomer[] = marketplaceOrders.map((order: any) => ({
         ...order,
         customer: order.customer || { full_name: 'Unknown', email: 'N/A', phone: null },
         vendor: order.vendor || { business_name: 'Unknown', store_name: 'Unknown' },

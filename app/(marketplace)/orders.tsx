@@ -109,6 +109,7 @@ export default function OrdersScreen() {
         .from('orders')
         .select('*')
         .eq('customer_id', profile.id)
+        .eq('order_source', 'marketplace')
         .order('created_at', { ascending: false });
 
       if (error) throw error;

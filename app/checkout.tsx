@@ -603,6 +603,7 @@ export default function CheckoutScreen() {
           status: 'pending',
           payment_method: paymentMethod,
           payment_status: (paymentMethod === 'wallet' || paymentCompleted) ? 'completed' : 'pending',
+          order_source: 'marketplace',
         })
         .select()
         .single();

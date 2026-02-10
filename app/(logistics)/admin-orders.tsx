@@ -156,6 +156,7 @@ export default function AdminOrders() {
             product:products(id, name, image_url)
           )
         `)
+        .eq('order_source', 'logistics')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
