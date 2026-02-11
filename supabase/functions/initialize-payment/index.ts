@@ -41,21 +41,24 @@ Deno.serve(async (req: Request) => {
     const amountInKobo = Math.round(amount * 100);
 
     const initializeUrl = "https://api.paystack.co/transaction/initialize";
+    const payload: Record<string, unknown> = {
+      email,
+      amount: amountInKobo,
+    };
+    if (orderId) {
+      payload.reference = orderId;
+    }
+    if (metadata || orderId) {
+      payload.metadata = { ...metadata, orderId };
+    }
+
     const initializeResponse = await fetch(initializeUrl, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${paystackSecretKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        email,
-        amount: amountInKobo,
-        reference: orderId,
-        metadata: {
-          ...metadata,
-          orderId,
-        },
-      }),
+      body: JSON.stringify(payload),
     });
 
     const initializeData = await initializeResponse.json();
@@ -64,8 +67,7 @@ Deno.serve(async (req: Request) => {
       return new Response(
         JSON.stringify({
           success: false,
-          error: "Failed to initialize payment",
-          details: initializeData.message,
+          error: initializeData.message || "Failed to initialize payment",
         }),
         {
           status: 400,
