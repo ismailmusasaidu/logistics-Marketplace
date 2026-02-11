@@ -78,10 +78,17 @@ export class PricingCalculator {
       .from('delivery_zones')
       .select('*')
       .eq('is_active', true)
-      .order('min_distance');
+      .order('min_distance_km');
 
     if (!error && data) {
-      this.zones = data;
+      this.zones = data.map(zone => ({
+        id: zone.id,
+        zone_name: zone.name,
+        min_distance: parseFloat(zone.min_distance_km),
+        max_distance: parseFloat(zone.max_distance_km),
+        base_price: parseFloat(zone.price),
+        is_active: zone.is_active,
+      }));
     }
   }
 
