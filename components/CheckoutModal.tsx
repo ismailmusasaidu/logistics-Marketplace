@@ -95,6 +95,7 @@ export function CheckoutModal({ visible, onClose, onConfirm, pricing, userId, us
         headers: {
           'Authorization': `Bearer ${session?.access_token}`,
           'Content-Type': 'application/json',
+          'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
         },
         body: JSON.stringify({
           email: userEmail,
@@ -108,18 +109,25 @@ export function CheckoutModal({ visible, onClose, onConfirm, pricing, userId, us
         }),
       });
 
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Failed to initialize payment');
+      let data;
+      const responseText = await response.text();
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        throw new Error(`Server returned invalid response (${response.status})`);
       }
 
-      const supported = await Linking.canOpenURL(data.authorizationUrl);
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || data.msg || data.message || 'Failed to initialize payment');
+      }
+
+      const authUrl = data.data?.authorization_url || data.authorizationUrl;
+      const supported = await Linking.canOpenURL(authUrl);
       if (supported) {
-        await Linking.openURL(data.authorizationUrl);
+        await Linking.openURL(authUrl);
 
         setProcessingPayment(false);
-        setPaystackRef(data.reference);
+        setPaystackRef(data.data?.reference || data.reference);
         setVerificationPaymentMethod('online');
         setShowVerificationModal(true);
       } else {

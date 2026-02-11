@@ -421,6 +421,12 @@ export default function CheckoutScreen() {
         return;
       }
 
+      const email = profile.email || session.user?.email;
+      if (!email) {
+        Alert.alert('Error', 'Email address is required for payment');
+        return;
+      }
+
       const response = await fetch(
         `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/initialize-payment`,
         {
@@ -428,18 +434,26 @@ export default function CheckoutScreen() {
           headers: {
             'Authorization': `Bearer ${session.access_token}`,
             'Content-Type': 'application/json',
+            'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
           },
           body: JSON.stringify({
             amount: total,
-            email: profile.email,
+            email,
           }),
         }
       );
 
-      const result = await response.json();
+      let result;
+      const responseText = await response.text();
+      try {
+        result = JSON.parse(responseText);
+      } catch {
+        throw new Error(`Server returned invalid response (${response.status}): ${responseText.substring(0, 200)}`);
+      }
 
-      if (!result.success) {
-        if (result.error === 'Paystack secret key not configured') {
+      if (!response.ok || !result.success) {
+        const errorMsg = result.error || result.msg || result.message || 'Failed to initialize payment';
+        if (errorMsg === 'Paystack secret key not configured') {
           Alert.alert(
             'Coming Soon',
             'Online payment integration will be available soon. Please use another payment method.',
@@ -447,7 +461,7 @@ export default function CheckoutScreen() {
           );
           return;
         }
-        throw new Error(result.error || 'Failed to initialize payment');
+        throw new Error(errorMsg);
       }
 
       setPaymentUrl(result.data.authorization_url);
@@ -465,7 +479,7 @@ export default function CheckoutScreen() {
       console.error('Error initializing payment:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-      if (errorMessage === 'Paystack secret key not configured') {
+      if (errorMessage.includes('Paystack secret key not configured')) {
         Alert.alert(
           'Coming Soon',
           'Online payment integration will be available soon. Please use another payment method.',
