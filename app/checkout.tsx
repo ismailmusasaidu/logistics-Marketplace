@@ -431,9 +431,8 @@ export default function CheckoutScreen() {
       const response = await fetch(`${CORE_URL}/functions/v1/initialize-payment`, {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-          'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
         },
         body: JSON.stringify({ amount: total, email }),
       });
