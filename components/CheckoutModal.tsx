@@ -87,17 +87,8 @@ export function CheckoutModal({ visible, onClose, onConfirm, pricing, userId, us
     try {
       const tempOrderId = orderId || `order_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
-      const apiUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/initialize-payment`;
-      const { data: { session } } = await supabase.auth.getSession();
-
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session?.access_token}`,
-          'Content-Type': 'application/json',
-          'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
-        },
-        body: JSON.stringify({
+      const { data, error: invokeError } = await supabase.functions.invoke('initialize-payment', {
+        body: {
           email: userEmail,
           amount: pricing.finalPrice,
           orderId: tempOrderId,
@@ -106,28 +97,24 @@ export function CheckoutModal({ visible, onClose, onConfirm, pricing, userId, us
             deliveryFee: pricing.finalPrice,
             promoCode: pricing.promoApplied,
           },
-        }),
+        },
       });
 
-      let data;
-      const responseText = await response.text();
-      try {
-        data = JSON.parse(responseText);
-      } catch {
-        throw new Error(`Server returned invalid response (${response.status})`);
+      if (invokeError) {
+        throw new Error(invokeError.message || 'Failed to initialize payment');
       }
 
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || data.msg || data.message || 'Failed to initialize payment');
+      if (!data?.success) {
+        throw new Error(data?.error || 'Failed to initialize payment');
       }
 
-      const authUrl = data.data?.authorization_url || data.authorizationUrl;
+      const authUrl = data.data.authorization_url;
       const supported = await Linking.canOpenURL(authUrl);
       if (supported) {
         await Linking.openURL(authUrl);
 
         setProcessingPayment(false);
-        setPaystackRef(data.data?.reference || data.reference);
+        setPaystackRef(data.data.reference);
         setVerificationPaymentMethod('online');
         setShowVerificationModal(true);
       } else {

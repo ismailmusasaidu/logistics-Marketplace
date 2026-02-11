@@ -427,32 +427,16 @@ export default function CheckoutScreen() {
         return;
       }
 
-      const response = await fetch(
-        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/initialize-payment`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-            'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
-          },
-          body: JSON.stringify({
-            amount: total,
-            email,
-          }),
-        }
-      );
+      const { data: result, error: invokeError } = await supabase.functions.invoke('initialize-payment', {
+        body: { amount: total, email },
+      });
 
-      let result;
-      const responseText = await response.text();
-      try {
-        result = JSON.parse(responseText);
-      } catch {
-        throw new Error(`Server returned invalid response (${response.status}): ${responseText.substring(0, 200)}`);
+      if (invokeError) {
+        throw new Error(invokeError.message || 'Failed to initialize payment');
       }
 
-      if (!response.ok || !result.success) {
-        const errorMsg = result.error || result.msg || result.message || 'Failed to initialize payment';
+      if (!result?.success) {
+        const errorMsg = result?.error || 'Failed to initialize payment';
         if (errorMsg === 'Paystack secret key not configured') {
           Alert.alert(
             'Coming Soon',
@@ -508,26 +492,13 @@ export default function CheckoutScreen() {
         return;
       }
 
-      const verifyUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/verify-payment?reference=${paymentReference}&type=order`;
-
-      console.log('Verifying payment with reference:', paymentReference);
-
-      const response = await fetch(verifyUrl, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        },
+      const { data: result, error: invokeError } = await supabase.functions.invoke('verify-payment', {
+        body: { reference: paymentReference, type: 'order' },
       });
 
-      console.log('Verify response status:', response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Verify response error:', errorText);
-        throw new Error(`Server error: ${response.status}`);
+      if (invokeError) {
+        throw new Error(invokeError.message || 'Payment verification failed');
       }
-
-      const result = await response.json();
-      console.log('Verify result:', result);
 
       if (result.success) {
         setShowPaymentWebView(false);

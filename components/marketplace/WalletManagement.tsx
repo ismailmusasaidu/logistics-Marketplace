@@ -227,32 +227,16 @@ export default function WalletManagement() {
         return;
       }
 
-      const response = await fetch(
-        `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/initialize-payment`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-            'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
-          },
-          body: JSON.stringify({
-            amount,
-            email,
-          }),
-        }
-      );
+      const { data: result, error: invokeError } = await supabase.functions.invoke('initialize-payment', {
+        body: { amount, email },
+      });
 
-      let result;
-      const responseText = await response.text();
-      try {
-        result = JSON.parse(responseText);
-      } catch {
-        throw new Error(`Server returned invalid response (${response.status}): ${responseText.substring(0, 200)}`);
+      if (invokeError) {
+        throw new Error(invokeError.message || 'Failed to initialize payment');
       }
 
-      if (!response.ok || !result.success) {
-        const errorMsg = result.error || result.msg || result.message || 'Failed to initialize payment';
+      if (!result?.success) {
+        const errorMsg = result?.error || 'Failed to initialize payment';
         if (errorMsg === 'Paystack secret key not configured') {
           Alert.alert(
             'Coming Soon',
