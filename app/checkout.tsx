@@ -442,6 +442,8 @@ export default function CheckoutScreen() {
 
       if (!response.ok || !result?.success) {
         const errorMsg = result?.error || 'Failed to initialize payment';
+        console.error('Payment initialization failed:', result);
+
         if (errorMsg === 'Paystack secret key not configured') {
           Alert.alert(
             'Coming Soon',
@@ -450,7 +452,13 @@ export default function CheckoutScreen() {
           );
           return;
         }
-        throw new Error(errorMsg);
+
+        // Show detailed error from Paystack
+        const detailedError = result?.details ?
+          `${errorMsg}\n\nDetails: ${JSON.stringify(result.details, null, 2)}` :
+          errorMsg;
+
+        throw new Error(detailedError);
       }
 
       setPaymentUrl(result.data.authorization_url);

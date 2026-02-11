@@ -64,10 +64,16 @@ Deno.serve(async (req: Request) => {
     const initializeData = await initializeResponse.json();
 
     if (!initializeResponse.ok || !initializeData.status) {
+      console.error("Paystack API Error:", {
+        status: initializeResponse.status,
+        statusText: initializeResponse.statusText,
+        response: initializeData,
+      });
       return new Response(
         JSON.stringify({
           success: false,
           error: initializeData.message || "Failed to initialize payment",
+          details: initializeData,
         }),
         {
           status: 400,
