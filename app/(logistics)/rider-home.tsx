@@ -1,12 +1,171 @@
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Bike, Package, CheckCircle, Clock, AlertCircle } from 'lucide-react-native';
+import { Bike, Package, CheckCircle, Clock, AlertCircle, MapPin, Phone, User, X } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase, Order } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { Fonts } from '@/constants/fonts';
+import { Toast } from '@/components/Toast';
+
+type Order = {
+  id: string;
+  order_number: string;
+  status: string;
+  total: number;
+  delivery_address: string | null;
+  created_at: string;
+  customer?: {
+    full_name: string | null;
+    phone: string | null;
+  } | null;
+};
+
+type RiderStats = {
+  total_deliveries: number;
+  status: string;
+};
 
 export default function RiderHome() {
   const { profile } = useAuth();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [riderStats, setRiderStats] = useState<RiderStats | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [toast, setToast] = useState<{
+    visible: boolean;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'warning';
+  }>({
+    visible: false,
+    message: '',
+    type: 'success',
+  });
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'success') => {
+    setToast({ visible: true, message, type });
+  };
+
+  useEffect(() => {
+    if (profile?.id) {
+      loadData();
+    }
+  }, [profile?.id]);
+
+  const loadData = async () => {
+    await Promise.all([loadOrders(), loadRiderStats()]);
+    setRefreshing(false);
+  };
+
+  const loadOrders = async () => {
+    try {
+      if (!profile?.id) {
+        console.log('No profile ID available');
+        return;
+      }
+
+      const { data: riderData, error: riderError } = await supabase
+        .from('riders')
+        .select('id')
+        .eq('user_id', profile.id)
+        .single();
+
+      if (riderError) {
+        console.log('Rider lookup error:', riderError);
+        throw riderError;
+      }
+
+      if (!riderData) {
+        console.log('No rider record found for user:', profile.id);
+        return;
+      }
+
+      console.log('Found rider:', riderData.id);
+
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          id,
+          order_number,
+          status,
+          total,
+          delivery_address,
+          created_at,
+          customer:profiles!orders_customer_id_fkey(full_name, phone)
+        `)
+        .eq('rider_id', riderData.id)
+        .eq('order_source', 'logistics')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.log('Orders query error:', error);
+        throw error;
+      }
+
+      console.log('Found orders:', data?.length || 0, 'for rider:', riderData.id);
+      setOrders(data || []);
+    } catch (error) {
+      console.error('Error loading orders:', error);
+      showToast('Failed to load orders', 'error');
+    }
+  };
+
+  const loadRiderStats = async () => {
+    try {
+      if (!profile?.id) {
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('riders')
+        .select('total_deliveries, status')
+        .eq('user_id', profile.id)
+        .single();
+
+      if (error) throw error;
+      setRiderStats(data);
+    } catch (error) {
+      console.error('Error loading rider stats:', error);
+    }
+  };
+
+  const handleUpdateStatus = async (orderId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: newStatus })
+        .eq('id', orderId);
+
+      if (error) throw error;
+
+      showToast('Order status updated!', 'success');
+      setModalVisible(false);
+      loadData();
+    } catch (error) {
+      console.error('Error updating order:', error);
+      showToast('Failed to update order', 'error');
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    const colors: Record<string, string> = {
+      pending: '#f59e0b',
+      confirmed: '#3b82f6',
+      preparing: '#8b5cf6',
+      ready_for_pickup: '#06b6d4',
+      out_for_delivery: '#f97316',
+      delivered: '#10b981',
+      cancelled: '#ef4444',
+    };
+    return colors[status] || '#6b7280';
+  };
+
+  const getStatusLabel = (status: string) => {
+    return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  };
+
+  const activeOrders = orders.filter(o => !['delivered', 'cancelled'].includes(o.status));
+  const completedOrders = orders.filter(o => o.status === 'delivered');
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -20,63 +179,174 @@ export default function RiderHome() {
       <ScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.contentContainer}>
-
-        <View style={styles.profileCard}>
-          <View style={styles.profileIcon}>
-            <Bike size={32} color="#f97316" />
-          </View>
-          <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>{profile?.full_name}</Text>
-            <Text style={styles.profileEmail}>{profile?.email}</Text>
-            {profile?.phone && (
-              <Text style={styles.profilePhone}>{profile.phone}</Text>
-            )}
-          </View>
-        </View>
+        contentContainerStyle={styles.contentContainer}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData(); }} />
+        }>
 
         <View style={styles.statsContainer}>
           <View style={styles.statCard}>
             <Bike size={28} color="#3b82f6" />
-            <Text style={styles.statNumber}>0</Text>
+            <Text style={styles.statNumber}>{riderStats?.total_deliveries || 0}</Text>
             <Text style={styles.statLabel}>Total Deliveries</Text>
           </View>
           <View style={styles.statCard}>
             <Package size={28} color="#f59e0b" />
-            <Text style={styles.statNumber}>0</Text>
+            <Text style={styles.statNumber}>{activeOrders.length}</Text>
             <Text style={styles.statLabel}>Active</Text>
           </View>
           <View style={styles.statCard}>
-            <CheckCircle size={28} color="#f97316" />
-            <Text style={styles.statNumber}>0</Text>
+            <CheckCircle size={28} color="#10b981" />
+            <Text style={styles.statNumber}>{completedOrders.length}</Text>
             <Text style={styles.statLabel}>Completed</Text>
           </View>
         </View>
 
-        <View style={styles.setupBanner}>
-          <View style={styles.setupIconContainer}>
-            <Clock size={48} color="#f97316" />
+        {orders.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Package size={64} color="#d1d5db" />
+            <Text style={styles.emptyText}>No orders assigned yet</Text>
+            <Text style={styles.emptySubtext}>Orders will appear here when assigned by admin</Text>
           </View>
-          <Text style={styles.setupTitle}>Delivery System Being Set Up</Text>
-          <Text style={styles.setupDescription}>
-            The delivery assignment system is currently under development. Once it is ready, you will be able to receive and manage delivery orders directly from this dashboard.
-          </Text>
-          <View style={styles.setupDetails}>
-            <Text style={styles.setupDetailsTitle}>What to expect:</Text>
-            <Text style={styles.setupDetailsItem}>Real-time order assignments</Text>
-            <Text style={styles.setupDetailsItem}>Delivery tracking and status updates</Text>
-            <Text style={styles.setupDetailsItem}>Earnings and performance overview</Text>
-            <Text style={styles.setupDetailsItem}>Route navigation assistance</Text>
-          </View>
-        </View>
+        ) : (
+          <>
+            <Text style={styles.sectionTitle}>Assigned Orders</Text>
+            {orders.map((order) => (
+              <TouchableOpacity
+                key={order.id}
+                style={styles.orderCard}
+                onPress={() => {
+                  setSelectedOrder(order);
+                  setModalVisible(true);
+                }}>
+                <View style={styles.orderHeader}>
+                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(order.status) }]}>
+                    <Text style={styles.statusText}>{getStatusLabel(order.status)}</Text>
+                  </View>
+                  <Text style={styles.orderTotal}>{'\u20A6'}{order.total.toLocaleString()}</Text>
+                </View>
 
-        <View style={styles.emptyState}>
-          <AlertCircle size={48} color="#d1d5db" />
-          <Text style={styles.emptyText}>No deliveries assigned yet</Text>
-          <Text style={styles.emptySubtext}>Delivery assignment system coming soon</Text>
-        </View>
+                <Text style={styles.orderNumber}>{order.order_number}</Text>
 
+                {order.customer && (
+                  <View style={styles.customerInfo}>
+                    <User size={16} color="#6b7280" />
+                    <View style={styles.customerDetails}>
+                      <Text style={styles.customerName}>{order.customer.full_name || 'Unknown Customer'}</Text>
+                      <Text style={styles.customerContact}>{order.customer.phone || 'No phone'}</Text>
+                    </View>
+                  </View>
+                )}
+
+                {order.delivery_address && (
+                  <View style={styles.addressInfo}>
+                    <MapPin size={16} color="#ef4444" />
+                    <Text style={styles.addressText} numberOfLines={2}>{order.delivery_address}</Text>
+                  </View>
+                )}
+
+                <View style={styles.orderFooter}>
+                  <View style={styles.timeInfo}>
+                    <Clock size={16} color="#6b7280" />
+                    <Text style={styles.timeText}>
+                      {new Date(order.created_at).toLocaleDateString()}
+                    </Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </>
+        )}
       </ScrollView>
+
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Order Details</Text>
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <X size={24} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
+
+            {selectedOrder && (
+              <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+                <View style={styles.orderSummary}>
+                  <Text style={styles.orderSummaryTitle}>{selectedOrder.order_number}</Text>
+                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(selectedOrder.status), alignSelf: 'flex-start', marginTop: 8 }]}>
+                    <Text style={styles.statusText}>{getStatusLabel(selectedOrder.status)}</Text>
+                  </View>
+                </View>
+
+                {selectedOrder.customer && (
+                  <View style={styles.infoSection}>
+                    <Text style={styles.infoLabel}>Customer</Text>
+                    <View style={styles.infoRow}>
+                      <User size={18} color="#6b7280" />
+                      <View style={styles.infoDetails}>
+                        <Text style={styles.infoText}>{selectedOrder.customer.full_name || 'Unknown'}</Text>
+                        {selectedOrder.customer.phone && (
+                          <TouchableOpacity style={styles.phoneButton}>
+                            <Phone size={14} color="#3b82f6" />
+                            <Text style={styles.phoneText}>{selectedOrder.customer.phone}</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    </View>
+                  </View>
+                )}
+
+                {selectedOrder.delivery_address && (
+                  <View style={styles.infoSection}>
+                    <Text style={styles.infoLabel}>Delivery Address</Text>
+                    <View style={styles.infoRow}>
+                      <MapPin size={18} color="#ef4444" />
+                      <Text style={styles.infoText}>{selectedOrder.delivery_address}</Text>
+                    </View>
+                  </View>
+                )}
+
+                <View style={styles.infoSection}>
+                  <Text style={styles.infoLabel}>Total Amount</Text>
+                  <Text style={styles.totalAmount}>{'\u20A6'}{selectedOrder.total.toLocaleString()}</Text>
+                </View>
+
+                <View style={styles.actionsSection}>
+                  <Text style={styles.infoLabel}>Update Status</Text>
+                  <View style={styles.actionButtons}>
+                    {selectedOrder.status === 'confirmed' && (
+                      <TouchableOpacity
+                        style={[styles.actionButton, { backgroundColor: '#f97316' }]}
+                        onPress={() => handleUpdateStatus(selectedOrder.id, 'out_for_delivery')}>
+                        <Text style={styles.actionButtonText}>Start Delivery</Text>
+                      </TouchableOpacity>
+                    )}
+                    {selectedOrder.status === 'out_for_delivery' && (
+                      <TouchableOpacity
+                        style={[styles.actionButton, { backgroundColor: '#10b981' }]}
+                        onPress={() => handleUpdateStatus(selectedOrder.id, 'delivered')}>
+                        <Text style={styles.actionButtonText}>Mark Delivered</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        duration={3000}
+        onDismiss={() => setToast({ ...toast, visible: false })}
+      />
     </SafeAreaView>
   );
 }
@@ -114,50 +384,6 @@ const styles = StyleSheet.create({
     padding: 24,
     paddingBottom: 48,
   },
-  profileCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-    padding: 20,
-    borderRadius: 16,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-    borderLeftWidth: 4,
-    borderLeftColor: '#f97316',
-  },
-  profileIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#fff7ed',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  profileInfo: {
-    flex: 1,
-  },
-  profileName: {
-    fontSize: 18,
-    fontFamily: Fonts.bold,
-    color: '#111827',
-    marginBottom: 4,
-  },
-  profileEmail: {
-    fontSize: 14,
-    fontFamily: Fonts.regular,
-    color: '#6b7280',
-    marginBottom: 2,
-  },
-  profilePhone: {
-    fontSize: 14,
-    fontFamily: Fonts.regular,
-    color: '#6b7280',
-  },
   statsContainer: {
     flexDirection: 'row',
     gap: 12,
@@ -186,67 +412,105 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     fontFamily: Fonts.semiBold,
   },
-  setupBanner: {
+  sectionTitle: {
+    fontSize: 18,
+    fontFamily: Fonts.bold,
+    color: '#111827',
+    marginBottom: 16,
+  },
+  orderCard: {
     backgroundColor: '#ffffff',
     borderRadius: 16,
-    padding: 24,
-    marginBottom: 24,
-    alignItems: 'center',
+    padding: 16,
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
-    borderWidth: 1,
-    borderColor: '#fed7aa',
   },
-  setupIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#fff7ed',
-    justifyContent: 'center',
+  orderHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
-  },
-  setupTitle: {
-    fontSize: 20,
-    fontFamily: Fonts.bold,
-    color: '#111827',
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  setupDescription: {
-    fontSize: 15,
-    fontFamily: Fonts.regular,
-    color: '#6b7280',
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 20,
-  },
-  setupDetails: {
-    width: '100%',
-    backgroundColor: '#fff7ed',
-    borderRadius: 12,
-    padding: 16,
-  },
-  setupDetailsTitle: {
-    fontSize: 14,
-    fontFamily: Fonts.bold,
-    color: '#c2410c',
-    marginBottom: 12,
-  },
-  setupDetailsItem: {
-    fontSize: 14,
-    fontFamily: Fonts.regular,
-    color: '#9a3412',
     marginBottom: 8,
-    lineHeight: 20,
-    paddingLeft: 8,
+  },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  statusText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  orderTotal: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0ea5e9',
+  },
+  orderNumber: {
+    fontSize: 12,
+    color: '#6b7280',
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  customerInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#f9fafb',
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  customerDetails: {
+    flex: 1,
+  },
+  customerName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  customerContact: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: 2,
+  },
+  addressInfo: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  addressText: {
+    fontSize: 14,
+    color: '#111827',
+    flex: 1,
+  },
+  orderFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f3f4f6',
+  },
+  timeInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  timeText: {
+    fontSize: 12,
+    color: '#6b7280',
   },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: 48,
+    paddingVertical: 80,
   },
   emptyText: {
     fontSize: 18,
@@ -259,5 +523,101 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
     color: '#9ca3af',
     marginTop: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  modalBody: {
+    padding: 24,
+  },
+  orderSummary: {
+    backgroundColor: '#f9fafb',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  orderSummaryTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  infoSection: {
+    marginBottom: 20,
+  },
+  infoLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6b7280',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+  },
+  infoRow: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'flex-start',
+  },
+  infoDetails: {
+    flex: 1,
+  },
+  infoText: {
+    fontSize: 15,
+    color: '#111827',
+    lineHeight: 22,
+  },
+  phoneButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 6,
+  },
+  phoneText: {
+    fontSize: 14,
+    color: '#3b82f6',
+    fontWeight: '600',
+  },
+  totalAmount: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#0ea5e9',
+  },
+  actionsSection: {
+    marginTop: 20,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+  },
+  actionButtons: {
+    gap: 12,
+  },
+  actionButton: {
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  actionButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
   },
 });
