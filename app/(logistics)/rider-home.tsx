@@ -274,7 +274,10 @@ export default function RiderHome() {
             </View>
 
             {selectedOrder && (
-              <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+              <ScrollView
+                style={styles.modalBody}
+                contentContainerStyle={styles.modalBodyContent}
+                showsVerticalScrollIndicator={true}>
                 <View style={styles.orderSummary}>
                   <Text style={styles.orderSummaryTitle}>{selectedOrder.order_number}</Text>
                   <View style={[styles.statusBadge, { backgroundColor: getStatusColor(selectedOrder.status), alignSelf: 'flex-start', marginTop: 8 }]}>
@@ -317,22 +320,29 @@ export default function RiderHome() {
 
                 <View style={styles.actionsSection}>
                   <Text style={styles.infoLabel}>Update Status</Text>
-                  <View style={styles.actionButtons}>
-                    {selectedOrder.status === 'confirmed' && (
-                      <TouchableOpacity
-                        style={[styles.actionButton, { backgroundColor: '#f97316' }]}
-                        onPress={() => handleUpdateStatus(selectedOrder.id, 'out_for_delivery')}>
-                        <Text style={styles.actionButtonText}>Start Delivery</Text>
-                      </TouchableOpacity>
-                    )}
-                    {selectedOrder.status === 'out_for_delivery' && (
-                      <TouchableOpacity
-                        style={[styles.actionButton, { backgroundColor: '#10b981' }]}
-                        onPress={() => handleUpdateStatus(selectedOrder.id, 'delivered')}>
-                        <Text style={styles.actionButtonText}>Mark Delivered</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
+                  {selectedOrder.status === 'pending' && (
+                    <Text style={styles.statusInfo}>Waiting for admin to confirm this order</Text>
+                  )}
+                  {selectedOrder.status === 'confirmed' && (
+                    <TouchableOpacity
+                      style={[styles.actionButton, { backgroundColor: '#f97316' }]}
+                      onPress={() => handleUpdateStatus(selectedOrder.id, 'out_for_delivery')}>
+                      <Text style={styles.actionButtonText}>Start Delivery</Text>
+                    </TouchableOpacity>
+                  )}
+                  {selectedOrder.status === 'out_for_delivery' && (
+                    <TouchableOpacity
+                      style={[styles.actionButton, { backgroundColor: '#10b981' }]}
+                      onPress={() => handleUpdateStatus(selectedOrder.id, 'delivered')}>
+                      <Text style={styles.actionButtonText}>Mark Delivered</Text>
+                    </TouchableOpacity>
+                  )}
+                  {selectedOrder.status === 'delivered' && (
+                    <Text style={styles.statusInfo}>This order has been delivered</Text>
+                  )}
+                  {selectedOrder.status === 'cancelled' && (
+                    <Text style={styles.statusInfo}>This order was cancelled</Text>
+                  )}
                 </View>
               </ScrollView>
             )}
@@ -549,7 +559,11 @@ const styles = StyleSheet.create({
     color: '#111827',
   },
   modalBody: {
+    flex: 1,
+  },
+  modalBodyContent: {
     padding: 24,
+    paddingBottom: 40,
   },
   orderSummary: {
     backgroundColor: '#f9fafb',
@@ -619,5 +633,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#ffffff',
+  },
+  statusInfo: {
+    fontSize: 14,
+    color: '#6b7280',
+    fontStyle: 'italic',
+    padding: 12,
+    backgroundColor: '#f9fafb',
+    borderRadius: 8,
+    textAlign: 'center',
   },
 });
