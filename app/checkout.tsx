@@ -15,6 +15,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Package, Truck, MapPin, CreditCard, ChevronLeft, CheckCircle, Clock, Wallet, DollarSign, Building2, Banknote } from 'lucide-react-native';
 import { supabase } from '@/lib/marketplace/supabase';
+import { CORE_URL } from '@/lib/coreBackend';
 import { useAuth } from '@/contexts/AuthContext';
 import { router } from 'expo-router';
 import { BankAccount } from '@/types/database';
@@ -427,15 +428,19 @@ export default function CheckoutScreen() {
         return;
       }
 
-      const { data: result, error: invokeError } = await supabase.functions.invoke('initialize-payment', {
-        body: { amount: total, email },
+      const response = await fetch(`${CORE_URL}/functions/v1/initialize-payment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
+        },
+        body: JSON.stringify({ amount: total, email }),
       });
 
-      if (invokeError) {
-        throw new Error(invokeError.message || 'Failed to initialize payment');
-      }
+      const result = await response.json();
 
-      if (!result?.success) {
+      if (!response.ok || !result?.success) {
         const errorMsg = result?.error || 'Failed to initialize payment';
         if (errorMsg === 'Paystack secret key not configured') {
           Alert.alert(
