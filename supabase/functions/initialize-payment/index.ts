@@ -30,7 +30,7 @@ Deno.serve(async (req: Request) => {
     const paystackSecretKey = Deno.env.get("PAYSTACK_SECRET_KEY");
     if (!paystackSecretKey) {
       return new Response(
-        JSON.stringify({ success: false, error: "Payment configuration error" }),
+        JSON.stringify({ success: false, error: "Paystack secret key not configured" }),
         {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -77,9 +77,11 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         success: true,
-        authorizationUrl: initializeData.data.authorization_url,
-        reference: initializeData.data.reference,
-        accessCode: initializeData.data.access_code,
+        data: {
+          authorization_url: initializeData.data.authorization_url,
+          reference: initializeData.data.reference,
+          access_code: initializeData.data.access_code,
+        },
       }),
       {
         status: 200,
