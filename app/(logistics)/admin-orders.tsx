@@ -43,6 +43,7 @@ type MarketplaceOrder = {
   payment_method: string | null;
   payment_status: string | null;
   notes: string | null;
+  rider_id: string | null;
   confirmed_at: string | null;
   preparing_at: string | null;
   ready_for_pickup_at: string | null;
@@ -53,6 +54,7 @@ type MarketplaceOrder = {
   updated_at: string;
   customer?: { id: string; full_name: string | null; email: string | null; phone: string | null } | null;
   vendor?: { id: string; full_name: string | null; email: string | null; business_name: string | null } | null;
+  rider?: { id: string; user: { full_name: string | null; phone: string | null } | null; vehicle_type: string; status: string } | null;
   order_items?: Array<{
     id: string;
     quantity: number;
@@ -62,9 +64,23 @@ type MarketplaceOrder = {
   }>;
 };
 
+type Rider = {
+  id: string;
+  user_id: string;
+  vehicle_type: string;
+  status: string;
+  rating: number;
+  total_deliveries: number;
+  user: {
+    full_name: string | null;
+    phone: string | null;
+  } | null;
+};
+
 export default function AdminOrders() {
   const [orders, setOrders] = useState<MarketplaceOrder[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<MarketplaceOrder[]>([]);
+  const [riders, setRiders] = useState<Rider[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -72,6 +88,7 @@ export default function AdminOrders() {
   const [selectedOrder, setSelectedOrder] = useState<MarketplaceOrder | null>(null);
   const [editStatus, setEditStatus] = useState<string>('pending');
   const [editNotes, setEditNotes] = useState('');
+  const [editRiderId, setEditRiderId] = useState<string>('');
   const [toast, setToast] = useState<{
     visible: boolean;
     message: string;
@@ -113,6 +130,7 @@ export default function AdminOrders() {
 
   useEffect(() => {
     loadOrders();
+    loadRiders();
   }, []);
 
   useEffect(() => {
@@ -148,6 +166,12 @@ export default function AdminOrders() {
           *,
           customer:profiles!orders_customer_id_fkey(id, full_name, email, phone),
           vendor:profiles!orders_vendor_id_fkey(id, full_name, email, business_name),
+          rider:riders!orders_rider_id_fkey(
+            id,
+            vehicle_type,
+            status,
+            user:profiles!riders_user_id_fkey(full_name, phone)
+          ),
           order_items(
             id,
             quantity,
@@ -169,10 +193,34 @@ export default function AdminOrders() {
     }
   };
 
+  const loadRiders = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('riders')
+        .select(`
+          id,
+          user_id,
+          vehicle_type,
+          status,
+          rating,
+          total_deliveries,
+          user:profiles!riders_user_id_fkey(full_name, phone)
+        `)
+        .order('status', { ascending: false });
+
+      if (error) throw error;
+      setRiders(data || []);
+    } catch (error) {
+      console.error('Error loading riders:', error);
+      showToast('Failed to load riders', 'error');
+    }
+  };
+
   const handleEdit = (order: MarketplaceOrder) => {
     setSelectedOrder(order);
     setEditStatus(order.status);
     setEditNotes(order.notes || '');
+    setEditRiderId(order.rider_id || '');
     setEditModalVisible(true);
   };
 
@@ -185,6 +233,7 @@ export default function AdminOrders() {
         .update({
           status: editStatus,
           notes: editNotes,
+          rider_id: editRiderId || null,
         })
         .eq('id', selectedOrder.id);
 
@@ -373,6 +422,25 @@ export default function AdminOrders() {
                 </View>
               )}
 
+              {order.rider ? (
+                <View style={styles.riderInfo}>
+                  <User size={16} color="#10b981" />
+                  <View style={styles.customerDetails}>
+                    <Text style={styles.riderName}>
+                      {order.rider.user?.full_name || 'Unknown Rider'} ({order.rider.vehicle_type})
+                    </Text>
+                    <Text style={styles.customerContact}>
+                      {order.rider.user?.phone || 'No phone'} • {order.rider.status === 'online' ? '🟢 Online' : '🔴 Offline'}
+                    </Text>
+                  </View>
+                </View>
+              ) : (
+                <View style={styles.noRiderInfo}>
+                  <User size={16} color="#ef4444" />
+                  <Text style={styles.noRiderText}>No rider assigned</Text>
+                </View>
+              )}
+
               <View style={styles.orderDetails}>
                 {order.delivery_address && (
                   <View style={styles.addressRow}>
@@ -549,6 +617,47 @@ export default function AdminOrders() {
                     ]}>
                       {getStatusLabel(status)}
                     </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={styles.label}>Assign Rider</Text>
+              <View style={styles.riderSelector}>
+                <TouchableOpacity
+                  style={[
+                    styles.riderOption,
+                    editRiderId === '' && styles.riderOptionActive
+                  ]}
+                  onPress={() => setEditRiderId('')}>
+                  <Text style={[
+                    styles.riderOptionText,
+                    editRiderId === '' && styles.riderOptionTextActive
+                  ]}>
+                    No Rider
+                  </Text>
+                </TouchableOpacity>
+                {riders.map((rider) => (
+                  <TouchableOpacity
+                    key={rider.id}
+                    style={[
+                      styles.riderOption,
+                      editRiderId === rider.id && styles.riderOptionActive
+                    ]}
+                    onPress={() => setEditRiderId(rider.id)}>
+                    <View style={styles.riderOptionContent}>
+                      <Text style={[
+                        styles.riderOptionText,
+                        editRiderId === rider.id && styles.riderOptionTextActive
+                      ]}>
+                        {rider.user?.full_name || 'Unknown'}
+                      </Text>
+                      <Text style={[
+                        styles.riderOptionDetails,
+                        editRiderId === rider.id && styles.riderOptionDetailsActive
+                      ]}>
+                        {rider.vehicle_type} • {rider.status === 'online' ? 'Online' : 'Offline'}
+                      </Text>
+                    </View>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -1084,5 +1193,72 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#ffffff',
+  },
+  riderInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#dcfce7',
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  riderName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#166534',
+  },
+  noRiderInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#fee2e2',
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  noRiderText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#991b1b',
+  },
+  riderSelector: {
+    flexDirection: 'column',
+    gap: 8,
+    marginBottom: 16,
+    maxHeight: 200,
+  },
+  riderOption: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    backgroundColor: '#ffffff',
+  },
+  riderOptionActive: {
+    backgroundColor: '#0ea5e9',
+    borderColor: '#0ea5e9',
+  },
+  riderOptionContent: {
+    flexDirection: 'column',
+  },
+  riderOptionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  riderOptionTextActive: {
+    color: '#ffffff',
+  },
+  riderOptionDetails: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: 2,
+  },
+  riderOptionDetailsActive: {
+    color: '#e0f2fe',
   },
 });
