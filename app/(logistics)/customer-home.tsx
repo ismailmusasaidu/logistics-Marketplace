@@ -312,7 +312,10 @@ export default function CustomerHome() {
         .insert({
           customer_id: orderDetails.customer_id,
           order_number: orderDetails.order_number,
+          pickup_address: orderDetails.pickup_address,
+          pickup_instructions: orderDetails.pickup_instructions,
           delivery_address: orderDetails.delivery_address,
+          delivery_instructions: orderDetails.delivery_instructions,
           delivery_fee: orderDetails.delivery_fee,
           payment_method: 'online',
           payment_status: 'completed',
@@ -399,7 +402,10 @@ export default function CustomerHome() {
         const orderDetails = {
           customer_id: profile.id,
           order_number: orderNumber,
+          pickup_address: newOrder.pickupAddress,
+          pickup_instructions: newOrder.pickupInstructions,
           delivery_address: deliveryAddress,
+          delivery_instructions: newOrder.deliveryInstructions,
           delivery_fee: pricingBreakdown.finalPrice,
           notes: notes,
           validatedPromo: validatedPromo,
@@ -420,7 +426,10 @@ export default function CustomerHome() {
       const insertData: any = {
         customer_id: profile.id,
         order_number: orderNumber,
+        pickup_address: newOrder.pickupAddress,
+        pickup_instructions: newOrder.pickupInstructions,
         delivery_address: deliveryAddress,
+        delivery_instructions: newOrder.deliveryInstructions,
         delivery_fee: pricingBreakdown.finalPrice,
         payment_method: paymentMethod,
         payment_status: 'pending',
