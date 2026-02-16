@@ -257,7 +257,7 @@ export default function CustomerHome() {
   };
 
   const buildDeliveryAddress = () => {
-    return `Pickup: ${newOrder.pickupAddress} -> Delivery: ${newOrder.deliveryAddress}`;
+    return newOrder.deliveryAddress;
   };
 
   const verifyAndCreateOrder = async (reference: string, orderDetails: any) => {

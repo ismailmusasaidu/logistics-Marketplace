@@ -11,10 +11,11 @@ type Order = {
   id: string;
   order_number: string;
   status: string;
-  total: number;
+  total: number | null;
   delivery_address: string | null;
   pickup_address: string | null;
-  delivery_fee: number;
+  delivery_fee: number | null;
+  notes: string | null;
   created_at: string;
   customer?: {
     full_name: string | null;
@@ -225,6 +226,7 @@ export default function RiderHome() {
           pickup_address,
           delivery_address,
           delivery_fee,
+          notes,
           created_at,
           customer:profiles!orders_customer_id_fkey(full_name, phone)
         `)
@@ -232,7 +234,10 @@ export default function RiderHome() {
         .eq('order_source', 'logistics')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase query error:', JSON.stringify(error));
+        throw error;
+      }
       setOrders(data || []);
     } catch (error) {
       console.error('Error loading orders:', error);
@@ -497,7 +502,7 @@ export default function RiderHome() {
                   <View style={[styles.statusBadge, { backgroundColor: getStatusColor(order.status) }]}>
                     <Text style={styles.statusText}>{getStatusLabel(order.status)}</Text>
                   </View>
-                  <Text style={styles.orderTotal}>{'\u20A6'}{order.total.toLocaleString()}</Text>
+                  <Text style={styles.orderTotal}>{'\u20A6'}{(order.delivery_fee || order.total || 0).toLocaleString()}</Text>
                 </View>
 
                 <Text style={styles.orderNumber}>{order.order_number}</Text>
@@ -509,6 +514,13 @@ export default function RiderHome() {
                       <Text style={styles.customerName}>{order.customer.full_name || 'Unknown Customer'}</Text>
                       <Text style={styles.customerContact}>{order.customer.phone || 'No phone'}</Text>
                     </View>
+                  </View>
+                )}
+
+                {order.pickup_address && (
+                  <View style={styles.addressInfo}>
+                    <MapPin size={16} color="#10b981" />
+                    <Text style={styles.addressText} numberOfLines={2}>{order.pickup_address}</Text>
                   </View>
                 )}
 
@@ -577,6 +589,16 @@ export default function RiderHome() {
                   </View>
                 )}
 
+                {selectedOrder.pickup_address && (
+                  <View style={styles.infoSection}>
+                    <Text style={styles.infoLabel}>Pickup Address</Text>
+                    <View style={styles.infoRow}>
+                      <MapPin size={18} color="#10b981" />
+                      <Text style={styles.infoText}>{selectedOrder.pickup_address}</Text>
+                    </View>
+                  </View>
+                )}
+
                 {selectedOrder.delivery_address && (
                   <View style={styles.infoSection}>
                     <Text style={styles.infoLabel}>Delivery Address</Text>
@@ -587,9 +609,16 @@ export default function RiderHome() {
                   </View>
                 )}
 
+                {selectedOrder.notes && (
+                  <View style={styles.infoSection}>
+                    <Text style={styles.infoLabel}>Notes</Text>
+                    <Text style={styles.infoText}>{selectedOrder.notes}</Text>
+                  </View>
+                )}
+
                 <View style={styles.infoSection}>
-                  <Text style={styles.infoLabel}>Total Amount</Text>
-                  <Text style={styles.totalAmount}>{'\u20A6'}{selectedOrder.total.toLocaleString()}</Text>
+                  <Text style={styles.infoLabel}>Delivery Fee</Text>
+                  <Text style={styles.totalAmount}>{'\u20A6'}{(selectedOrder.delivery_fee || selectedOrder.total || 0).toLocaleString()}</Text>
                 </View>
 
                 <View style={styles.actionsSection}>
