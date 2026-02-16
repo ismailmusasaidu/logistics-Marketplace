@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Modal } from 'react-native';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Modal, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Bike, Package, CheckCircle, Clock, AlertCircle, MapPin, Phone, User, X } from 'lucide-react-native';
+import { Bike, Package, CheckCircle, Clock, AlertCircle, MapPin, Phone, User, X, Bell, Check, XCircle } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Fonts } from '@/constants/fonts';
@@ -13,6 +13,22 @@ type Order = {
   status: string;
   total: number;
   delivery_address: string | null;
+  pickup_address: string | null;
+  delivery_fee: number;
+  created_at: string;
+  customer?: {
+    full_name: string | null;
+    phone: string | null;
+  } | null;
+};
+
+type PendingAssignment = {
+  id: string;
+  order_number: string;
+  pickup_address: string | null;
+  delivery_address: string | null;
+  delivery_fee: number;
+  assignment_timeout_at: string;
   created_at: string;
   customer?: {
     full_name: string | null;
@@ -28,10 +44,16 @@ type RiderStats = {
 export default function RiderHome() {
   const { profile } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [pendingAssignments, setPendingAssignments] = useState<PendingAssignment[]>([]);
+  const [riderId, setRiderId] = useState<string | null>(null);
   const [riderStats, setRiderStats] = useState<RiderStats | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [processingAssignment, setProcessingAssignment] = useState<string | null>(null);
+  const [countdowns, setCountdowns] = useState<Record<string, number>>({});
+  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
   const [toast, setToast] = useState<{
     visible: boolean;
     message: string;
@@ -47,40 +69,151 @@ export default function RiderHome() {
   };
 
   useEffect(() => {
+    if (pendingAssignments.length > 0) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1.05, duration: 500, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
+        ])
+      ).start();
+    } else {
+      pulseAnim.setValue(1);
+    }
+  }, [pendingAssignments.length]);
+
+  useEffect(() => {
     if (profile?.id) {
-      loadData();
+      loadRiderId();
     }
   }, [profile?.id]);
 
+  useEffect(() => {
+    if (riderId) {
+      loadData();
+      loadPendingAssignments();
+
+      const channel = supabase
+        .channel('rider-assignments')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'orders',
+            filter: `assigned_rider_id=eq.${riderId}`,
+          },
+          () => {
+            loadPendingAssignments();
+            loadOrders();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [riderId]);
+
+  useEffect(() => {
+    if (pendingAssignments.length > 0) {
+      const newCountdowns: Record<string, number> = {};
+      pendingAssignments.forEach(assignment => {
+        const timeoutAt = new Date(assignment.assignment_timeout_at).getTime();
+        const now = Date.now();
+        const remaining = Math.max(0, Math.floor((timeoutAt - now) / 1000));
+        newCountdowns[assignment.id] = remaining;
+      });
+      setCountdowns(newCountdowns);
+
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+      }
+
+      countdownIntervalRef.current = setInterval(() => {
+        setCountdowns(prev => {
+          const updated: Record<string, number> = {};
+          let hasExpired = false;
+
+          Object.entries(prev).forEach(([id, seconds]) => {
+            if (seconds > 0) {
+              updated[id] = seconds - 1;
+            } else {
+              hasExpired = true;
+            }
+          });
+
+          if (hasExpired) {
+            loadPendingAssignments();
+          }
+
+          return updated;
+        });
+      }, 1000);
+
+      return () => {
+        if (countdownIntervalRef.current) {
+          clearInterval(countdownIntervalRef.current);
+        }
+      };
+    }
+  }, [pendingAssignments]);
+
+  const loadRiderId = async () => {
+    try {
+      if (!profile?.id) return;
+
+      const { data, error } = await supabase
+        .from('riders')
+        .select('id')
+        .eq('user_id', profile.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      if (data) {
+        setRiderId(data.id);
+      }
+    } catch (error) {
+      console.error('Error loading rider ID:', error);
+    }
+  };
+
   const loadData = async () => {
-    await Promise.all([loadOrders(), loadRiderStats()]);
+    await Promise.all([loadOrders(), loadRiderStats(), loadPendingAssignments()]);
     setRefreshing(false);
+  };
+
+  const loadPendingAssignments = async () => {
+    try {
+      if (!riderId) return;
+
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          id,
+          order_number,
+          pickup_address,
+          delivery_address,
+          delivery_fee,
+          assignment_timeout_at,
+          created_at,
+          customer:profiles!orders_customer_id_fkey(full_name, phone)
+        `)
+        .eq('assigned_rider_id', riderId)
+        .eq('assignment_status', 'assigned')
+        .eq('order_source', 'logistics')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setPendingAssignments(data || []);
+    } catch (error) {
+      console.error('Error loading pending assignments:', error);
+    }
   };
 
   const loadOrders = async () => {
     try {
-      if (!profile?.id) {
-        console.log('No profile ID available');
-        return;
-      }
-
-      const { data: riderData, error: riderError } = await supabase
-        .from('riders')
-        .select('id')
-        .eq('user_id', profile.id)
-        .single();
-
-      if (riderError) {
-        console.log('Rider lookup error:', riderError);
-        throw riderError;
-      }
-
-      if (!riderData) {
-        console.log('No rider record found for user:', profile.id);
-        return;
-      }
-
-      console.log('Found rider:', riderData.id);
+      if (!riderId) return;
 
       const { data, error } = await supabase
         .from('orders')
@@ -89,20 +222,17 @@ export default function RiderHome() {
           order_number,
           status,
           total,
+          pickup_address,
           delivery_address,
+          delivery_fee,
           created_at,
           customer:profiles!orders_customer_id_fkey(full_name, phone)
         `)
-        .eq('rider_id', riderData.id)
+        .eq('rider_id', riderId)
         .eq('order_source', 'logistics')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.log('Orders query error:', error);
-        throw error;
-      }
-
-      console.log('Found orders:', data?.length || 0, 'for rider:', riderData.id);
+      if (error) throw error;
       setOrders(data || []);
     } catch (error) {
       console.error('Error loading orders:', error);
@@ -112,21 +242,93 @@ export default function RiderHome() {
 
   const loadRiderStats = async () => {
     try {
-      if (!profile?.id) {
-        return;
-      }
+      if (!profile?.id) return;
 
       const { data, error } = await supabase
         .from('riders')
         .select('total_deliveries, status')
         .eq('user_id', profile.id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       setRiderStats(data);
     } catch (error) {
       console.error('Error loading rider stats:', error);
     }
+  };
+
+  const handleAcceptAssignment = async (orderId: string) => {
+    try {
+      setProcessingAssignment(orderId);
+
+      const { error } = await supabase
+        .from('orders')
+        .update({
+          assignment_status: 'accepted',
+          rider_id: riderId,
+          status: 'confirmed',
+        })
+        .eq('id', orderId)
+        .eq('assigned_rider_id', riderId);
+
+      if (error) throw error;
+
+      await supabase
+        .from('riders')
+        .update({ active_orders: (riderStats?.total_deliveries || 0) + 1 })
+        .eq('id', riderId);
+
+      showToast('Order accepted! Start your delivery.', 'success');
+      loadPendingAssignments();
+      loadOrders();
+    } catch (error) {
+      console.error('Error accepting assignment:', error);
+      showToast('Failed to accept order', 'error');
+    } finally {
+      setProcessingAssignment(null);
+    }
+  };
+
+  const handleRejectAssignment = async (orderId: string) => {
+    try {
+      setProcessingAssignment(orderId);
+
+      const apiUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/reassign-rider`;
+      const { data: { session } } = await supabase.auth.getSession();
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          order_id: orderId,
+          reason: 'Rider rejected the assignment',
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        showToast('Order reassigned to another rider', 'info');
+      } else {
+        showToast(result.message || 'Order returned to pending', 'warning');
+      }
+
+      loadPendingAssignments();
+    } catch (error) {
+      console.error('Error rejecting assignment:', error);
+      showToast('Failed to reject order', 'error');
+    } finally {
+      setProcessingAssignment(null);
+    }
+  };
+
+  const formatCountdown = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const handleUpdateStatus = async (orderId: string, newStatus: string) => {
@@ -184,6 +386,78 @@ export default function RiderHome() {
           <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData(); }} />
         }>
 
+        {pendingAssignments.length > 0 && (
+          <Animated.View style={[styles.pendingSection, { transform: [{ scale: pulseAnim }] }]}>
+            <View style={styles.pendingSectionHeader}>
+              <Bell size={24} color="#ffffff" />
+              <Text style={styles.pendingSectionTitle}>New Order Request{pendingAssignments.length > 1 ? 's' : ''}</Text>
+              <View style={styles.pendingBadge}>
+                <Text style={styles.pendingBadgeText}>{pendingAssignments.length}</Text>
+              </View>
+            </View>
+
+            {pendingAssignments.map((assignment) => (
+              <View key={assignment.id} style={styles.assignmentCard}>
+                <View style={styles.assignmentHeader}>
+                  <Text style={styles.assignmentOrderNumber}>{assignment.order_number}</Text>
+                  <View style={styles.countdownContainer}>
+                    <Clock size={16} color={countdowns[assignment.id] <= 30 ? '#ef4444' : '#f59e0b'} />
+                    <Text style={[
+                      styles.countdownText,
+                      countdowns[assignment.id] <= 30 && styles.countdownUrgent
+                    ]}>
+                      {formatCountdown(countdowns[assignment.id] || 0)}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.assignmentDetails}>
+                  {assignment.pickup_address && (
+                    <View style={styles.addressRow}>
+                      <View style={[styles.addressDot, { backgroundColor: '#10b981' }]} />
+                      <View style={styles.addressContent}>
+                        <Text style={styles.addressLabel}>Pickup</Text>
+                        <Text style={styles.addressValue} numberOfLines={2}>{assignment.pickup_address}</Text>
+                      </View>
+                    </View>
+                  )}
+                  {assignment.delivery_address && (
+                    <View style={styles.addressRow}>
+                      <View style={[styles.addressDot, { backgroundColor: '#ef4444' }]} />
+                      <View style={styles.addressContent}>
+                        <Text style={styles.addressLabel}>Delivery</Text>
+                        <Text style={styles.addressValue} numberOfLines={2}>{assignment.delivery_address}</Text>
+                      </View>
+                    </View>
+                  )}
+                </View>
+
+                <View style={styles.assignmentFee}>
+                  <Text style={styles.feeLabel}>Delivery Fee</Text>
+                  <Text style={styles.feeValue}>{'\u20A6'}{assignment.delivery_fee?.toLocaleString() || 0}</Text>
+                </View>
+
+                <View style={styles.assignmentActions}>
+                  <TouchableOpacity
+                    style={[styles.rejectButton, processingAssignment === assignment.id && styles.buttonDisabled]}
+                    onPress={() => handleRejectAssignment(assignment.id)}
+                    disabled={processingAssignment === assignment.id}>
+                    <XCircle size={20} color="#ef4444" />
+                    <Text style={styles.rejectButtonText}>Reject</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.acceptButton, processingAssignment === assignment.id && styles.buttonDisabled]}
+                    onPress={() => handleAcceptAssignment(assignment.id)}
+                    disabled={processingAssignment === assignment.id}>
+                    <Check size={20} color="#ffffff" />
+                    <Text style={styles.acceptButtonText}>Accept</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+          </Animated.View>
+        )}
+
         <View style={styles.statsContainer}>
           <View style={styles.statCard}>
             <Bike size={28} color="#3b82f6" />
@@ -202,13 +476,13 @@ export default function RiderHome() {
           </View>
         </View>
 
-        {orders.length === 0 ? (
+        {orders.length === 0 && pendingAssignments.length === 0 ? (
           <View style={styles.emptyState}>
             <Package size={64} color="#d1d5db" />
             <Text style={styles.emptyText}>No orders assigned yet</Text>
-            <Text style={styles.emptySubtext}>Orders will appear here when assigned by admin</Text>
+            <Text style={styles.emptySubtext}>Orders will appear here when assigned</Text>
           </View>
-        ) : (
+        ) : orders.length > 0 ? (
           <>
             <Text style={styles.sectionTitle}>Assigned Orders</Text>
             {orders.map((order) => (
@@ -256,7 +530,7 @@ export default function RiderHome() {
               </TouchableOpacity>
             ))}
           </>
-        )}
+        ) : null}
       </ScrollView>
 
       <Modal
@@ -393,6 +667,157 @@ const styles = StyleSheet.create({
   contentContainer: {
     padding: 24,
     paddingBottom: 48,
+  },
+  pendingSection: {
+    backgroundColor: '#059669',
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 24,
+  },
+  pendingSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+  },
+  pendingSectionTitle: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  pendingBadge: {
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  pendingBadgeText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#059669',
+  },
+  assignmentCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+  },
+  assignmentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  assignmentOrderNumber: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  countdownContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#fef3c7',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  countdownText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#f59e0b',
+  },
+  countdownUrgent: {
+    color: '#ef4444',
+  },
+  assignmentDetails: {
+    gap: 8,
+    marginBottom: 12,
+  },
+  addressRow: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'flex-start',
+  },
+  addressDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginTop: 4,
+  },
+  addressContent: {
+    flex: 1,
+  },
+  addressLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#6b7280',
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  addressValue: {
+    fontSize: 14,
+    color: '#111827',
+    lineHeight: 20,
+  },
+  assignmentFee: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    marginBottom: 12,
+  },
+  feeLabel: {
+    fontSize: 14,
+    color: '#6b7280',
+    fontWeight: '600',
+  },
+  feeValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#059669',
+  },
+  assignmentActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  rejectButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#ef4444',
+    backgroundColor: '#fef2f2',
+  },
+  rejectButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#ef4444',
+  },
+  acceptButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#059669',
+  },
+  acceptButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  buttonDisabled: {
+    opacity: 0.5,
   },
   statsContainer: {
     flexDirection: 'row',

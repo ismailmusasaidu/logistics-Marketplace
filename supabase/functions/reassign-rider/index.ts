@@ -141,9 +141,9 @@ Deno.serve(async (req: Request) => {
 
     const selectedRider = riders[0];
 
-    // Calculate new timeout (30 seconds from now)
+    // Calculate new timeout (3 minutes from now)
     const timeoutAt = new Date();
-    timeoutAt.setSeconds(timeoutAt.getSeconds() + 30);
+    timeoutAt.setMinutes(timeoutAt.getMinutes() + 3);
 
     // Reassign rider to order
     const { error: updateError } = await supabase
