@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, M
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Package, MapPin, Clock, Plus, X, User, Phone, ChevronDown, ChevronUp, Layers, Navigation, Search, Tag, Receipt, Star } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase, Order } from '@/lib/supabase';
+import { Order } from '@/lib/supabase';
+import { coreBackend } from '@/lib/coreBackend';
 import BulkOrderModal from '@/components/BulkOrderModal';
 import { CheckoutModal } from '@/components/CheckoutModal';
 import { PricingBreakdown } from '@/components/PricingBreakdown';
@@ -74,7 +75,7 @@ export default function CustomerHome() {
     pricingCalculator.initialize();
     loadOrders();
 
-    const ordersChannel = supabase
+    const ordersChannel = coreBackend
       .channel('orders-changes')
       .on(
         'postgres_changes',
@@ -92,13 +93,13 @@ export default function CustomerHome() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(ordersChannel);
+      coreBackend.removeChannel(ordersChannel);
     };
   }, [profile?.id]);
 
   const loadOrders = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await coreBackend
         .from('orders')
         .select('*')
         .eq('customer_id', profile?.id)
@@ -213,7 +214,7 @@ export default function CustomerHome() {
   const assignRiderToOrder = async (orderId: string) => {
     try {
       const apiUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/assign-rider`;
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await coreBackend.auth.getSession();
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -259,7 +260,7 @@ export default function CustomerHome() {
     console.log('Verifying payment state set to TRUE');
     try {
       const apiUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/verify-payment`;
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await coreBackend.auth.getSession();
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -306,7 +307,7 @@ export default function CustomerHome() {
         throw new Error(errorMessage);
       }
 
-      const { data: orderData, error: orderError } = await supabase
+      const { data: orderData, error: orderError } = await coreBackend
         .from('orders')
         .insert({
           customer_id: orderDetails.customer_id,
@@ -428,7 +429,7 @@ export default function CustomerHome() {
         order_source: 'logistics',
       };
 
-      const { data: orderData, error: orderError } = await supabase
+      const { data: orderData, error: orderError } = await coreBackend
         .from('orders')
         .insert(insertData)
         .select()
@@ -445,7 +446,7 @@ export default function CustomerHome() {
         );
 
         if (!success) {
-          await supabase.from('orders').delete().eq('id', orderData.id);
+          await coreBackend.from('orders').delete().eq('id', orderData.id);
           throw new Error('Insufficient wallet balance');
         }
       }
