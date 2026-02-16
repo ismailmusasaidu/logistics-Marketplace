@@ -29,7 +29,7 @@ type CheckoutModalProps = {
 };
 
 export function CheckoutModal({ visible, onClose, onConfirm, pricing, userId, userEmail, orderId }: CheckoutModalProps) {
-  const [selectedPayment, setSelectedPayment] = useState<PaymentMethod>('cash');
+  const [selectedPayment, setSelectedPayment] = useState<PaymentMethod>('cash_on_delivery');
   const [walletBalance, setWalletBalance] = useState(0);
   const [loading, setLoading] = useState(false);
   const [loadingBalance, setLoadingBalance] = useState(true);
@@ -211,7 +211,7 @@ export function CheckoutModal({ visible, onClose, onConfirm, pricing, userId, us
       badge: null,
     },
     {
-      id: 'cash' as PaymentMethod,
+      id: 'cash_on_delivery' as PaymentMethod,
       title: 'Cash on Delivery',
       description: 'Pay when you receive',
       icon: Banknote,

@@ -60,7 +60,7 @@ export type Withdrawal = {
   failed_at: string | null;
 };
 
-export type PaymentMethod = 'wallet' | 'online' | 'cash' | 'transfer';
+export type PaymentMethod = 'wallet' | 'online' | 'cash_on_delivery' | 'transfer';
 export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'refunded';
 
 export const walletService = {
