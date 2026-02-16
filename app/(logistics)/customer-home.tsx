@@ -146,7 +146,14 @@ export default function CustomerHome() {
 
       setCalculatedDistance(result.distance);
 
-      await pricingCalculator.initialize();
+      await pricingCalculator.initialize(true);
+
+      if (!pricingCalculator.isReady()) {
+        setGeocodingError('Unable to load delivery pricing. Please check your internet connection and try again.');
+        setCalculatedDistance(null);
+        setPricingBreakdown(null);
+        return;
+      }
 
       let promo: Promotion | null = null;
       if (newOrder.promoCode.trim()) {

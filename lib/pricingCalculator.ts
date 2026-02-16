@@ -63,32 +63,61 @@ export class PricingCalculator {
   private adjustments: OrderTypeAdjustment[] = [];
   private orderSizes: OrderSizePricing[] = [];
   private promotions: Promotion[] = [];
+  private initialized: boolean = false;
 
-  async initialize() {
+  async initialize(forceReload: boolean = false) {
+    if (this.initialized && !forceReload && this.zones.length > 0) {
+      return;
+    }
+
     await Promise.all([
       this.loadZones(),
       this.loadAdjustments(),
       this.loadOrderSizes(),
       this.loadPromotions(),
     ]);
+
+    this.initialized = true;
+  }
+
+  isReady(): boolean {
+    return this.initialized && this.zones.length > 0;
+  }
+
+  async ensureReady(): Promise<void> {
+    if (!this.isReady()) {
+      await this.initialize(true);
+    }
   }
 
   private async loadZones() {
-    const { data, error } = await supabase
-      .from('delivery_zones')
-      .select('*')
-      .eq('is_active', true)
-      .order('min_distance_km');
+    try {
+      const { data, error } = await supabase
+        .from('delivery_zones')
+        .select('*')
+        .eq('is_active', true)
+        .order('min_distance_km');
 
-    if (!error && data) {
-      this.zones = data.map(zone => ({
-        id: zone.id,
-        zone_name: zone.name,
-        min_distance: parseFloat(zone.min_distance_km),
-        max_distance: parseFloat(zone.max_distance_km),
-        base_price: parseFloat(zone.price),
-        is_active: zone.is_active,
-      }));
+      if (error) {
+        console.error('Error loading delivery zones:', error);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        this.zones = data.map(zone => ({
+          id: zone.id,
+          zone_name: zone.name,
+          min_distance: parseFloat(zone.min_distance_km),
+          max_distance: parseFloat(zone.max_distance_km),
+          base_price: parseFloat(zone.price),
+          is_active: zone.is_active,
+        }));
+        console.log('Delivery zones loaded:', this.zones.length);
+      } else {
+        console.warn('No delivery zones found in database');
+      }
+    } catch (err) {
+      console.error('Exception loading delivery zones:', err);
     }
   }
 
@@ -202,7 +231,19 @@ export class PricingCalculator {
     const zone = this.findZoneForDistance(distance);
 
     if (!zone) {
-      throw new Error(`No delivery zone found for distance: ${distance}km`);
+      console.error('Zone lookup failed. Distance:', distance, 'Available zones:', this.zones);
+      if (this.zones.length === 0) {
+        throw new Error('Delivery zones not loaded. Please check your connection and try again.');
+      }
+      const maxDistance = Math.max(...this.zones.map(z => z.max_distance));
+      if (distance > maxDistance) {
+        throw new Error(`Distance ${distance}km exceeds maximum delivery range of ${maxDistance}km.`);
+      }
+      const minDistance = Math.min(...this.zones.map(z => z.min_distance));
+      if (distance < minDistance) {
+        throw new Error(`Distance ${distance}km is below minimum delivery distance of ${minDistance}km.`);
+      }
+      throw new Error(`No delivery zone configured for distance: ${distance}km`);
     }
 
     let basePrice = zone.base_price;
