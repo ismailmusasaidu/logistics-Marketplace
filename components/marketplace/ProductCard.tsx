@@ -150,21 +150,13 @@ export default function ProductCard({ product, onPress, onAddToCart }: ProductCa
           </View>
 
           <View style={styles.footer}>
-            <View>
-              {hasDiscount ? (
-                <>
-                  <Text style={styles.price}>
-                    {'\u20A6'}{discountedPrice.toLocaleString('en-NG', { minimumFractionDigits: 2 })}
-                  </Text>
-                  <Text style={styles.originalPrice}>
-                    {'\u20A6'}{product.price.toLocaleString('en-NG', { minimumFractionDigits: 2 })}
-                  </Text>
-                </>
-              ) : (
-                <Text style={styles.price}>
-                  {'\u20A6'}{product.price.toLocaleString('en-NG', { minimumFractionDigits: 2 })}
-                </Text>
-              )}
+            <View style={styles.priceBlock}>
+              <Text style={styles.price}>
+                {'\u20A6'}{discountedPrice.toLocaleString('en-NG', { minimumFractionDigits: 2 })}
+              </Text>
+              <Text style={[styles.originalPrice, !hasDiscount && styles.hidden]}>
+                {'\u20A6'}{product.price.toLocaleString('en-NG', { minimumFractionDigits: 2 })}
+              </Text>
               <Text style={styles.unit}>per {product.unit}</Text>
             </View>
             <TouchableOpacity
@@ -291,12 +283,18 @@ const styles = StyleSheet.create({
     color: '#999',
     marginTop: 1,
   },
+  priceBlock: {
+    justifyContent: 'flex-end',
+  },
   originalPrice: {
     fontSize: 12,
     fontFamily: Fonts.medium,
     color: '#999',
     textDecorationLine: 'line-through',
     marginTop: 1,
+  },
+  hidden: {
+    opacity: 0,
   },
   discountBadge: {
     position: 'absolute',
