@@ -771,20 +771,25 @@ export default function CustomerHome() {
 
         {activeTab === 'history' && (
           <>
-            <Text style={styles.sectionTitle}>Order History</Text>
+            <View style={styles.historyHeaderRow}>
+              <View>
+                <Text style={styles.sectionTitle}>Order History</Text>
+                <Text style={styles.historySubheading}>Your past deliveries</Text>
+              </View>
+            </View>
 
             <View style={styles.searchContainer}>
-              <Search size={20} color="#6b7280" />
+              <Search size={18} color="#9ca3af" />
               <TextInput
                 style={styles.searchInput}
-                placeholder="Search by order number, address..."
+                placeholder="Search orders, addresses..."
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                placeholderTextColor="#9ca3af"
+                placeholderTextColor="#c4c9d4"
               />
               {searchQuery.length > 0 && (
-                <TouchableOpacity onPress={() => setSearchQuery('')}>
-                  <X size={20} color="#6b7280" />
+                <TouchableOpacity style={styles.searchClearBtn} onPress={() => setSearchQuery('')}>
+                  <X size={16} color="#6b7280" />
                 </TouchableOpacity>
               )}
             </View>
@@ -798,23 +803,36 @@ export default function CustomerHome() {
             ) : (
               <>
                 {!searchQuery && (
-                  <View style={styles.historySummary}>
-                    <View style={styles.summaryCard}>
-                      <Text style={styles.summaryLabel}>Total Spent</Text>
-                      <Text style={styles.summaryAmount}>
+                  <LinearGradient
+                    colors={['#ff8c00', '#f97316']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.historySummary}
+                  >
+                    <View style={styles.summaryItem}>
+                      <Text style={styles.summaryItemValue}>
                         ₦{completedOrders
                           .filter(o => o.status === 'delivered')
                           .reduce((sum, o) => sum + o.delivery_fee, 0)
-                          .toFixed(2)}
+                          .toLocaleString('en-NG', { minimumFractionDigits: 0 })}
                       </Text>
+                      <Text style={styles.summaryItemLabel}>Total Spent</Text>
                     </View>
-                    <View style={styles.summaryCard}>
-                      <Text style={styles.summaryLabel}>Completed</Text>
-                      <Text style={styles.summaryAmount}>
+                    <View style={styles.summaryDivider} />
+                    <View style={styles.summaryItem}>
+                      <Text style={styles.summaryItemValue}>
                         {completedOrders.filter(o => o.status === 'delivered').length}
                       </Text>
+                      <Text style={styles.summaryItemLabel}>Delivered</Text>
                     </View>
-                  </View>
+                    <View style={styles.summaryDivider} />
+                    <View style={styles.summaryItem}>
+                      <Text style={styles.summaryItemValue}>
+                        {completedOrders.filter(o => o.status === 'cancelled').length}
+                      </Text>
+                      <Text style={styles.summaryItemLabel}>Cancelled</Text>
+                    </View>
+                  </LinearGradient>
                 )}
 
                 {filteredCompletedOrders.length === 0 ? (
@@ -827,81 +845,85 @@ export default function CustomerHome() {
                   <>
                     {searchQuery && (
                       <Text style={styles.searchResults}>
-                        Found {filteredCompletedOrders.length} {filteredCompletedOrders.length === 1 ? 'order' : 'orders'}
+                        {filteredCompletedOrders.length} {filteredCompletedOrders.length === 1 ? 'result' : 'results'} found
                       </Text>
                     )}
                     {filteredCompletedOrders.map((order) => (
-                  <View key={order.id} style={styles.historyCard}>
-                    <View style={styles.historyHeader}>
-                      <View>
-                        <Text style={styles.historyOrderNumber}>{order.order_number}</Text>
-                        <Text style={styles.historyDate}>
-                          {order.delivered_at
-                            ? new Date(order.delivered_at).toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric',
-                                hour: 'numeric',
-                                minute: '2-digit'
-                              })
-                            : new Date(order.updated_at).toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric'
-                              })
-                          }
-                        </Text>
-                      </View>
-                      <View style={styles.historyFeeContainer}>
-                        <Text style={styles.historyFeeLabel}>Amount</Text>
-                        <Text style={styles.historyFee}>₦{order.delivery_fee.toFixed(2)}</Text>
-                      </View>
-                    </View>
-
-                    <View style={styles.historyAddresses}>
-                      <View style={styles.historyAddressRow}>
-                        <MapPin size={14} color="#f97316" />
-                        <Text style={styles.historyAddressText} numberOfLines={1}>
-                          {order.delivery_address}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View style={styles.historyFooter}>
-                      <View style={[styles.historyStatusBadge, {
-                        backgroundColor: order.status === 'delivered' ? '#d1fae5' : '#fee2e2'
-                      }]}>
-                        <Text style={[styles.historyStatusText, {
-                          color: order.status === 'delivered' ? '#065f46' : '#991b1b'
-                        }]}>
-                          {order.status === 'delivered' ? 'Delivered' : 'Cancelled'}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View style={styles.historyActions}>
-                      <TouchableOpacity
-                        style={styles.receiptButton}
-                        onPress={() => handleViewReceipt(order.id)}>
-                        <Receipt size={16} color="#f97316" />
-                        <Text style={styles.receiptButtonText}>View Receipt</Text>
-                      </TouchableOpacity>
-                      {order.status === 'delivered' && !ratedOrders.has(order.id) && (
-                        <TouchableOpacity
-                          style={styles.ratingButton}
-                          onPress={() => handleOpenRating(order)}>
-                          <Star size={16} color="#FFD700" />
-                          <Text style={styles.ratingButtonText}>Rate Delivery</Text>
-                        </TouchableOpacity>
-                      )}
-                      {order.status === 'delivered' && ratedOrders.has(order.id) && (
-                        <View style={styles.ratedBadge}>
-                          <Star size={14} color="#10b981" fill="#10b981" />
-                          <Text style={styles.ratedText}>Rated</Text>
+                      <View key={order.id} style={styles.historyCard}>
+                        <View style={styles.historyCardTopBar}>
+                          <View style={[styles.historyStatusPill, {
+                            backgroundColor: order.status === 'delivered' ? '#dcfce7' : '#fee2e2',
+                          }]}>
+                            {order.status === 'delivered'
+                              ? <CheckCircle2 size={12} color="#16a34a" strokeWidth={2.5} />
+                              : <X size={12} color="#dc2626" strokeWidth={2.5} />
+                            }
+                            <Text style={[styles.historyStatusPillText, {
+                              color: order.status === 'delivered' ? '#16a34a' : '#dc2626',
+                            }]}>
+                              {order.status === 'delivered' ? 'Delivered' : 'Cancelled'}
+                            </Text>
+                          </View>
+                          <Text style={styles.historyDate}>
+                            {order.delivered_at
+                              ? new Date(order.delivered_at).toLocaleDateString('en-US', {
+                                  month: 'short', day: 'numeric', year: 'numeric',
+                                })
+                              : new Date(order.updated_at).toLocaleDateString('en-US', {
+                                  month: 'short', day: 'numeric', year: 'numeric',
+                                })
+                            }
+                          </Text>
                         </View>
-                      )}
-                    </View>
-                  </View>
+
+                        <View style={styles.historyCardBody}>
+                          <View style={styles.historyCardLeft}>
+                            <Text style={styles.historyOrderNumber}>{order.order_number}</Text>
+                            <View style={styles.historyAddressRow}>
+                              <View style={styles.historyAddressDot} />
+                              <Text style={styles.historyAddressText} numberOfLines={1}>
+                                {order.delivery_address}
+                              </Text>
+                            </View>
+                            {order.pickup_address ? (
+                              <View style={styles.historyAddressRow}>
+                                <View style={[styles.historyAddressDot, { backgroundColor: '#f97316' }]} />
+                                <Text style={styles.historyAddressText} numberOfLines={1}>
+                                  {order.pickup_address}
+                                </Text>
+                              </View>
+                            ) : null}
+                          </View>
+                          <View style={styles.historyCardRight}>
+                            <Text style={styles.historyFeeLabel}>Delivery Fee</Text>
+                            <Text style={styles.historyFee}>₦{order.delivery_fee.toLocaleString('en-NG')}</Text>
+                          </View>
+                        </View>
+
+                        <View style={styles.historyCardFooter}>
+                          <TouchableOpacity
+                            style={styles.receiptButton}
+                            onPress={() => handleViewReceipt(order.id)}>
+                            <Receipt size={15} color="#f97316" strokeWidth={2} />
+                            <Text style={styles.receiptButtonText}>Receipt</Text>
+                          </TouchableOpacity>
+
+                          {order.status === 'delivered' && !ratedOrders.has(order.id) && (
+                            <TouchableOpacity
+                              style={styles.ratingButton}
+                              onPress={() => handleOpenRating(order)}>
+                              <Star size={15} color="#f59e0b" strokeWidth={2} />
+                              <Text style={styles.ratingButtonText}>Rate</Text>
+                            </TouchableOpacity>
+                          )}
+                          {order.status === 'delivered' && ratedOrders.has(order.id) && (
+                            <View style={styles.ratedBadge}>
+                              <Star size={13} color="#10b981" fill="#10b981" />
+                              <Text style={styles.ratedText}>Rated</Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
                     ))}
                   </>
                 )}
@@ -1748,62 +1770,134 @@ const styles = StyleSheet.create({
   tabTextActive: {
     color: '#ffffff',
   },
-  historySummary: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 20,
-  },
-  summaryCard: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: '#fef3c7',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#fbbf24',
-  },
-  summaryLabel: {
-    fontSize: 12,
-    color: '#92400e',
-    marginBottom: 8,
-    fontFamily: Fonts.poppinsSemiBold,
-  },
-  summaryAmount: {
-    fontSize: 22,
-    fontFamily: Fonts.poppinsBold,
-    color: '#78350f',
-  },
-  historyCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  historyHeader: {
+  historyHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: 16,
   },
-  historyOrderNumber: {
-    fontSize: 16,
+  historySubheading: {
+    fontSize: 13,
+    fontFamily: Fonts.poppinsRegular,
+    color: '#9ca3af',
+    marginTop: 2,
+  },
+  historySummary: {
+    flexDirection: 'row',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    alignItems: 'center',
+    shadowColor: '#f97316',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  summaryItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  summaryItemValue: {
+    fontSize: 20,
     fontFamily: Fonts.poppinsBold,
-    color: '#111827',
+    color: '#ffffff',
     marginBottom: 4,
   },
+  summaryItemLabel: {
+    fontSize: 11,
+    fontFamily: Fonts.poppinsMedium,
+    color: 'rgba(255,255,255,0.8)',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  summaryDivider: {
+    width: 1,
+    height: 36,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+  },
+  historyCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    marginBottom: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 2,
+    overflow: 'hidden',
+  },
+  historyCardTopBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+    backgroundColor: '#fafafa',
+  },
+  historyStatusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 20,
+  },
+  historyStatusPillText: {
+    fontSize: 11,
+    fontFamily: Fonts.poppinsSemiBold,
+    letterSpacing: 0.2,
+  },
   historyDate: {
+    fontSize: 11,
+    fontFamily: Fonts.poppinsRegular,
+    color: '#9ca3af',
+  },
+  historyCardBody: {
+    flexDirection: 'row',
+    padding: 16,
+    gap: 12,
+    alignItems: 'flex-start',
+  },
+  historyCardLeft: {
+    flex: 1,
+    gap: 6,
+  },
+  historyCardRight: {
+    alignItems: 'flex-end',
+  },
+  historyOrderNumber: {
+    fontSize: 15,
+    fontFamily: Fonts.poppinsBold,
+    color: '#111827',
+    marginBottom: 6,
+    letterSpacing: 0.3,
+  },
+  historyAddressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  historyAddressDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#6b7280',
+  },
+  historyAddressText: {
+    flex: 1,
     fontSize: 12,
     fontFamily: Fonts.poppinsRegular,
     color: '#6b7280',
   },
-  historyFeeContainer: {
-    alignItems: 'flex-end',
-  },
   historyFeeLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontFamily: Fonts.poppinsRegular,
-    color: '#6b7280',
+    color: '#9ca3af',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
     marginBottom: 4,
   },
   historyFee: {
@@ -1811,61 +1905,50 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.poppinsBold,
     color: '#f97316',
   },
-  historyAddresses: {
-    gap: 8,
-    marginBottom: 12,
-  },
-  historyAddressRow: {
+  historyCardFooter: {
     flexDirection: 'row',
-    alignItems: 'center',
     gap: 8,
-  },
-  historyAddressText: {
-    flex: 1,
-    fontSize: 13,
-    fontFamily: Fonts.poppinsMedium,
-    color: '#374151',
-  },
-  historyFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-  },
-  historyStatusBadge: {
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-  },
-  historyStatusText: {
-    fontSize: 11,
-    fontFamily: Fonts.poppinsBold,
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+    paddingTop: 4,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#ffffff',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
     marginBottom: 16,
     borderWidth: 1,
     borderColor: '#e5e7eb',
-    gap: 12,
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  searchClearBtn: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#f3f4f6',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 14,
     fontFamily: Fonts.poppinsRegular,
     color: '#111827',
   },
   searchResults: {
-    fontSize: 13,
-    color: '#6b7280',
-    fontFamily: Fonts.poppinsSemiBold,
+    fontSize: 12,
+    color: '#9ca3af',
+    fontFamily: Fonts.poppinsMedium,
     marginBottom: 12,
+    letterSpacing: 0.3,
   },
   verifyingOverlay: {
     flex: 1,
@@ -1900,42 +1983,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
     backgroundColor: '#fff7ed',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: '#fed7aa',
-    marginTop: 12,
   },
   receiptButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 13,
     fontFamily: Fonts.poppinsSemiBold,
     color: '#f97316',
   },
   historyActions: {
     flexDirection: 'row',
     gap: 8,
-    marginTop: 12,
   },
   ratingButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
     backgroundColor: '#fffbeb',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: '#fde68a',
-    flex: 1,
   },
   ratingButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 13,
     fontFamily: Fonts.poppinsSemiBold,
     color: '#f59e0b',
   },
@@ -1943,17 +2021,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    backgroundColor: '#d1fae5',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    flex: 1,
+    gap: 5,
+    backgroundColor: '#dcfce7',
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
   },
   ratedText: {
     fontSize: 13,
-    fontWeight: '600',
     fontFamily: Fonts.poppinsSemiBold,
-    color: '#10b981',
+    color: '#16a34a',
   },
 });
