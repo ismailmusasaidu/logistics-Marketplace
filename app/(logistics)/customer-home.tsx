@@ -534,6 +534,21 @@ export default function CustomerHome() {
     return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
+  const parseOrderNotes = (notes: string): { label: string; value: string }[] => {
+    return notes
+      .split('|')
+      .map(part => part.trim())
+      .filter(part => part.includes(':'))
+      .map(part => {
+        const colonIdx = part.indexOf(':');
+        return {
+          label: part.substring(0, colonIdx).trim(),
+          value: part.substring(colonIdx + 1).trim(),
+        };
+      })
+      .filter(item => item.value.length > 0);
+  };
+
   const handleViewReceipt = (orderId: string) => {
     setSelectedOrderForReceipt(orderId);
     setReceiptModalVisible(true);
@@ -700,9 +715,17 @@ export default function CustomerHome() {
                 </View>
 
                 {order.notes && (
-                  <View style={styles.notesRow}>
-                    <Package size={14} color="#6b7280" />
-                    <Text style={styles.notesText} numberOfLines={2}>{order.notes}</Text>
+                  <View style={styles.notesCard}>
+                    <View style={styles.notesCardHeader}>
+                      <Package size={13} color="#f97316" />
+                      <Text style={styles.notesCardTitle}>Package Info</Text>
+                    </View>
+                    {parseOrderNotes(order.notes).map((item, i) => (
+                      <View key={i} style={styles.notesInfoRow}>
+                        <Text style={styles.notesInfoLabel}>{item.label}</Text>
+                        <Text style={styles.notesInfoValue}>{item.value}</Text>
+                      </View>
+                    ))}
                   </View>
                 )}
 
@@ -1357,23 +1380,47 @@ const styles = StyleSheet.create({
     color: '#111827',
     lineHeight: 18,
   },
-  notesRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    backgroundColor: '#f8fafc',
-    borderRadius: 10,
-    padding: 10,
+  notesCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 12,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#f3f4f6',
+    gap: 8,
   },
-  notesText: {
+  notesCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  notesCardTitle: {
+    fontSize: 11,
+    fontFamily: Fonts.poppinsBold,
+    color: '#f97316',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  notesInfoRow: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'flex-start',
+  },
+  notesInfoLabel: {
+    fontSize: 12,
+    fontFamily: Fonts.poppinsSemiBold,
+    color: '#6b7280',
+    minWidth: 110,
+  },
+  notesInfoValue: {
     flex: 1,
     fontSize: 12,
-    fontFamily: Fonts.poppinsRegular,
-    color: '#64748b',
-    lineHeight: 18,
+    fontFamily: Fonts.poppinsMedium,
+    color: '#111827',
+    flexWrap: 'wrap',
   },
   orderCardFooter: {
     flexDirection: 'row',
