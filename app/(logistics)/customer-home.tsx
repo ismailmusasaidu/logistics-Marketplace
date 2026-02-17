@@ -222,12 +222,14 @@ export default function CustomerHome() {
     try {
       const apiUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/assign-rider`;
       const { data: { session } } = await coreBackend.auth.getSession();
+      const token = session?.access_token || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${session?.access_token}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
+          'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
         },
         body: JSON.stringify({ order_id: orderId }),
       });
