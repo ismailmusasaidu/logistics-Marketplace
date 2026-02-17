@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Modal, TextInput, Platform, Linking, ActivityIndicator } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Package, MapPin, Clock, Plus, X, User, Phone, ChevronDown, ChevronUp, Layers, Navigation, Search, Tag, Receipt, Star } from 'lucide-react-native';
+import { Package, MapPin, Clock, Plus, X, User, Phone, ChevronDown, ChevronUp, Layers, Navigation, Search, Tag, Receipt, Star, ArrowDown, Truck, CheckCircle2, CircleDot } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { Order } from '@/lib/supabase';
 import { coreBackend } from '@/lib/coreBackend';
@@ -647,52 +648,77 @@ export default function CustomerHome() {
               </View>
             ) : (
               activeOrders.map((order, index) => (
-            <View key={order.id} >
-              <View style={styles.orderCard}>
-                <View style={styles.orderHeader}>
-                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(order.status) }]}>
-                    <Text style={styles.statusText}>{getStatusLabel(order.status)}</Text>
+            <View key={order.id} style={styles.orderCard}>
+              <LinearGradient
+                colors={['#fff7ed', '#ffffff']}
+                style={styles.orderCardGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}>
+
+                <View style={styles.orderCardTopRow}>
+                  <View style={styles.orderCardIconWrap}>
+                    <LinearGradient colors={['#f97316', '#ea580c']} style={styles.orderCardIcon}>
+                      <Package size={22} color="#ffffff" />
+                    </LinearGradient>
                   </View>
-                  <Text style={styles.orderNumber}>{order.order_number}</Text>
+                  <View style={styles.orderCardMeta}>
+                    <Text style={styles.orderCardNumber}>{order.order_number}</Text>
+                    <Text style={styles.orderCardDate}>
+                      {new Date(order.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </Text>
+                  </View>
+                  <View style={[styles.statusPill, { backgroundColor: getStatusColor(order.status) + '22', borderColor: getStatusColor(order.status) + '55' }]}>
+                    <View style={[styles.statusDot, { backgroundColor: getStatusColor(order.status) }]} />
+                    <Text style={[styles.statusPillText, { color: getStatusColor(order.status) }]}>{getStatusLabel(order.status)}</Text>
+                  </View>
                 </View>
 
-                <View style={styles.orderDetails}>
-                  <View style={styles.addressRow}>
-                    <MapPin size={20} color="#f97316" />
-                    <View style={styles.addressInfo}>
-                      <Text style={styles.addressLabel}>Delivery Address</Text>
-                      <Text style={styles.addressText}>{order.delivery_address}</Text>
-                    </View>
-                  </View>
-
-                  {order.notes && (
-                    <View style={styles.addressRow}>
-                      <Package size={20} color="#3b82f6" />
-                      <View style={styles.addressInfo}>
-                        <Text style={styles.addressLabel}>Notes</Text>
-                        <Text style={styles.addressText}>{order.notes}</Text>
+                <View style={styles.routeContainer}>
+                  <View style={styles.routeRow}>
+                    <View style={styles.routeIconCol}>
+                      <View style={[styles.routeCircle, styles.routeCircleOrigin]}>
+                        <View style={styles.routeCircleInner} />
+                      </View>
+                      <View style={styles.routeLine} />
+                      <View style={[styles.routeCircle, styles.routeCircleDest]}>
+                        <MapPin size={10} color="#ffffff" />
                       </View>
                     </View>
-                  )}
-                </View>
-
-                <View style={styles.orderDetails}>
-                  <View style={styles.orderFooter}>
-                    <View style={styles.timeInfo}>
-                      <Clock size={16} color="#6b7280" />
-                      <Text style={styles.timeText}>{new Date(order.created_at).toLocaleDateString()}</Text>
+                    <View style={styles.routeTextCol}>
+                      {order.pickup_address ? (
+                        <View style={styles.routeTextBlock}>
+                          <Text style={styles.routeLabel}>PICKUP</Text>
+                          <Text style={styles.routeAddress} numberOfLines={2}>{order.pickup_address}</Text>
+                        </View>
+                      ) : null}
+                      <View style={[styles.routeTextBlock, { marginTop: order.pickup_address ? 0 : 0 }]}>
+                        <Text style={[styles.routeLabel, { color: '#f97316' }]}>DELIVERY</Text>
+                        <Text style={styles.routeAddress} numberOfLines={2}>{order.delivery_address}</Text>
+                      </View>
                     </View>
-                    <Text style={styles.feeText}>₦{order.delivery_fee.toFixed(2)}</Text>
                   </View>
                 </View>
 
-                <TouchableOpacity
-                  style={styles.receiptButton}
-                  onPress={() => handleViewReceipt(order.id)}>
-                  <Receipt size={16} color="#f97316" />
-                  <Text style={styles.receiptButtonText}>View Receipt</Text>
-                </TouchableOpacity>
-              </View>
+                {order.notes && (
+                  <View style={styles.notesRow}>
+                    <Package size={14} color="#6b7280" />
+                    <Text style={styles.notesText} numberOfLines={2}>{order.notes}</Text>
+                  </View>
+                )}
+
+                <View style={styles.orderCardFooter}>
+                  <View style={styles.feeBox}>
+                    <Text style={styles.feeLabelSmall}>Delivery Fee</Text>
+                    <Text style={styles.feeAmount}>₦{order.delivery_fee.toFixed(2)}</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.receiptBtn}
+                    onPress={() => handleViewReceipt(order.id)}>
+                    <Receipt size={15} color="#f97316" />
+                    <Text style={styles.receiptBtnText}>Receipt</Text>
+                  </TouchableOpacity>
+                </View>
+              </LinearGradient>
             </View>
           ))
         )}
@@ -1199,15 +1225,192 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   orderCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 20,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowColor: '#f97316',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 4,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+  },
+  orderCardGradient: {
+    padding: 18,
+  },
+  orderCardTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 18,
+  },
+  orderCardIconWrap: {
+    shadowColor: '#f97316',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  orderCardIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  orderCardMeta: {
+    flex: 1,
+  },
+  orderCardNumber: {
+    fontSize: 15,
+    fontFamily: Fonts.poppinsBold,
+    color: '#111827',
+    letterSpacing: 0.3,
+  },
+  orderCardDate: {
+    fontSize: 12,
+    fontFamily: Fonts.poppinsRegular,
+    color: '#9ca3af',
+    marginTop: 2,
+  },
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  statusPillText: {
+    fontSize: 11,
+    fontFamily: Fonts.poppinsBold,
+    letterSpacing: 0.2,
+  },
+  routeContainer: {
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#f3f4f6',
+  },
+  routeRow: {
+    flexDirection: 'row',
+    gap: 14,
+  },
+  routeIconCol: {
+    alignItems: 'center',
+    width: 18,
+    paddingTop: 3,
+  },
+  routeCircle: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  routeCircleOrigin: {
+    backgroundColor: '#dcfce7',
+    borderWidth: 2,
+    borderColor: '#16a34a',
+  },
+  routeCircleInner: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#16a34a',
+  },
+  routeCircleDest: {
+    backgroundColor: '#f97316',
+  },
+  routeLine: {
+    flex: 1,
+    width: 2,
+    backgroundColor: '#e5e7eb',
+    marginVertical: 3,
+    minHeight: 16,
+  },
+  routeTextCol: {
+    flex: 1,
+    gap: 14,
+  },
+  routeTextBlock: {
+    gap: 3,
+  },
+  routeLabel: {
+    fontSize: 10,
+    fontFamily: Fonts.poppinsBold,
+    color: '#6b7280',
+    letterSpacing: 1,
+  },
+  routeAddress: {
+    fontSize: 13,
+    fontFamily: Fonts.poppinsMedium,
+    color: '#111827',
+    lineHeight: 18,
+  },
+  notesRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#f8fafc',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  notesText: {
+    flex: 1,
+    fontSize: 12,
+    fontFamily: Fonts.poppinsRegular,
+    color: '#64748b',
+    lineHeight: 18,
+  },
+  orderCardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#fed7aa',
+  },
+  feeBox: {
+    gap: 2,
+  },
+  feeLabelSmall: {
+    fontSize: 10,
+    fontFamily: Fonts.poppinsRegular,
+    color: '#9ca3af',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  feeAmount: {
+    fontSize: 20,
+    fontFamily: Fonts.poppinsBold,
+    color: '#f97316',
+  },
+  receiptBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#f97316',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+  },
+  receiptBtnText: {
+    fontSize: 13,
+    fontFamily: Fonts.poppinsBold,
+    color: '#ffffff',
   },
   orderHeader: {
     flexDirection: 'row',
