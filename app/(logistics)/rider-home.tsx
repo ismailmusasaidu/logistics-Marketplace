@@ -263,13 +263,13 @@ export default function RiderHome() {
     }
   };
 
-  const isOnline = riderStats?.status === 'available';
+  const isOnline = riderStats?.status === 'online';
 
   const toggleOnlineStatus = async () => {
     try {
       if (!riderId) return;
       setTogglingStatus(true);
-      const newStatus = isOnline ? 'offline' : 'available';
+      const newStatus = isOnline ? 'offline' : 'online';
 
       const { error } = await supabase
         .from('riders')
@@ -279,7 +279,7 @@ export default function RiderHome() {
       if (error) throw error;
 
       setRiderStats(prev => prev ? { ...prev, status: newStatus } : prev);
-      showToast(newStatus === 'available' ? 'You are now online' : 'You are now offline', 'success');
+      showToast(newStatus === 'online' ? 'You are now online' : 'You are now offline', 'success');
     } catch (error) {
       console.error('Error toggling status:', error);
       showToast('Failed to update status', 'error');
