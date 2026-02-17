@@ -53,6 +53,7 @@ interface DeliveryPricing {
   min_delivery_charge: number;
   max_delivery_distance_km: number;
   free_delivery_threshold: number;
+  store_pickup_address: string;
 }
 
 interface Promotion {
@@ -177,6 +178,7 @@ export default function DeliveryManagement() {
         min_delivery_charge: pricing.min_delivery_charge,
         max_delivery_distance_km: pricing.max_delivery_distance_km,
         free_delivery_threshold: pricing.free_delivery_threshold,
+        store_pickup_address: pricing.store_pickup_address,
         updated_at: new Date().toISOString(),
         updated_by: profile?.id,
       })
@@ -344,6 +346,18 @@ export default function DeliveryManagement() {
     return (
       <ScrollView contentContainerStyle={styles.tabScroll} showsVerticalScrollIndicator={false}>
         <View style={styles.formCard}>
+          <Text style={styles.sectionTitle}>Store Pickup Address</Text>
+          <Text style={styles.sectionDesc}>This is the store's physical address used as the origin point when calculating delivery distances for customer orders. Include full details and landmarks for accuracy.</Text>
+          <FormField
+            label="Store / Pickup Address"
+            placeholder="e.g., 10 Admiralty Way, near Mega Chicken, Lekki Phase 1, Lagos"
+            value={pricing.store_pickup_address || ''}
+            onChangeText={(t) => setPricing({ ...pricing, store_pickup_address: t })}
+            multiline
+          />
+        </View>
+
+        <View style={[styles.formCard, { marginTop: 16 }]}>
           <Text style={styles.sectionTitle}>Global Delivery Pricing</Text>
           <Text style={styles.sectionDesc}>These settings apply as defaults when no zone-specific pricing is matched.</Text>
 

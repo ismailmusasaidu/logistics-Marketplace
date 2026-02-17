@@ -13,7 +13,7 @@ import {
   Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Package, Truck, MapPin, CreditCard, ChevronLeft, CheckCircle, Clock, Wallet, DollarSign, Building2, Banknote } from 'lucide-react-native';
+import { Package, Truck, MapPin, CreditCard, ChevronLeft, CheckCircle, Clock, Wallet, Building2, Banknote } from 'lucide-react-native';
 import { supabase } from '@/lib/marketplace/supabase';
 import { CORE_URL } from '@/lib/coreBackend';
 import { useAuth } from '@/contexts/AuthContext';
@@ -51,9 +51,10 @@ export default function CheckoutScreen() {
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [deliveryName, setDeliveryName] = useState('');
   const [deliveryPhone, setDeliveryPhone] = useState('');
-  const [geocodedCoordinates, setGeocodedCoordinates] = useState<{ lat: number; lon: number } | null>(null);
+  const [distanceKm, setDistanceKm] = useState<number | null>(null);
   const [calculatedDeliveryFee, setCalculatedDeliveryFee] = useState<number>(0);
   const [zones, setZones] = useState<DeliveryZone[]>([]);
+  const [storePickupAddress, setStorePickupAddress] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [geocoding, setGeocoding] = useState(false);
   const [geocodeError, setGeocodeError] = useState<string>('');
@@ -73,11 +74,9 @@ export default function CheckoutScreen() {
   const [applyingPromo, setApplyingPromo] = useState(false);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [loadingBankAccounts, setLoadingBankAccounts] = useState(false);
-  const storeLocation = { latitude: 12.0022, longitude: 8.5919 };
-
   useEffect(() => {
     fetchCartItems();
-    loadZones();
+    loadZonesAndStoreAddress();
     fetchWalletBalance();
   }, []);
 
@@ -100,25 +99,25 @@ export default function CheckoutScreen() {
   };
 
   useEffect(() => {
-    if (deliveryType === 'delivery' && deliveryAddress.trim()) {
+    if (deliveryType === 'delivery' && deliveryAddress.trim() && storePickupAddress) {
       const timeoutId = setTimeout(() => {
         calculateDistanceFromAddress(deliveryAddress);
       }, 1000);
       return () => clearTimeout(timeoutId);
     } else {
-      setGeocodedCoordinates(null);
+      setDistanceKm(null);
       setCalculatedDeliveryFee(0);
       setGeocodeError('');
     }
-  }, [deliveryAddress, deliveryType]);
+  }, [deliveryAddress, deliveryType, storePickupAddress]);
 
   useEffect(() => {
-    if (geocodedCoordinates) {
-      calculateDeliveryFee();
+    if (distanceKm !== null) {
+      calculateDeliveryFee(distanceKm);
     } else {
       setCalculatedDeliveryFee(0);
     }
-  }, [geocodedCoordinates]);
+  }, [distanceKm, zones]);
 
   useEffect(() => {
     if (paymentUrl && showPaymentWebView) {
@@ -129,21 +128,26 @@ export default function CheckoutScreen() {
     }
   }, [paymentUrl, showPaymentWebView]);
 
-  const loadZones = async () => {
-    const { data } = await supabase
-      .from('delivery_zones')
-      .select('*')
-      .eq('is_active', true)
-      .order('min_distance_km');
-    if (data) setZones(data);
+  const loadZonesAndStoreAddress = async () => {
+    const [zonesResult, pricingResult] = await Promise.all([
+      supabase.from('delivery_zones').select('*').eq('is_active', true).order('min_distance_km'),
+      supabase.from('delivery_pricing').select('store_pickup_address').limit(1).maybeSingle(),
+    ]);
+    if (zonesResult.data) setZones(zonesResult.data);
+    if (pricingResult.data?.store_pickup_address) {
+      setStorePickupAddress(pricingResult.data.store_pickup_address);
+    }
   };
 
-  const calculateDistanceFromAddress = async (address: string) => {
+  const calculateDistanceFromAddress = async (customerAddress: string) => {
+    if (!storePickupAddress) {
+      setGeocodeError('Store pickup address is not configured. Please contact support.');
+      return;
+    }
     try {
       setGeocoding(true);
       setGeocodeError('');
 
-      const origin = `${storeLocation.latitude},${storeLocation.longitude}`;
       const apiUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/calculate-distance`;
 
       const response = await fetch(apiUrl, {
@@ -153,67 +157,37 @@ export default function CheckoutScreen() {
           'Authorization': `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
         },
         body: JSON.stringify({
-          origin,
-          destination: address,
+          pickupAddress: storePickupAddress,
+          deliveryAddress: customerAddress,
         }),
       });
 
       const data = await response.json();
 
-      if (data.success && data.distanceKm) {
-        setGeocodedCoordinates({ lat: data.distanceKm, lon: 0 });
+      if (data.distance !== undefined) {
+        setDistanceKm(data.distance);
         setGeocodeError('');
       } else if (data.error) {
         setGeocodeError(data.error);
-        setGeocodedCoordinates(null);
+        setDistanceKm(null);
       } else {
         setGeocodeError('Address not found. Please check and try again.');
-        setGeocodedCoordinates(null);
+        setDistanceKm(null);
       }
     } catch (error) {
       console.error('Distance calculation error:', error);
       setGeocodeError('Failed to calculate distance. Please try again.');
-      setGeocodedCoordinates(null);
+      setDistanceKm(null);
     } finally {
       setGeocoding(false);
     }
   };
 
-  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-    const R = 6371;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
-
-  const findZoneForDistance = (distance: number): DeliveryZone | null => {
-    for (const zone of zones) {
-      if (distance >= zone.min_distance_km && distance <= zone.max_distance_km) {
-        return zone;
-      }
-    }
-    return null;
-  };
-
-  const calculateDeliveryFee = () => {
-    if (!geocodedCoordinates) {
-      setCalculatedDeliveryFee(0);
-      return;
-    }
-
-    const distance = geocodedCoordinates.lat;
-    const zone = findZoneForDistance(distance);
-
-    if (zone) {
-      setCalculatedDeliveryFee(zone.price);
-    } else {
-      setCalculatedDeliveryFee(0);
-    }
+  const calculateDeliveryFee = (distance: number) => {
+    const zone = zones.find(
+      (z) => distance >= z.min_distance_km && distance <= z.max_distance_km
+    );
+    setCalculatedDeliveryFee(zone ? zone.price : 0);
   };
 
   const fetchCartItems = async () => {
@@ -390,13 +364,13 @@ export default function CheckoutScreen() {
       return;
     }
 
-    if (deliveryType === 'delivery' && !geocodedCoordinates) {
-      Alert.alert('Invalid Address', 'Please enter a valid address that can be located on the map.');
+    if (deliveryType === 'delivery' && distanceKm === null) {
+      Alert.alert('Invalid Address', 'Please enter a valid delivery address. Wait for distance calculation to complete.');
       return;
     }
 
     if (deliveryType === 'delivery' && calculatedDeliveryFee === 0) {
-      Alert.alert('Delivery Not Available', 'No delivery zone covers your location. Please try a different address.');
+      Alert.alert('Delivery Not Available', 'Your location is outside our delivery zones. Please try a different address or contact us.');
       return;
     }
 
@@ -883,23 +857,23 @@ export default function CheckoutScreen() {
               </View>
             )}
 
-            {geocodedCoordinates && !geocoding && (
+            {distanceKm !== null && !geocoding && (
               <View style={styles.successCard}>
                 <CheckCircle size={20} color="#10b981" />
                 <Text style={styles.successText}>
-                  Distance: {geocodedCoordinates.lat.toFixed(2)} km from store
+                  Distance: {distanceKm.toFixed(1)} km from store
                 </Text>
               </View>
             )}
 
             {calculatedDeliveryFee > 0 && (
               <View style={styles.deliveryFeeCard}>
-                <Text style={styles.deliveryFeeLabel}>Calculated Delivery Fee:</Text>
+                <Text style={styles.deliveryFeeLabel}>Delivery Fee:</Text>
                 <Text style={styles.deliveryFeeValue}>₦{calculatedDeliveryFee.toFixed(2)}</Text>
               </View>
             )}
 
-            {geocodedCoordinates && calculatedDeliveryFee === 0 && (
+            {distanceKm !== null && calculatedDeliveryFee === 0 && (
               <View style={styles.warningCard}>
                 <Text style={styles.warningText}>Your location is outside our delivery zones. Please try a different address.</Text>
               </View>
