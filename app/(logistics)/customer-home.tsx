@@ -65,6 +65,7 @@ export default function CustomerHome() {
   const [ratingModalVisible, setRatingModalVisible] = useState(false);
   const [selectedOrderForRating, setSelectedOrderForRating] = useState<Order | null>(null);
   const [ratedOrders, setRatedOrders] = useState<Set<string>>(new Set());
+  const [ratingRiderName, setRatingRiderName] = useState('Your Rider');
 
   const orderTypeOptions = ['Groceries', 'Medicine', 'Bulk / Heavy Items', 'Express Delivery'];
 
@@ -559,8 +560,28 @@ export default function CustomerHome() {
     setSelectedOrderForReceipt(null);
   };
 
-  const handleOpenRating = (order: Order) => {
+  const handleOpenRating = async (order: Order) => {
     setSelectedOrderForRating(order);
+    setRatingRiderName('Your Rider');
+    if (order.rider_id) {
+      try {
+        const { data: riderData } = await coreBackend
+          .from('riders')
+          .select('user_id')
+          .eq('id', order.rider_id)
+          .maybeSingle();
+        if (riderData?.user_id) {
+          const { data: profileData } = await coreBackend
+            .from('profiles')
+            .select('full_name')
+            .eq('id', riderData.user_id)
+            .maybeSingle();
+          if (profileData?.full_name) {
+            setRatingRiderName(profileData.full_name);
+          }
+        }
+      } catch {}
+    }
     setRatingModalVisible(true);
   };
 
@@ -1146,9 +1167,9 @@ export default function CustomerHome() {
           visible={ratingModalVisible}
           onClose={handleCloseRating}
           orderId={selectedOrderForRating.id}
-          riderId={''}
+          riderId={selectedOrderForRating.rider_id || ''}
           customerId={profile?.id || ''}
-          riderName={'Your Rider'}
+          riderName={ratingRiderName}
           onSuccess={handleRatingSuccess}
         />
       )}

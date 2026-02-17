@@ -42,6 +42,11 @@ export default function RatingModal({
       return;
     }
 
+    if (!riderId) {
+      setError('Rider information is not available for this order');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 

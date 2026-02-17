@@ -50,4 +50,8 @@ export type Order = {
   cancelled_at: string | null;
   created_at: string;
   updated_at: string;
+  rider_id: string | null;
+  assigned_rider_id: string | null;
+  pickup_address: string | null;
+  order_source: string | null;
 };
