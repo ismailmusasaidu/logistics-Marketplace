@@ -525,13 +525,13 @@ const styles = StyleSheet.create({
   },
   greeting: {
     fontSize: 24,
-    fontFamily: Fonts.dmSansBold,
+    fontFamily: Fonts.spaceBold,
     color: '#ffffff',
     letterSpacing: -0.3,
   },
   subtitle: {
     fontSize: 14,
-    fontFamily: Fonts.dmSans,
+    fontFamily: Fonts.spaceRegular,
     color: '#94a3b8',
     marginTop: 4,
   },
@@ -587,13 +587,13 @@ const styles = StyleSheet.create({
   },
   revenueLabel: {
     fontSize: 14,
-    fontFamily: Fonts.dmSansMedium,
+    fontFamily: Fonts.spaceMedium,
     color: '#94a3b8',
     letterSpacing: 0.2,
   },
   revenueValue: {
     fontSize: 32,
-    fontFamily: Fonts.dmSansBold,
+    fontFamily: Fonts.spaceBold,
     color: '#ffffff',
     letterSpacing: -0.5,
   },
@@ -605,7 +605,7 @@ const styles = StyleSheet.create({
   },
   revenueMetaText: {
     fontSize: 13,
-    fontFamily: Fonts.dmSans,
+    fontFamily: Fonts.spaceRegular,
     color: '#64748b',
   },
   metricsRow: {
@@ -632,13 +632,13 @@ const styles = StyleSheet.create({
   },
   metricValue: {
     fontSize: 22,
-    fontFamily: Fonts.dmSansBold,
+    fontFamily: Fonts.spaceBold,
     color: '#1a1a1a',
     marginBottom: 2,
   },
   metricLabel: {
     fontSize: 12,
-    fontFamily: Fonts.dmSansMedium,
+    fontFamily: Fonts.spaceMedium,
     color: '#64748b',
   },
   ratingsRow: {
@@ -662,12 +662,12 @@ const styles = StyleSheet.create({
   },
   ratingValue: {
     fontSize: 20,
-    fontFamily: Fonts.dmSansBold,
+    fontFamily: Fonts.spaceBold,
     color: '#1a1a1a',
   },
   ratingLabel: {
     fontSize: 12,
-    fontFamily: Fonts.dmSansMedium,
+    fontFamily: Fonts.spaceMedium,
     color: '#64748b',
   },
   alertCard: {
@@ -694,18 +694,18 @@ const styles = StyleSheet.create({
   },
   alertTitle: {
     fontSize: 14,
-    fontFamily: Fonts.dmSansSemiBold,
+    fontFamily: Fonts.spaceSemiBold,
     color: '#92400e',
   },
   alertText: {
     fontSize: 13,
-    fontFamily: Fonts.dmSans,
+    fontFamily: Fonts.spaceRegular,
     color: '#a16207',
     marginTop: 1,
   },
   sectionHeading: {
     fontSize: 17,
-    fontFamily: Fonts.dmSansBold,
+    fontFamily: Fonts.spaceBold,
     color: '#1a1a1a',
     marginBottom: 12,
     letterSpacing: -0.2,
@@ -733,13 +733,13 @@ const styles = StyleSheet.create({
   },
   actionTitle: {
     fontSize: 15,
-    fontFamily: Fonts.dmSansBold,
+    fontFamily: Fonts.spaceBold,
     color: '#1a1a1a',
     marginBottom: 2,
   },
   actionSub: {
     fontSize: 12,
-    fontFamily: Fonts.dmSans,
+    fontFamily: Fonts.spaceRegular,
     color: '#94a3b8',
   },
   actionArrow: {
@@ -756,7 +756,7 @@ const styles = StyleSheet.create({
   },
   summaryTitle: {
     fontSize: 16,
-    fontFamily: Fonts.dmSansBold,
+    fontFamily: Fonts.spaceBold,
     color: '#1a1a1a',
     marginBottom: 16,
     letterSpacing: -0.2,
@@ -773,12 +773,12 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 14,
-    fontFamily: Fonts.dmSans,
+    fontFamily: Fonts.spaceRegular,
     color: '#64748b',
   },
   summaryValue: {
     fontSize: 15,
-    fontFamily: Fonts.dmSansSemiBold,
+    fontFamily: Fonts.spaceSemiBold,
     color: '#1a1a1a',
   },
   warnValue: {
@@ -804,7 +804,7 @@ const styles = StyleSheet.create({
   statusIconRejected: {},
   statusTitle: {
     fontSize: 22,
-    fontFamily: Fonts.dmSansBold,
+    fontFamily: Fonts.spaceBold,
     color: '#1a1a1a',
     textAlign: 'center',
     marginBottom: 12,
@@ -812,7 +812,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 15,
-    fontFamily: Fonts.dmSans,
+    fontFamily: Fonts.spaceRegular,
     color: '#64748b',
     textAlign: 'center',
     marginBottom: 16,
@@ -831,7 +831,7 @@ const styles = StyleSheet.create({
   },
   statusTimeText: {
     fontSize: 13,
-    fontFamily: Fonts.dmSansMedium,
+    fontFamily: Fonts.spaceMedium,
     color: '#92400e',
   },
   statusButton: {
@@ -843,7 +843,7 @@ const styles = StyleSheet.create({
   statusButtonText: {
     color: '#ffffff',
     fontSize: 15,
-    fontFamily: Fonts.dmSansSemiBold,
+    fontFamily: Fonts.spaceSemiBold,
   },
   rejectionBox: {
     backgroundColor: '#fef2f2',
@@ -857,7 +857,7 @@ const styles = StyleSheet.create({
   },
   rejectionTitle: {
     fontSize: 13,
-    fontFamily: Fonts.dmSansSemiBold,
+    fontFamily: Fonts.spaceSemiBold,
     color: '#991b1b',
     marginBottom: 6,
     textTransform: 'uppercase',
@@ -865,7 +865,7 @@ const styles = StyleSheet.create({
   },
   rejectionText: {
     fontSize: 14,
-    fontFamily: Fonts.dmSans,
+    fontFamily: Fonts.spaceRegular,
     color: '#7f1d1d',
     lineHeight: 21,
   },

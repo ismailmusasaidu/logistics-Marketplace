@@ -468,14 +468,14 @@ const styles = StyleSheet.create({
   },
   greeting: {
     fontSize: 26,
-    fontFamily: Fonts.displayBold,
+    fontFamily: Fonts.spaceBold,
     color: '#ffffff',
     marginBottom: 4,
-    letterSpacing: 0.3,
+    letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 14,
-    fontFamily: Fonts.regular,
+    fontFamily: Fonts.spaceMedium,
     color: 'rgba(255, 255, 255, 0.85)',
   },
   headerLogoIcon: {
@@ -513,7 +513,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     fontSize: 15,
-    fontFamily: Fonts.regular,
+    fontFamily: Fonts.spaceRegular,
     color: '#1a1a1a',
     outlineStyle: 'none',
   },
@@ -543,8 +543,9 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     fontSize: 14,
-    fontFamily: Fonts.semiBold,
+    fontFamily: Fonts.spaceSemiBold,
     color: '#666',
+    letterSpacing: 0.1,
   },
   categoryTextActive: {
     color: '#ffffff',
@@ -557,7 +558,7 @@ const styles = StyleSheet.create({
   },
   loadingLabel: {
     fontSize: 14,
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.spaceMedium,
     color: '#999',
   },
   emptyContainer: {
@@ -569,13 +570,14 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 18,
-    fontFamily: Fonts.headingBold,
+    fontFamily: Fonts.spaceBold,
     color: '#444',
     marginTop: 8,
+    letterSpacing: -0.3,
   },
   emptySubtitle: {
     fontSize: 14,
-    fontFamily: Fonts.regular,
+    fontFamily: Fonts.spaceMedium,
     color: '#999',
     textAlign: 'center',
   },
@@ -599,7 +601,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 13,
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.spaceMedium,
     color: '#999',
   },
 });

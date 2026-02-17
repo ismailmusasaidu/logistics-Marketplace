@@ -465,13 +465,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontFamily: Fonts.displayBold,
+    fontFamily: Fonts.spaceBold,
     color: '#ffffff',
-    letterSpacing: 0.3,
+    letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 14,
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.spaceMedium,
     color: 'rgba(255,255,255,0.85)',
     marginTop: 4,
   },
@@ -494,7 +494,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.spaceMedium,
     color: '#1a1a1a',
     padding: 0,
     borderWidth: 0,
@@ -512,13 +512,14 @@ const styles = StyleSheet.create({
   },
   emptyResultsTitle: {
     fontSize: 20,
-    fontFamily: Fonts.displayBold,
+    fontFamily: Fonts.spaceBold,
     color: '#1a1a1a',
     marginTop: 16,
+    letterSpacing: -0.3,
   },
   emptyResultsText: {
     fontSize: 14,
-    fontFamily: Fonts.regular,
+    fontFamily: Fonts.spaceRegular,
     color: '#999',
     marginTop: 8,
     textAlign: 'center',
@@ -537,8 +538,9 @@ const styles = StyleSheet.create({
   },
   clearSearchText: {
     fontSize: 14,
-    fontFamily: Fonts.semiBold,
+    fontFamily: Fonts.spaceSemiBold,
     color: '#ffffff',
+    letterSpacing: 0.2,
   },
   list: {
     padding: 16,
@@ -567,14 +569,14 @@ const styles = StyleSheet.create({
   },
   orderNumber: {
     fontSize: 17,
-    fontFamily: Fonts.display,
+    fontFamily: Fonts.spaceSemiBold,
     color: '#1a1a1a',
-    letterSpacing: 0.2,
+    letterSpacing: -0.2,
     flexShrink: 1,
   },
   orderDate: {
     fontSize: 13,
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.spaceMedium,
     color: '#94a3b8',
     marginTop: 4,
   },
@@ -589,7 +591,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 13,
-    fontFamily: Fonts.semiBold,
+    fontFamily: Fonts.spaceSemiBold,
     flexShrink: 1,
   },
   orderDetails: {
@@ -602,12 +604,12 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 14,
-    fontFamily: Fonts.regular,
+    fontFamily: Fonts.spaceRegular,
     color: '#6b7280',
   },
   detailValue: {
     fontSize: 14,
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.spaceMedium,
     color: '#1f2937',
   },
   paymentContainer: {
@@ -617,7 +619,7 @@ const styles = StyleSheet.create({
   },
   paymentMethod: {
     fontSize: 14,
-    fontFamily: Fonts.semiBold,
+    fontFamily: Fonts.spaceSemiBold,
     color: '#ff8c00',
   },
   paidBadge: {
@@ -631,7 +633,7 @@ const styles = StyleSheet.create({
   },
   paidText: {
     fontSize: 10,
-    fontFamily: Fonts.semiBold,
+    fontFamily: Fonts.spaceSemiBold,
     color: '#059669',
   },
   totalRow: {
@@ -642,14 +644,14 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: 16,
-    fontFamily: Fonts.display,
+    fontFamily: Fonts.spaceSemiBold,
     color: '#1a1a1a',
   },
   totalValue: {
-    fontSize: 20,
-    fontFamily: Fonts.displayBold,
+    fontSize: 22,
+    fontFamily: Fonts.spaceBold,
     color: '#c2410c',
-    letterSpacing: -0.3,
+    letterSpacing: -0.5,
   },
   addressContainer: {
     backgroundColor: '#f8f5f0',
@@ -660,15 +662,15 @@ const styles = StyleSheet.create({
   },
   addressLabel: {
     fontSize: 11,
-    fontFamily: Fonts.semiBold,
+    fontFamily: Fonts.spaceSemiBold,
     color: '#999',
     marginBottom: 4,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 1.2,
   },
   addressText: {
     fontSize: 14,
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.spaceMedium,
     color: '#1a1a1a',
     flexWrap: 'wrap',
   },
@@ -687,7 +689,7 @@ const styles = StyleSheet.create({
   },
   receiptButtonText: {
     fontSize: 15,
-    fontFamily: Fonts.semiBold,
+    fontFamily: Fonts.spaceSemiBold,
     color: '#ff8c00',
   },
   reviewSection: {
@@ -698,9 +700,10 @@ const styles = StyleSheet.create({
   },
   reviewSectionTitle: {
     fontSize: 14,
-    fontFamily: Fonts.display,
+    fontFamily: Fonts.spaceSemiBold,
     color: '#1a1a1a',
     marginBottom: 12,
+    letterSpacing: 0.2,
   },
   reviewItem: {
     flexDirection: 'row',
@@ -717,13 +720,13 @@ const styles = StyleSheet.create({
   },
   reviewItemName: {
     fontSize: 14,
-    fontFamily: Fonts.semiBold,
+    fontFamily: Fonts.spaceSemiBold,
     color: '#1a1a1a',
     marginBottom: 2,
   },
   reviewItemQuantity: {
     fontSize: 12,
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.spaceMedium,
     color: '#999',
   },
   reviewButton: {
@@ -737,7 +740,7 @@ const styles = StyleSheet.create({
   },
   reviewButtonText: {
     fontSize: 12,
-    fontFamily: Fonts.semiBold,
+    fontFamily: Fonts.spaceSemiBold,
     color: '#ff8c00',
   },
   reviewedBadge: {
@@ -751,7 +754,7 @@ const styles = StyleSheet.create({
   },
   reviewedText: {
     fontSize: 12,
-    fontFamily: Fonts.semiBold,
+    fontFamily: Fonts.spaceSemiBold,
     color: '#059669',
   },
   emptyContainer: {
@@ -762,13 +765,14 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 24,
-    fontFamily: Fonts.displayBold,
+    fontFamily: Fonts.spaceBold,
     color: '#1a1a1a',
     marginTop: 16,
+    letterSpacing: -0.5,
   },
   emptyText: {
     fontSize: 16,
-    fontFamily: Fonts.regular,
+    fontFamily: Fonts.spaceMedium,
     color: '#999',
     marginTop: 8,
     textAlign: 'center',

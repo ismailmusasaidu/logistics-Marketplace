@@ -194,20 +194,20 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 28,
-    fontFamily: Fonts.displayBold,
+    fontFamily: Fonts.spaceBold,
     color: '#1a1a1a',
-    letterSpacing: 0.3,
+    letterSpacing: -0.5,
   },
   itemCount: {
     fontSize: 13,
-    fontFamily: Fonts.semiBold,
+    fontFamily: Fonts.spaceSemiBold,
     color: '#999',
     backgroundColor: '#f5f0ea',
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 20,
     overflow: 'hidden',
-    letterSpacing: 0.3,
+    letterSpacing: 0.5,
   },
   scrollView: {
     flex: 1,
@@ -221,13 +221,14 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 22,
-    fontFamily: Fonts.displayBold,
+    fontFamily: Fonts.spaceBold,
     color: '#1a1a1a',
     marginTop: 24,
+    letterSpacing: -0.5,
   },
   emptySubtext: {
     fontSize: 15,
-    fontFamily: Fonts.regular,
+    fontFamily: Fonts.spaceMedium,
     color: '#999',
     marginTop: 8,
     textAlign: 'center',
@@ -256,14 +257,15 @@ const styles = StyleSheet.create({
   },
   productName: {
     fontSize: 16,
-    fontFamily: Fonts.semiBold,
+    fontFamily: Fonts.spaceSemiBold,
     color: '#1a1a1a',
     marginBottom: 4,
     lineHeight: 22,
+    letterSpacing: -0.1,
   },
   productDescription: {
     fontSize: 13,
-    fontFamily: Fonts.regular,
+    fontFamily: Fonts.spaceRegular,
     color: '#999',
     marginBottom: 8,
     lineHeight: 18,
@@ -276,12 +278,13 @@ const styles = StyleSheet.create({
   },
   price: {
     fontSize: 20,
-    fontFamily: Fonts.displayBold,
+    fontFamily: Fonts.spaceBold,
     color: '#c2410c',
+    letterSpacing: -0.4,
   },
   unit: {
     fontSize: 12,
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.spaceMedium,
     color: '#999',
   },
   actions: {
@@ -301,7 +304,8 @@ const styles = StyleSheet.create({
   addToCartText: {
     color: '#ffffff',
     fontSize: 14,
-    fontFamily: Fonts.semiBold,
+    fontFamily: Fonts.spaceSemiBold,
+    letterSpacing: 0.2,
   },
   removeButton: {
     backgroundColor: '#fef2f2',

@@ -704,19 +704,19 @@ const styles = StyleSheet.create({
   },
   avatarInitials: {
     fontSize: 36,
-    fontFamily: Fonts.displayBold,
+    fontFamily: Fonts.spaceBold,
     color: '#ffffff',
-    letterSpacing: 1,
+    letterSpacing: 0.5,
   },
   headerInfo: {
     alignItems: 'center',
   },
   name: {
     fontSize: 28,
-    fontFamily: Fonts.displayBold,
+    fontFamily: Fonts.spaceBold,
     color: '#ffffff',
     marginBottom: 10,
-    letterSpacing: 0.3,
+    letterSpacing: -0.5,
     textAlign: 'center',
   },
   roleBadge: {
@@ -733,14 +733,14 @@ const styles = StyleSheet.create({
   },
   roleText: {
     fontSize: 11,
-    fontFamily: Fonts.groteskSemiBold,
+    fontFamily: Fonts.spaceSemiBold,
     color: '#ffffff',
     letterSpacing: 1.5,
     textTransform: 'uppercase',
   },
   headerEmail: {
     fontSize: 14,
-    fontFamily: Fonts.grotesk,
+    fontFamily: Fonts.spaceRegular,
     color: 'rgba(255, 255, 255, 0.8)',
     marginTop: 2,
   },
@@ -757,7 +757,7 @@ const styles = StyleSheet.create({
   backButtonText: {
     color: '#ffffff',
     fontSize: 15,
-    fontFamily: Fonts.groteskMedium,
+    fontFamily: Fonts.spaceMedium,
   },
   content: {
     marginTop: -24,
@@ -787,7 +787,7 @@ const styles = StyleSheet.create({
   editButtonText: {
     color: '#ffffff',
     fontSize: 16,
-    fontFamily: Fonts.headingBold,
+    fontFamily: Fonts.spaceBold,
     letterSpacing: 0.3,
   },
   actionButtons: {
@@ -810,7 +810,7 @@ const styles = StyleSheet.create({
   cancelBtnText: {
     color: '#78716c',
     fontSize: 15,
-    fontFamily: Fonts.groteskSemiBold,
+    fontFamily: Fonts.spaceSemiBold,
   },
   saveButton: {
     flex: 1,
@@ -838,7 +838,7 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: '#ffffff',
     fontSize: 15,
-    fontFamily: Fonts.groteskSemiBold,
+    fontFamily: Fonts.spaceSemiBold,
   },
   card: {
     backgroundColor: '#ffffff',
@@ -874,7 +874,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 17,
-    fontFamily: Fonts.heading,
+    fontFamily: Fonts.spaceSemiBold,
     color: '#1a1a1a',
     letterSpacing: -0.2,
   },
@@ -904,7 +904,7 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 11,
-    fontFamily: Fonts.groteskSemiBold,
+    fontFamily: Fonts.spaceSemiBold,
     color: '#a8a29e',
     marginBottom: 4,
     textTransform: 'uppercase',
@@ -912,7 +912,7 @@ const styles = StyleSheet.create({
   },
   infoValue: {
     fontSize: 16,
-    fontFamily: Fonts.groteskMedium,
+    fontFamily: Fonts.spaceMedium,
     color: '#1a1a1a',
     lineHeight: 22,
   },
@@ -922,7 +922,7 @@ const styles = StyleSheet.create({
   },
   infoInput: {
     fontSize: 15,
-    fontFamily: Fonts.grotesk,
+    fontFamily: Fonts.spaceRegular,
     color: '#1a1a1a',
     backgroundColor: '#faf8f5',
     paddingHorizontal: 14,
@@ -965,13 +965,13 @@ const styles = StyleSheet.create({
   },
   actionCardLabel: {
     fontSize: 15,
-    fontFamily: Fonts.groteskSemiBold,
+    fontFamily: Fonts.spaceSemiBold,
     color: '#92400e',
     marginBottom: 2,
   },
   actionCardDesc: {
     fontSize: 13,
-    fontFamily: Fonts.grotesk,
+    fontFamily: Fonts.spaceRegular,
     color: '#b45309',
     opacity: 0.7,
   },
@@ -1001,7 +1001,7 @@ const styles = StyleSheet.create({
   },
   walletLabel: {
     fontSize: 11,
-    fontFamily: Fonts.groteskSemiBold,
+    fontFamily: Fonts.spaceSemiBold,
     color: 'rgba(255, 255, 255, 0.6)',
     marginBottom: 3,
     textTransform: 'uppercase',
@@ -1009,7 +1009,7 @@ const styles = StyleSheet.create({
   },
   walletAmount: {
     fontSize: 24,
-    fontFamily: Fonts.displayBold,
+    fontFamily: Fonts.spaceBold,
     color: '#ffffff',
   },
   walletCta: {
@@ -1023,7 +1023,7 @@ const styles = StyleSheet.create({
   },
   walletCtaText: {
     fontSize: 13,
-    fontFamily: Fonts.groteskSemiBold,
+    fontFamily: Fonts.spaceSemiBold,
     color: '#ff8c00',
   },
   menuItem: {
@@ -1053,7 +1053,7 @@ const styles = StyleSheet.create({
   },
   menuText: {
     fontSize: 15,
-    fontFamily: Fonts.groteskMedium,
+    fontFamily: Fonts.spaceMedium,
     color: '#44403c',
   },
   signOutButton: {
@@ -1075,7 +1075,7 @@ const styles = StyleSheet.create({
   },
   signOutText: {
     fontSize: 16,
-    fontFamily: Fonts.groteskSemiBold,
+    fontFamily: Fonts.spaceSemiBold,
     color: '#ef4444',
   },
   modalOverlay: {
@@ -1109,14 +1109,14 @@ const styles = StyleSheet.create({
   },
   confirmationTitle: {
     fontSize: 22,
-    fontFamily: Fonts.headingBold,
+    fontFamily: Fonts.spaceBold,
     color: '#1a1a1a',
     textAlign: 'center',
     marginBottom: 8,
   },
   confirmationMessage: {
     fontSize: 15,
-    fontFamily: Fonts.grotesk,
+    fontFamily: Fonts.spaceRegular,
     color: '#78716c',
     textAlign: 'center',
     marginBottom: 24,
@@ -1138,7 +1138,7 @@ const styles = StyleSheet.create({
   },
   confirmCancelText: {
     fontSize: 15,
-    fontFamily: Fonts.groteskSemiBold,
+    fontFamily: Fonts.spaceSemiBold,
     color: '#78716c',
   },
   confirmSignOutBtn: {
@@ -1151,7 +1151,7 @@ const styles = StyleSheet.create({
   },
   confirmSignOutText: {
     fontSize: 15,
-    fontFamily: Fonts.groteskSemiBold,
+    fontFamily: Fonts.spaceSemiBold,
     color: '#ffffff',
   },
 });
