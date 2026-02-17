@@ -66,12 +66,12 @@ export default function ProfileScreen() {
     if (!profile) return;
     try {
       const { data, error } = await supabase
-        .from('profiles')
-        .select('wallet_balance')
-        .eq('id', profile.id)
+        .from('wallets')
+        .select('balance')
+        .eq('user_id', profile.id)
         .maybeSingle();
       if (error) throw error;
-      setWalletBalance(data?.wallet_balance || 0);
+      setWalletBalance(data?.balance || 0);
     } catch (error) {
       console.error('Error fetching wallet balance:', error);
     }
