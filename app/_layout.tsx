@@ -21,6 +21,11 @@ import {
   SpaceGrotesk_600SemiBold,
   SpaceGrotesk_700Bold,
 } from '@expo-google-fonts/space-grotesk';
+import {
+  PlayfairDisplay_400Regular,
+  PlayfairDisplay_700Bold,
+  PlayfairDisplay_400Regular_Italic,
+} from '@expo-google-fonts/playfair-display';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ToastProvider } from '@/contexts/ToastContext';
@@ -44,6 +49,9 @@ export default function RootLayout() {
     'SpaceGrotesk-Medium': SpaceGrotesk_500Medium,
     'SpaceGrotesk-SemiBold': SpaceGrotesk_600SemiBold,
     'SpaceGrotesk-Bold': SpaceGrotesk_700Bold,
+    'Playfair-Regular': PlayfairDisplay_400Regular,
+    'Playfair-Bold': PlayfairDisplay_700Bold,
+    'Playfair-Italic': PlayfairDisplay_400Regular_Italic,
   });
 
   useEffect(() => {

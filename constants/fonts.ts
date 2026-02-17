@@ -11,4 +11,9 @@ export const Fonts = {
   spaceMedium: 'SpaceGrotesk-Medium',
   spaceSemiBold: 'SpaceGrotesk-SemiBold',
   spaceBold: 'SpaceGrotesk-Bold',
+  playfairRegular: 'Playfair-Regular',
+  playfairBold: 'Playfair-Bold',
+  playfairItalic: 'Playfair-Italic',
+  displayBold: 'Playfair-Bold',
+  headingBold: 'Poppins-Bold',
 };

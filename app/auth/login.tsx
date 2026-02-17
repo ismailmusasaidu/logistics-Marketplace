@@ -108,6 +108,7 @@ export default function LoginScreen() {
           </View>
           <Text style={styles.brandName}>Danhausa</Text>
           <Text style={styles.brandTagline}>Logistics & Marketplace</Text>
+          <Text style={styles.brandSlogan}>Your world, delivered.</Text>
         </Animated.View>
       </LinearGradient>
 
@@ -130,7 +131,8 @@ export default function LoginScreen() {
             ]}
           >
             <Text style={styles.welcomeTitle}>Welcome Back</Text>
-            <Text style={styles.welcomeSubtitle}>Sign in to your account</Text>
+            <Text style={styles.welcomeAccent}>Good to see you again</Text>
+            <Text style={styles.welcomeSubtitle}>Sign in to continue your journey</Text>
 
             {error ? (
               <View style={styles.errorBox}>
@@ -270,19 +272,26 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   brandName: {
-    fontSize: 34,
-    fontFamily: Fonts.displayBold,
+    fontSize: 38,
+    fontFamily: Fonts.playfairBold,
     color: '#ffffff',
-    letterSpacing: 0.5,
-    lineHeight: 40,
+    letterSpacing: 1,
+    lineHeight: 46,
   },
   brandTagline: {
-    fontSize: 15,
-    fontFamily: Fonts.medium,
-    color: 'rgba(255, 255, 255, 0.85)',
-    letterSpacing: 3,
+    fontSize: 11,
+    fontFamily: Fonts.spaceMedium,
+    color: 'rgba(255, 255, 255, 0.75)',
+    letterSpacing: 4,
     textTransform: 'uppercase',
     marginTop: 2,
+  },
+  brandSlogan: {
+    fontSize: 14,
+    fontFamily: Fonts.playfairItalic,
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginTop: 6,
+    letterSpacing: 0.3,
   },
   formSection: {
     flex: 1,
@@ -304,15 +313,22 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   welcomeTitle: {
-    fontSize: 26,
-    fontFamily: Fonts.headingBold,
+    fontSize: 28,
+    fontFamily: Fonts.playfairBold,
     color: '#1a1a1a',
+    marginBottom: 4,
+    letterSpacing: 0.3,
+  },
+  welcomeAccent: {
+    fontSize: 14,
+    fontFamily: Fonts.playfairItalic,
+    color: '#ff8c00',
     marginBottom: 4,
   },
   welcomeSubtitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontFamily: Fonts.regular,
-    color: '#888',
+    color: '#999',
     marginBottom: 28,
   },
   errorBox: {
