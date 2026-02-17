@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Modal, Animated } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Modal, Animated, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Bike, Package, CheckCircle, Clock, AlertCircle, MapPin, Phone, User, X, Bell, Check, XCircle, Power } from 'lucide-react-native';
+import { Bike, Package, CheckCircle, Clock, AlertCircle, MapPin, Phone, User, X, Bell, Check, XCircle, Power, ArrowRight, Navigation, CircleDot, Truck } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Fonts } from '@/constants/fonts';
@@ -386,7 +386,7 @@ export default function RiderHome() {
     const colors: Record<string, string> = {
       pending: '#f59e0b',
       confirmed: '#3b82f6',
-      preparing: '#8b5cf6',
+      preparing: '#0ea5e9',
       ready_for_pickup: '#06b6d4',
       out_for_delivery: '#f97316',
       delivered: '#10b981',
@@ -395,12 +395,29 @@ export default function RiderHome() {
     return colors[status] || '#6b7280';
   };
 
+  const getStatusBg = (status: string) => {
+    const colors: Record<string, string> = {
+      pending: '#fef3c7',
+      confirmed: '#eff6ff',
+      preparing: '#f0f9ff',
+      ready_for_pickup: '#ecfeff',
+      out_for_delivery: '#fff7ed',
+      delivered: '#ecfdf5',
+      cancelled: '#fef2f2',
+    };
+    return colors[status] || '#f3f4f6';
+  };
+
   const getStatusLabel = (status: string) => {
     return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
   const activeOrders = orders.filter(o => !['delivered', 'cancelled'].includes(o.status));
   const completedOrders = orders.filter(o => o.status === 'delivered');
+
+  const handleCall = (phone: string) => {
+    Linking.openURL(`tel:${phone}`);
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -536,46 +553,82 @@ export default function RiderHome() {
                 onPress={() => {
                   setSelectedOrder(order);
                   setModalVisible(true);
-                }}>
-                <View style={styles.orderHeader}>
-                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(order.status) }]}>
-                    <Text style={styles.statusText}>{getStatusLabel(order.status)}</Text>
-                  </View>
-                  <Text style={styles.orderTotal}>{'\u20A6'}{(order.delivery_fee || order.total || 0).toLocaleString()}</Text>
-                </View>
+                }}
+                activeOpacity={0.92}>
 
-                <Text style={styles.orderNumber}>{order.order_number}</Text>
+                <View style={[styles.orderCardAccent, { backgroundColor: getStatusColor(order.status) }]} />
 
-                {order.customer && (
-                  <View style={styles.customerInfo}>
-                    <User size={16} color="#6b7280" />
-                    <View style={styles.customerDetails}>
-                      <Text style={styles.customerName}>{order.customer.full_name || 'Unknown Customer'}</Text>
-                      <Text style={styles.customerContact}>{order.customer.phone || 'No phone'}</Text>
+                <View style={styles.orderCardInner}>
+                  <View style={styles.orderCardTop}>
+                    <View style={styles.orderCardLeft}>
+                      <View style={[styles.packageIconWrap, { backgroundColor: getStatusBg(order.status) }]}>
+                        <Package size={20} color={getStatusColor(order.status)} />
+                      </View>
+                      <View>
+                        <Text style={styles.orderNumber}>{order.order_number}</Text>
+                        <View style={[styles.statusPill, { backgroundColor: getStatusBg(order.status) }]}>
+                          <View style={[styles.statusDotSmall, { backgroundColor: getStatusColor(order.status) }]} />
+                          <Text style={[styles.statusPillText, { color: getStatusColor(order.status) }]}>
+                            {getStatusLabel(order.status)}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                    <View style={styles.orderCardRight}>
+                      <Text style={styles.orderFeeLabel}>Fee</Text>
+                      <Text style={styles.orderFee}>{'\u20A6'}{(order.delivery_fee || order.total || 0).toLocaleString()}</Text>
                     </View>
                   </View>
-                )}
 
-                {order.pickup_address && (
-                  <View style={styles.addressInfo}>
-                    <MapPin size={16} color="#10b981" />
-                    <Text style={styles.addressText} numberOfLines={2}>{order.pickup_address}</Text>
+                  {order.customer && (
+                    <View style={styles.recipientRow}>
+                      <View style={styles.recipientAvatar}>
+                        <User size={14} color="#3b82f6" />
+                      </View>
+                      <View style={styles.recipientInfo}>
+                        <Text style={styles.recipientName}>{order.customer.full_name || 'Unknown Customer'}</Text>
+                        {order.customer.phone && (
+                          <Text style={styles.recipientPhone}>{order.customer.phone}</Text>
+                        )}
+                      </View>
+                    </View>
+                  )}
+
+                  <View style={styles.routeContainer}>
+                    {order.pickup_address && (
+                      <View style={styles.routeRow}>
+                        <View style={styles.routeDotGreen} />
+                        <View style={styles.routeTextWrap}>
+                          <Text style={styles.routeLabel}>From</Text>
+                          <Text style={styles.routeAddress} numberOfLines={1}>{order.pickup_address}</Text>
+                        </View>
+                      </View>
+                    )}
+                    {order.pickup_address && order.delivery_address && (
+                      <View style={styles.routeLine} />
+                    )}
+                    {order.delivery_address && (
+                      <View style={styles.routeRow}>
+                        <View style={styles.routeDotRed} />
+                        <View style={styles.routeTextWrap}>
+                          <Text style={styles.routeLabel}>To</Text>
+                          <Text style={styles.routeAddress} numberOfLines={1}>{order.delivery_address}</Text>
+                        </View>
+                      </View>
+                    )}
                   </View>
-                )}
 
-                {order.delivery_address && (
-                  <View style={styles.addressInfo}>
-                    <MapPin size={16} color="#ef4444" />
-                    <Text style={styles.addressText} numberOfLines={2}>{order.delivery_address}</Text>
-                  </View>
-                )}
-
-                <View style={styles.orderFooter}>
-                  <View style={styles.timeInfo}>
-                    <Clock size={16} color="#6b7280" />
-                    <Text style={styles.timeText}>
-                      {new Date(order.created_at).toLocaleDateString()}
-                    </Text>
+                  <View style={styles.orderCardFooter}>
+                    <View style={styles.timeChip}>
+                      <Clock size={12} color="#9ca3af" />
+                      <Text style={styles.timeChipText}>
+                        {new Date(order.created_at).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </Text>
+                    </View>
+                    <View style={styles.viewDetailChip}>
+                      <Text style={styles.viewDetailText}>View Details</Text>
+                      <ArrowRight size={13} color="#3b82f6" />
+                    </View>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -591,10 +644,22 @@ export default function RiderHome() {
         onRequestClose={() => setModalVisible(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
+            <View style={styles.modalHandle} />
+
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Order Details</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <X size={24} color="#6b7280" />
+              <View style={styles.modalHeaderLeft}>
+                <View style={styles.modalPackageIcon}>
+                  <Package size={22} color="#ffffff" />
+                </View>
+                <View>
+                  <Text style={styles.modalTitle}>Package Details</Text>
+                  {selectedOrder && (
+                    <Text style={styles.modalSubtitle}>{selectedOrder.order_number}</Text>
+                  )}
+                </View>
+              </View>
+              <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setModalVisible(false)}>
+                <X size={20} color="#6b7280" />
               </TouchableOpacity>
             </View>
 
@@ -602,25 +667,40 @@ export default function RiderHome() {
               <ScrollView
                 style={styles.modalBody}
                 contentContainerStyle={styles.modalBodyContent}
-                showsVerticalScrollIndicator={true}>
-                <View style={styles.orderSummary}>
-                  <Text style={styles.orderSummaryTitle}>{selectedOrder.order_number}</Text>
-                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(selectedOrder.status), alignSelf: 'flex-start', marginTop: 8 }]}>
-                    <Text style={styles.statusText}>{getStatusLabel(selectedOrder.status)}</Text>
+                showsVerticalScrollIndicator={false}>
+
+                <View style={[styles.statusBanner, { backgroundColor: getStatusBg(selectedOrder.status) }]}>
+                  <View style={styles.statusBannerLeft}>
+                    <Truck size={20} color={getStatusColor(selectedOrder.status)} />
+                    <Text style={[styles.statusBannerText, { color: getStatusColor(selectedOrder.status) }]}>
+                      {getStatusLabel(selectedOrder.status)}
+                    </Text>
                   </View>
+                  <Text style={[styles.statusBannerFee, { color: getStatusColor(selectedOrder.status) }]}>
+                    {'\u20A6'}{(selectedOrder.delivery_fee || selectedOrder.total || 0).toLocaleString()}
+                  </Text>
                 </View>
 
                 {selectedOrder.customer && (
-                  <View style={styles.infoSection}>
-                    <Text style={styles.infoLabel}>Customer</Text>
-                    <View style={styles.infoRow}>
-                      <User size={18} color="#6b7280" />
-                      <View style={styles.infoDetails}>
-                        <Text style={styles.infoText}>{selectedOrder.customer.full_name || 'Unknown'}</Text>
+                  <View style={styles.recipientCard}>
+                    <View style={styles.recipientCardHeader}>
+                      <User size={15} color="#6b7280" />
+                      <Text style={styles.recipientCardLabel}>Recipient</Text>
+                    </View>
+                    <View style={styles.recipientCardBody}>
+                      <View style={styles.recipientCardAvatar}>
+                        <Text style={styles.recipientCardAvatarText}>
+                          {(selectedOrder.customer.full_name || 'U').charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+                      <View style={styles.recipientCardInfo}>
+                        <Text style={styles.recipientCardName}>{selectedOrder.customer.full_name || 'Unknown'}</Text>
                         {selectedOrder.customer.phone && (
-                          <TouchableOpacity style={styles.phoneButton}>
-                            <Phone size={14} color="#3b82f6" />
-                            <Text style={styles.phoneText}>{selectedOrder.customer.phone}</Text>
+                          <TouchableOpacity
+                            style={styles.callButton}
+                            onPress={() => handleCall(selectedOrder.customer!.phone!)}>
+                            <Phone size={15} color="#ffffff" />
+                            <Text style={styles.callButtonText}>{selectedOrder.customer.phone}</Text>
                           </TouchableOpacity>
                         )}
                       </View>
@@ -628,62 +708,96 @@ export default function RiderHome() {
                   </View>
                 )}
 
-                {selectedOrder.pickup_address && (
-                  <View style={styles.infoSection}>
-                    <Text style={styles.infoLabel}>Pickup Address</Text>
-                    <View style={styles.infoRow}>
-                      <MapPin size={18} color="#10b981" />
-                      <Text style={styles.infoText}>{selectedOrder.pickup_address}</Text>
-                    </View>
+                <View style={styles.routeCard}>
+                  <Text style={styles.routeCardTitle}>Delivery Route</Text>
+                  <View style={styles.routeCardBody}>
+                    {selectedOrder.pickup_address && (
+                      <View style={styles.routeStop}>
+                        <View style={styles.routeStopDotGreen}>
+                          <View style={styles.routeStopDotInner} />
+                        </View>
+                        <View style={styles.routeStopBar} />
+                        <View style={styles.routeStopContent}>
+                          <Text style={styles.routeStopLabel}>PICKUP</Text>
+                          <Text style={styles.routeStopAddress}>{selectedOrder.pickup_address}</Text>
+                        </View>
+                      </View>
+                    )}
+                    {selectedOrder.pickup_address && selectedOrder.delivery_address && (
+                      <View style={styles.routeConnector}>
+                        <View style={styles.routeConnectorLine} />
+                      </View>
+                    )}
+                    {selectedOrder.delivery_address && (
+                      <View style={styles.routeStop}>
+                        <View style={styles.routeStopDotRed}>
+                          <View style={styles.routeStopDotInner} />
+                        </View>
+                        <View style={styles.routeStopBarInvisible} />
+                        <View style={styles.routeStopContent}>
+                          <Text style={styles.routeStopLabel}>DELIVERY</Text>
+                          <Text style={styles.routeStopAddress}>{selectedOrder.delivery_address}</Text>
+                        </View>
+                      </View>
+                    )}
                   </View>
-                )}
-
-                {selectedOrder.delivery_address && (
-                  <View style={styles.infoSection}>
-                    <Text style={styles.infoLabel}>Delivery Address</Text>
-                    <View style={styles.infoRow}>
-                      <MapPin size={18} color="#ef4444" />
-                      <Text style={styles.infoText}>{selectedOrder.delivery_address}</Text>
-                    </View>
-                  </View>
-                )}
+                </View>
 
                 {selectedOrder.notes && (
-                  <View style={styles.infoSection}>
-                    <Text style={styles.infoLabel}>Notes</Text>
-                    <Text style={styles.infoText}>{selectedOrder.notes}</Text>
+                  <View style={styles.notesCard}>
+                    <View style={styles.notesHeader}>
+                      <AlertCircle size={15} color="#f59e0b" />
+                      <Text style={styles.notesLabel}>Order Notes</Text>
+                    </View>
+                    <Text style={styles.notesText}>{selectedOrder.notes}</Text>
                   </View>
                 )}
 
-                <View style={styles.infoSection}>
-                  <Text style={styles.infoLabel}>Delivery Fee</Text>
-                  <Text style={styles.totalAmount}>{'\u20A6'}{(selectedOrder.delivery_fee || selectedOrder.total || 0).toLocaleString()}</Text>
+                <View style={styles.metaRow}>
+                  <View style={styles.metaItem}>
+                    <Clock size={14} color="#9ca3af" />
+                    <Text style={styles.metaText}>
+                      {new Date(selectedOrder.created_at).toLocaleDateString('en-NG', {
+                        day: 'numeric', month: 'short', year: 'numeric',
+                      })}
+                    </Text>
+                  </View>
                 </View>
 
                 <View style={styles.actionsSection}>
-                  <Text style={styles.infoLabel}>Update Status</Text>
                   {selectedOrder.status === 'pending' && (
-                    <Text style={styles.statusInfo}>Waiting for admin to confirm this order</Text>
+                    <View style={styles.statusInfoBanner}>
+                      <Clock size={16} color="#f59e0b" />
+                      <Text style={styles.statusInfoText}>Waiting for admin to confirm this order</Text>
+                    </View>
                   )}
                   {selectedOrder.status === 'confirmed' && (
                     <TouchableOpacity
-                      style={[styles.actionButton, { backgroundColor: '#f97316' }]}
+                      style={styles.actionButtonDelivery}
                       onPress={() => handleUpdateStatus(selectedOrder.id, 'out_for_delivery')}>
+                      <Truck size={20} color="#ffffff" />
                       <Text style={styles.actionButtonText}>Start Delivery</Text>
                     </TouchableOpacity>
                   )}
                   {selectedOrder.status === 'out_for_delivery' && (
                     <TouchableOpacity
-                      style={[styles.actionButton, { backgroundColor: '#10b981' }]}
+                      style={styles.actionButtonDelivered}
                       onPress={() => handleUpdateStatus(selectedOrder.id, 'delivered')}>
-                      <Text style={styles.actionButtonText}>Mark Delivered</Text>
+                      <CheckCircle size={20} color="#ffffff" />
+                      <Text style={styles.actionButtonText}>Mark as Delivered</Text>
                     </TouchableOpacity>
                   )}
                   {selectedOrder.status === 'delivered' && (
-                    <Text style={styles.statusInfo}>This order has been delivered</Text>
+                    <View style={styles.statusInfoBannerSuccess}>
+                      <CheckCircle size={16} color="#059669" />
+                      <Text style={styles.statusInfoTextSuccess}>This order has been delivered</Text>
+                    </View>
                   )}
                   {selectedOrder.status === 'cancelled' && (
-                    <Text style={styles.statusInfo}>This order was cancelled</Text>
+                    <View style={styles.statusInfoBannerError}>
+                      <XCircle size={16} color="#ef4444" />
+                      <Text style={styles.statusInfoTextError}>This order was cancelled</Text>
+                    </View>
                   )}
                 </View>
               </ScrollView>
@@ -706,7 +820,7 @@ export default function RiderHome() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#f1f5f9',
   },
   header: {
     flexDirection: 'row',
@@ -771,7 +885,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    padding: 24,
+    padding: 20,
     paddingBottom: 48,
   },
   pendingSection: {
@@ -959,96 +1073,191 @@ const styles = StyleSheet.create({
     color: '#111827',
     marginBottom: 16,
   },
+
   orderCard: {
     backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 18,
     marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.07,
+    shadowRadius: 12,
+    elevation: 3,
+    overflow: 'hidden',
+    flexDirection: 'row',
   },
-  orderHeader: {
+  orderCardAccent: {
+    width: 5,
+    borderTopLeftRadius: 18,
+    borderBottomLeftRadius: 18,
+  },
+  orderCardInner: {
+    flex: 1,
+    padding: 16,
+  },
+  orderCardTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
+    alignItems: 'flex-start',
+    marginBottom: 14,
   },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  orderCardLeft: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    flex: 1,
+  },
+  packageIconWrap: {
+    width: 40,
+    height: 40,
     borderRadius: 12,
-  },
-  statusText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  orderTotal: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#0ea5e9',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   orderNumber: {
-    fontSize: 12,
-    color: '#6b7280',
-    fontWeight: '600',
-    marginBottom: 12,
+    fontSize: 14,
+    fontFamily: Fonts.bold,
+    color: '#111827',
+    marginBottom: 6,
   },
-  customerInfo: {
+  statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: '#f9fafb',
-    borderRadius: 8,
-    marginBottom: 8,
+    gap: 5,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 20,
   },
-  customerDetails: {
+  statusDotSmall: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  statusPillText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  orderCardRight: {
+    alignItems: 'flex-end',
+  },
+  orderFeeLabel: {
+    fontSize: 11,
+    color: '#9ca3af',
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  orderFee: {
+    fontSize: 17,
+    fontFamily: Fonts.bold,
+    color: '#0ea5e9',
+  },
+  recipientRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#f8fafc',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 12,
+  },
+  recipientAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#dbeafe',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recipientInfo: {
     flex: 1,
   },
-  customerName: {
-    fontSize: 14,
-    fontWeight: '600',
+  recipientName: {
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
     color: '#111827',
   },
-  customerContact: {
+  recipientPhone: {
     fontSize: 12,
     color: '#6b7280',
-    marginTop: 2,
+    marginTop: 1,
   },
-  addressInfo: {
+  routeContainer: {
+    gap: 0,
+    marginBottom: 12,
+  },
+  routeRow: {
     flexDirection: 'row',
-    gap: 8,
-    alignItems: 'flex-start',
-    marginBottom: 8,
+    alignItems: 'center',
+    gap: 10,
   },
-  addressText: {
-    fontSize: 14,
-    color: '#111827',
+  routeDotGreen: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#10b981',
+    borderWidth: 2,
+    borderColor: '#d1fae5',
+  },
+  routeDotRed: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#ef4444',
+    borderWidth: 2,
+    borderColor: '#fee2e2',
+  },
+  routeLine: {
+    width: 1.5,
+    height: 12,
+    backgroundColor: '#e5e7eb',
+    marginLeft: 4,
+    marginVertical: 2,
+  },
+  routeTextWrap: {
     flex: 1,
   },
-  orderFooter: {
+  routeLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#9ca3af',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  routeAddress: {
+    fontSize: 13,
+    color: '#374151',
+    lineHeight: 18,
+  },
+  orderCardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 8,
-    paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#f3f4f6',
+    borderTopColor: '#f1f5f9',
+    paddingTop: 10,
   },
-  timeInfo: {
+  timeChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
   },
-  timeText: {
+  timeChipText: {
     fontSize: 12,
-    color: '#6b7280',
+    color: '#9ca3af',
   },
+  viewDetailChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  viewDetailText: {
+    fontSize: 12,
+    color: '#3b82f6',
+    fontWeight: '600',
+  },
+
   emptyState: {
     alignItems: 'center',
     paddingVertical: 80,
@@ -1065,113 +1274,345 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
     marginTop: 4,
   },
+
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0,0,0,0.55)',
     justifyContent: 'flex-end',
   },
   modalContent: {
     backgroundColor: '#ffffff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '80%',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    maxHeight: '88%',
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 4,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 24,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: '#f1f5f9',
+  },
+  modalHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  modalPackageIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: '#0ea5e9',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 18,
+    fontFamily: Fonts.bold,
     color: '#111827',
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    color: '#6b7280',
+    marginTop: 2,
+  },
+  modalCloseBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#f3f4f6',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalBody: {
     flex: 1,
   },
   modalBodyContent: {
     padding: 24,
-    paddingBottom: 40,
+    paddingBottom: 48,
+    gap: 16,
   },
-  orderSummary: {
-    backgroundColor: '#f9fafb',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 20,
-  },
-  orderSummaryTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  infoSection: {
-    marginBottom: 20,
-  },
-  infoLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#6b7280',
-    marginBottom: 8,
-    textTransform: 'uppercase',
-  },
-  infoRow: {
+
+  statusBanner: {
     flexDirection: 'row',
-    gap: 12,
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 14,
   },
-  infoDetails: {
-    flex: 1,
+  statusBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
-  infoText: {
+  statusBannerText: {
     fontSize: 15,
-    color: '#111827',
-    lineHeight: 22,
+    fontWeight: '700',
   },
-  phoneButton: {
+  statusBannerFee: {
+    fontSize: 18,
+    fontWeight: '800',
+  },
+
+  recipientCard: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  recipientCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginTop: 6,
+    marginBottom: 12,
   },
-  phoneText: {
-    fontSize: 14,
-    color: '#3b82f6',
-    fontWeight: '600',
-  },
-  totalAmount: {
-    fontSize: 24,
+  recipientCardLabel: {
+    fontSize: 11,
     fontWeight: '700',
-    color: '#0ea5e9',
+    color: '#6b7280',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
-  actionsSection: {
-    marginTop: 20,
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-  },
-  actionButtons: {
-    gap: 12,
-  },
-  actionButton: {
-    padding: 16,
-    borderRadius: 12,
+  recipientCardBody: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 14,
   },
-  actionButtonText: {
-    fontSize: 16,
+  recipientCardAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#dbeafe',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recipientCardAvatarText: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1d4ed8',
+  },
+  recipientCardInfo: {
+    flex: 1,
+    gap: 8,
+  },
+  recipientCardName: {
+    fontSize: 17,
+    fontFamily: Fonts.bold,
+    color: '#111827',
+  },
+  callButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    alignSelf: 'flex-start',
+  },
+  callButtonText: {
+    fontSize: 14,
     fontWeight: '600',
     color: '#ffffff',
   },
-  statusInfo: {
-    fontSize: 14,
+
+  routeCard: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  routeCardTitle: {
+    fontSize: 11,
+    fontWeight: '700',
     color: '#6b7280',
-    fontStyle: 'italic',
-    padding: 12,
-    backgroundColor: '#f9fafb',
-    borderRadius: 8,
-    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 16,
+  },
+  routeCardBody: {
+    gap: 0,
+  },
+  routeStop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  routeStopDotGreen: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#d1fae5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  routeStopDotRed: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#fee2e2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  routeStopDotInner: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#10b981',
+  },
+  routeStopBar: {
+    display: 'none',
+  },
+  routeStopBarInvisible: {
+    display: 'none',
+  },
+  routeConnector: {
+    paddingLeft: 8,
+    marginVertical: 4,
+  },
+  routeConnectorLine: {
+    width: 2,
+    height: 24,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 1,
+  },
+  routeStopContent: {
+    flex: 1,
+    paddingBottom: 4,
+  },
+  routeStopLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#9ca3af',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 3,
+  },
+  routeStopAddress: {
+    fontSize: 14,
+    color: '#1f2937',
+    lineHeight: 20,
+  },
+
+  notesCard: {
+    backgroundColor: '#fffbeb',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#fde68a',
+  },
+  notesHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  notesLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#92400e',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  notesText: {
+    fontSize: 14,
+    color: '#78350f',
+    lineHeight: 20,
+  },
+
+  metaRow: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  metaText: {
+    fontSize: 12,
+    color: '#9ca3af',
+  },
+
+  actionsSection: {
+    marginTop: 4,
+  },
+  statusInfoBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 14,
+    backgroundColor: '#fef3c7',
+    borderRadius: 12,
+  },
+  statusInfoText: {
+    fontSize: 14,
+    color: '#92400e',
+    fontWeight: '500',
+  },
+  statusInfoBannerSuccess: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 14,
+    backgroundColor: '#ecfdf5',
+    borderRadius: 12,
+  },
+  statusInfoTextSuccess: {
+    fontSize: 14,
+    color: '#065f46',
+    fontWeight: '500',
+  },
+  statusInfoBannerError: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 14,
+    backgroundColor: '#fef2f2',
+    borderRadius: 12,
+  },
+  statusInfoTextError: {
+    fontSize: 14,
+    color: '#991b1b',
+    fontWeight: '500',
+  },
+  actionButtonDelivery: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    padding: 16,
+    borderRadius: 14,
+    backgroundColor: '#f97316',
+  },
+  actionButtonDelivered: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    padding: 16,
+    borderRadius: 14,
+    backgroundColor: '#10b981',
+  },
+  actionButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#ffffff',
   },
 });
