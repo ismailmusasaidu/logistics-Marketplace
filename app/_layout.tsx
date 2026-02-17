@@ -15,6 +15,12 @@ import {
   Poppins_600SemiBold,
   Poppins_700Bold,
 } from '@expo-google-fonts/poppins';
+import {
+  SpaceGrotesk_400Regular,
+  SpaceGrotesk_500Medium,
+  SpaceGrotesk_600SemiBold,
+  SpaceGrotesk_700Bold,
+} from '@expo-google-fonts/space-grotesk';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ToastProvider } from '@/contexts/ToastContext';
@@ -34,6 +40,10 @@ export default function RootLayout() {
     'Poppins-Medium': Poppins_500Medium,
     'Poppins-SemiBold': Poppins_600SemiBold,
     'Poppins-Bold': Poppins_700Bold,
+    'SpaceGrotesk-Regular': SpaceGrotesk_400Regular,
+    'SpaceGrotesk-Medium': SpaceGrotesk_500Medium,
+    'SpaceGrotesk-SemiBold': SpaceGrotesk_600SemiBold,
+    'SpaceGrotesk-Bold': SpaceGrotesk_700Bold,
   });
 
   useEffect(() => {

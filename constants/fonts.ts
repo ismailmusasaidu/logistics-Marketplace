@@ -7,4 +7,8 @@ export const Fonts = {
   poppinsMedium: 'Poppins-Medium',
   poppinsSemiBold: 'Poppins-SemiBold',
   poppinsBold: 'Poppins-Bold',
+  spaceRegular: 'SpaceGrotesk-Regular',
+  spaceMedium: 'SpaceGrotesk-Medium',
+  spaceSemiBold: 'SpaceGrotesk-SemiBold',
+  spaceBold: 'SpaceGrotesk-Bold',
 };
