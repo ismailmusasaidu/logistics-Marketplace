@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Modal, Animated, Linking } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Modal, Animated, Linking, Dimensions } from 'react-native';
+
+const SCREEN_HEIGHT = Dimensions.get('window').height;
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bike, Package, CheckCircle, Clock, AlertCircle, MapPin, Phone, User, X, Bell, Check, XCircle, Power, ArrowRight, Navigation, CircleDot, Truck } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
@@ -1284,7 +1286,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    maxHeight: '88%',
+    height: SCREEN_HEIGHT * 0.88,
+    flexDirection: 'column',
   },
   modalHandle: {
     width: 40,
@@ -1337,10 +1340,11 @@ const styles = StyleSheet.create({
   },
   modalBody: {
     flex: 1,
+    flexGrow: 1,
   },
   modalBodyContent: {
-    padding: 24,
-    paddingBottom: 48,
+    padding: 20,
+    paddingBottom: 60,
     gap: 16,
   },
 
