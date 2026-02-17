@@ -118,26 +118,33 @@ export default function AdminRiders() {
         throw new Error('Rider profile not found');
       }
 
-      const { data: riderData, error: riderError } = await supabase
-        .from('riders')
-        .select('total_deliveries, rating, zone_id, zones(name)')
-        .eq('user_id', riderId)
-        .maybeSingle();
+      const [riderRes, deliveriesRes] = await Promise.all([
+        supabase
+          .from('riders')
+          .select('rating, zone_id, zones(name)')
+          .eq('user_id', riderId)
+          .maybeSingle(),
+        supabase
+          .from('orders')
+          .select('id', { count: 'exact', head: true })
+          .eq('rider_id', riderId)
+          .eq('status', 'delivered'),
+      ]);
 
-      if (riderError) {
-        console.error('Error loading rider data:', riderError);
+      if (riderRes.error) {
+        console.error('Error loading rider data:', riderRes.error);
       }
 
       let zoneName = null;
-      if (riderData?.zones && typeof riderData.zones === 'object' && 'name' in riderData.zones) {
-        zoneName = (riderData.zones as any).name;
+      if (riderRes.data?.zones && typeof riderRes.data.zones === 'object' && 'name' in riderRes.data.zones) {
+        zoneName = (riderRes.data.zones as any).name;
       }
 
       const details: RiderDetails = {
         ...profileData,
-        total_deliveries: riderData?.total_deliveries || 0,
-        rating: riderData?.rating || 0,
-        zone_id: riderData?.zone_id || null,
+        total_deliveries: deliveriesRes.count ?? 0,
+        rating: riderRes.data?.rating || 0,
+        zone_id: riderRes.data?.zone_id || null,
         zone_name: zoneName,
       };
 
