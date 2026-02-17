@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Modal, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Bike, Phone, ShieldOff, ShieldCheck, Filter, CheckCircle, XCircle, Eye, AlertCircle, MapPin, Calendar } from 'lucide-react-native';
+import { Bike, Phone, ShieldOff, ShieldCheck, Filter, CheckCircle, XCircle, Eye, AlertCircle, MapPin, Calendar, Wifi } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Toast } from '@/components/Toast';
@@ -19,6 +19,7 @@ interface RiderProfile {
   created_at: string;
   vendor_status: 'pending' | 'approved' | 'rejected' | null;
   rejection_reason: string | null;
+  rider_status: 'online' | 'offline' | null;
 }
 
 interface RiderDetails extends RiderProfile {
@@ -66,18 +67,35 @@ export default function AdminRiders() {
 
   useEffect(() => {
     loadRiders();
+
+    const channel = supabase
+      .channel('admin-riders-realtime')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'riders' }, () => {
+        loadRiders();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const loadRiders = async () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, email, phone, is_suspended, suspended_at, suspended_by, created_at, vendor_status, rejection_reason')
+        .select('id, full_name, email, phone, is_suspended, suspended_at, suspended_by, created_at, vendor_status, rejection_reason, riders(status)')
         .eq('role', 'rider')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setRiders(data || []);
+
+      const mapped = (data || []).map((p: any) => ({
+        ...p,
+        rider_status: Array.isArray(p.riders) ? (p.riders[0]?.status ?? null) : (p.riders?.status ?? null),
+      }));
+
+      setRiders(mapped);
     } catch (error) {
       console.error('Error loading riders:', error);
       showToast('Failed to load riders', 'error');
@@ -315,10 +333,29 @@ export default function AdminRiders() {
                       <Text style={styles.riderEmail}>{rider.email}</Text>
                     </View>
                   </View>
-                  <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
-                    <Text style={[styles.statusBadgeText, { color: status.color }]}>
-                      {status.text}
-                    </Text>
+                  <View style={styles.badgesColumn}>
+                    <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
+                      <Text style={[styles.statusBadgeText, { color: status.color }]}>
+                        {status.text}
+                      </Text>
+                    </View>
+                    {rider.vendor_status === 'approved' && !rider.is_suspended && (
+                      <View style={[
+                        styles.onlineBadge,
+                        rider.rider_status === 'online' ? styles.onlineBadgeActive : styles.onlineBadgeInactive,
+                      ]}>
+                        <View style={[
+                          styles.onlineDot,
+                          rider.rider_status === 'online' ? styles.onlineDotActive : styles.onlineDotInactive,
+                        ]} />
+                        <Text style={[
+                          styles.onlineBadgeText,
+                          rider.rider_status === 'online' ? styles.onlineBadgeTextActive : styles.onlineBadgeTextInactive,
+                        ]}>
+                          {rider.rider_status === 'online' ? 'Online' : 'Offline'}
+                        </Text>
+                      </View>
+                    )}
                   </View>
                 </View>
 
@@ -690,6 +727,10 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
     color: '#6b7280',
   },
+  badgesColumn: {
+    alignItems: 'flex-end',
+    gap: 6,
+  },
   statusBadge: {
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -698,6 +739,45 @@ const styles = StyleSheet.create({
   statusBadgeText: {
     fontSize: 12,
     fontFamily: Fonts.bold,
+  },
+  onlineBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+  },
+  onlineBadgeActive: {
+    backgroundColor: '#ecfdf5',
+    borderWidth: 1,
+    borderColor: '#6ee7b7',
+  },
+  onlineBadgeInactive: {
+    backgroundColor: '#f3f4f6',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  onlineDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+  onlineDotActive: {
+    backgroundColor: '#059669',
+  },
+  onlineDotInactive: {
+    backgroundColor: '#9ca3af',
+  },
+  onlineBadgeText: {
+    fontSize: 11,
+    fontFamily: Fonts.semiBold,
+  },
+  onlineBadgeTextActive: {
+    color: '#059669',
+  },
+  onlineBadgeTextInactive: {
+    color: '#6b7280',
   },
   infoSection: {
     gap: 10,

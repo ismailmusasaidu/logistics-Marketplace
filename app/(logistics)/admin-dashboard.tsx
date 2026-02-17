@@ -8,6 +8,7 @@ type Stats = {
   totalOrders: number;
   totalCustomers: number;
   totalRiders: number;
+  onlineRiders: number;
   activeDeliveries: number;
   totalRevenue: number;
   deliveredOrders: number;
@@ -19,6 +20,7 @@ export default function AdminDashboard() {
     totalOrders: 0,
     totalCustomers: 0,
     totalRiders: 0,
+    onlineRiders: 0,
     activeDeliveries: 0,
     totalRevenue: 0,
     deliveredOrders: 0,
@@ -27,14 +29,26 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     loadStats();
+
+    const channel = supabase
+      .channel('admin-dashboard-riders')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'riders' }, () => {
+        loadStats();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const loadStats = async () => {
     try {
-      const [ordersRes, customersRes, ridersRes] = await Promise.all([
+      const [ordersRes, customersRes, ridersRes, onlineRidersRes] = await Promise.all([
         supabase.from('orders').select('*'),
         supabase.from('profiles').select('id').eq('role', 'customer'),
         supabase.from('profiles').select('id').eq('role', 'rider'),
+        supabase.from('riders').select('id').eq('status', 'online'),
       ]);
 
       const orders = ordersRes.data || [];
@@ -48,6 +62,7 @@ export default function AdminDashboard() {
         totalOrders: orders.length,
         totalCustomers: customersRes.data?.length || 0,
         totalRiders: ridersRes.data?.length || 0,
+        onlineRiders: onlineRidersRes.data?.length || 0,
         activeDeliveries,
         totalRevenue,
         deliveredOrders,
@@ -130,6 +145,10 @@ export default function AdminDashboard() {
               <View style={styles.quickStatContent}>
                 <Text style={styles.quickStatLabel}>Total Riders</Text>
                 <Text style={styles.quickStatValue}>{stats.totalRiders}</Text>
+              </View>
+              <View style={styles.onlineRidersBadge}>
+                <View style={styles.onlineRidersDot} />
+                <Text style={styles.onlineRidersText}>{stats.onlineRiders} online</Text>
               </View>
             </View>
 
@@ -306,6 +325,29 @@ const styles = StyleSheet.create({
   quickStatValue: {
     fontSize: 20,
     color: '#f97316',
+    fontWeight: '700',
+  },
+  onlineRidersBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#ecfdf5',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#6ee7b7',
+    marginLeft: 8,
+  },
+  onlineRidersDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#059669',
+  },
+  onlineRidersText: {
+    fontSize: 12,
+    color: '#059669',
     fontWeight: '700',
   },
   divider: {
