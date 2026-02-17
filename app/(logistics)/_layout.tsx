@@ -4,7 +4,6 @@ import { Package, User, LayoutDashboard, Bike, Users, DollarSign, Building2, Map
 import { useAuth } from '@/contexts/AuthContext';
 import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AdminSidebarTabBar } from '@/components/AdminSidebarTabBar';
 
 const hubListener = {
   tabPress: (e: any) => {
@@ -161,18 +160,32 @@ export default function TabLayout() {
   if (profile.role === 'admin') {
     return (
       <Tabs
-        tabBar={(props) => <AdminSidebarTabBar {...props} />}
         screenOptions={{
           headerShown: false,
-          tabBarActiveTintColor: '#f97316',
-          tabBarInactiveTintColor: '#64748b',
-          sceneStyle: { flex: 1 },
-        }}
-        layout={({ children }) => (
-          <>{children}</>
-        )}
-        style={{ flexDirection: 'row' }}
-      >
+          tabBarActiveTintColor: '#8b5cf6',
+          tabBarInactiveTintColor: '#6b7280',
+          tabBarLabelStyle: {
+            fontSize: 10,
+            fontWeight: '600',
+            marginTop: 2,
+          },
+          tabBarIconStyle: {
+            marginTop: 2,
+          },
+          tabBarItemStyle: {
+            paddingVertical: 2,
+            paddingHorizontal: 0,
+          },
+          tabBarStyle: {
+            backgroundColor: '#ffffff',
+            borderTopWidth: 1,
+            borderTopColor: '#e5e7eb',
+            height: Platform.OS === 'ios' ? 75 + insets.bottom : 70 + insets.bottom,
+            paddingBottom: Platform.OS === 'ios' ? Math.max(insets.bottom + 2, 8) : Math.max(insets.bottom + 4, 10),
+            paddingTop: 6,
+            paddingHorizontal: 4,
+          },
+        }}>
         <Tabs.Screen
           name="back-to-hub"
           options={{
