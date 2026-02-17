@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Modal, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Bike, Package, CheckCircle, Clock, AlertCircle, MapPin, Phone, User, X, Bell, Check, XCircle } from 'lucide-react-native';
+import { Bike, Package, CheckCircle, Clock, AlertCircle, MapPin, Phone, User, X, Bell, Check, XCircle, Power } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Fonts } from '@/constants/fonts';
@@ -53,6 +53,7 @@ export default function RiderHome() {
   const [modalVisible, setModalVisible] = useState(false);
   const [processingAssignment, setProcessingAssignment] = useState<string | null>(null);
   const [countdowns, setCountdowns] = useState<Record<string, number>>({});
+  const [togglingStatus, setTogglingStatus] = useState(false);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const [toast, setToast] = useState<{
@@ -262,6 +263,31 @@ export default function RiderHome() {
     }
   };
 
+  const isOnline = riderStats?.status === 'available';
+
+  const toggleOnlineStatus = async () => {
+    try {
+      if (!riderId) return;
+      setTogglingStatus(true);
+      const newStatus = isOnline ? 'offline' : 'available';
+
+      const { error } = await supabase
+        .from('riders')
+        .update({ status: newStatus })
+        .eq('id', riderId);
+
+      if (error) throw error;
+
+      setRiderStats(prev => prev ? { ...prev, status: newStatus } : prev);
+      showToast(newStatus === 'available' ? 'You are now online' : 'You are now offline', 'success');
+    } catch (error) {
+      console.error('Error toggling status:', error);
+      showToast('Failed to update status', 'error');
+    } finally {
+      setTogglingStatus(false);
+    }
+  };
+
   const handleAcceptAssignment = async (orderId: string) => {
     try {
       setProcessingAssignment(orderId);
@@ -383,6 +409,17 @@ export default function RiderHome() {
           <Text style={styles.greeting}>Hello, {profile?.full_name}</Text>
           <Text style={styles.subGreeting}>Rider Dashboard</Text>
         </View>
+        <TouchableOpacity
+          style={[styles.statusToggle, isOnline ? styles.statusToggleOnline : styles.statusToggleOffline]}
+          onPress={toggleOnlineStatus}
+          disabled={togglingStatus}
+          activeOpacity={0.7}>
+          <Power size={18} color={isOnline ? '#059669' : '#6b7280'} />
+          <Text style={[styles.statusToggleText, isOnline ? styles.statusToggleTextOnline : styles.statusToggleTextOffline]}>
+            {togglingStatus ? '...' : isOnline ? 'Online' : 'Offline'}
+          </Text>
+          <View style={[styles.statusDot, isOnline ? styles.statusDotOnline : styles.statusDotOffline]} />
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -691,6 +728,44 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
     color: '#6b7280',
     marginTop: 4,
+  },
+  statusToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 24,
+    borderWidth: 1.5,
+  },
+  statusToggleOnline: {
+    backgroundColor: '#ecfdf5',
+    borderColor: '#059669',
+  },
+  statusToggleOffline: {
+    backgroundColor: '#f3f4f6',
+    borderColor: '#d1d5db',
+  },
+  statusToggleText: {
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
+  },
+  statusToggleTextOnline: {
+    color: '#059669',
+  },
+  statusToggleTextOffline: {
+    color: '#6b7280',
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  statusDotOnline: {
+    backgroundColor: '#059669',
+  },
+  statusDotOffline: {
+    backgroundColor: '#9ca3af',
   },
   content: {
     flex: 1,

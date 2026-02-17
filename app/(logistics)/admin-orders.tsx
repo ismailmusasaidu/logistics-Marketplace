@@ -430,7 +430,7 @@ export default function AdminOrders() {
                       {order.rider.user?.full_name || 'Unknown Rider'} ({order.rider.vehicle_type})
                     </Text>
                     <Text style={styles.customerContact}>
-                      {order.rider.user?.phone || 'No phone'} • {order.rider.status === 'online' ? '🟢 Online' : '🔴 Offline'}
+                      {order.rider.user?.phone || 'No phone'} • {order.rider.status === 'available' ? 'Online' : 'Offline'}
                     </Text>
                   </View>
                 </View>
@@ -655,7 +655,7 @@ export default function AdminOrders() {
                         styles.riderOptionDetails,
                         editRiderId === rider.id && styles.riderOptionDetailsActive
                       ]}>
-                        {rider.vehicle_type} • {rider.status === 'online' ? 'Online' : 'Offline'}
+                        {rider.vehicle_type} • {rider.status === 'available' ? 'Online' : 'Offline'}
                       </Text>
                     </View>
                   </TouchableOpacity>
