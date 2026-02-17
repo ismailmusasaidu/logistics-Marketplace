@@ -118,18 +118,11 @@ export default function AdminRiders() {
         throw new Error('Rider profile not found');
       }
 
-      const [riderRes, deliveriesRes] = await Promise.all([
-        supabase
-          .from('riders')
-          .select('rating, zone_id, zones(name)')
-          .eq('user_id', riderId)
-          .maybeSingle(),
-        supabase
-          .from('orders')
-          .select('id', { count: 'exact', head: true })
-          .eq('rider_id', riderId)
-          .eq('status', 'delivered'),
-      ]);
+      const riderRes = await supabase
+        .from('riders')
+        .select('rating, zone_id, total_deliveries, zones(name)')
+        .eq('user_id', riderId)
+        .maybeSingle();
 
       if (riderRes.error) {
         console.error('Error loading rider data:', riderRes.error);
@@ -142,7 +135,7 @@ export default function AdminRiders() {
 
       const details: RiderDetails = {
         ...profileData,
-        total_deliveries: deliveriesRes.count ?? 0,
+        total_deliveries: riderRes.data?.total_deliveries ?? 0,
         rating: riderRes.data?.rating || 0,
         zone_id: riderRes.data?.zone_id || null,
         zone_name: zoneName,
