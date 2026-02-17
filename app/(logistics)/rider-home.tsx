@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Modal, Animated, Linking, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Modal, Animated, Linking, Dimensions, TextInput } from 'react-native';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Bike, Package, CheckCircle, Clock, AlertCircle, MapPin, Phone, User, X, Bell, Check, XCircle, Power, ArrowRight, Navigation, CircleDot, Truck } from 'lucide-react-native';
+import { Bike, Package, CheckCircle, Clock, AlertCircle, Phone, User, X, Bell, Check, XCircle, Power, ArrowRight, Truck, Search, History } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Fonts } from '@/constants/fonts';
@@ -56,6 +56,8 @@ export default function RiderHome() {
   const [processingAssignment, setProcessingAssignment] = useState<string | null>(null);
   const [countdowns, setCountdowns] = useState<Record<string, number>>({});
   const [togglingStatus, setTogglingStatus] = useState(false);
+  const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
+  const [historySearch, setHistorySearch] = useState('');
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const [toast, setToast] = useState<{
@@ -539,104 +541,219 @@ export default function RiderHome() {
           </View>
         </View>
 
-        {orders.length === 0 && pendingAssignments.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Package size={64} color="#d1d5db" />
-            <Text style={styles.emptyText}>No orders assigned yet</Text>
-            <Text style={styles.emptySubtext}>Orders will appear here when assigned</Text>
-          </View>
-        ) : orders.length > 0 ? (
-          <>
-            <Text style={styles.sectionTitle}>Assigned Orders</Text>
-            {orders.map((order) => (
-              <TouchableOpacity
-                key={order.id}
-                style={styles.orderCard}
-                onPress={() => {
-                  setSelectedOrder(order);
-                  setModalVisible(true);
-                }}
-                activeOpacity={0.92}>
+        <View style={styles.tabBar}>
+          <TouchableOpacity
+            style={[styles.tabItem, activeTab === 'active' && styles.tabItemActive]}
+            onPress={() => setActiveTab('active')}
+            activeOpacity={0.8}>
+            <Truck size={16} color={activeTab === 'active' ? '#ffffff' : '#6b7280'} />
+            <Text style={[styles.tabItemText, activeTab === 'active' && styles.tabItemTextActive]}>
+              Active
+            </Text>
+            {activeOrders.length > 0 && (
+              <View style={[styles.tabBadge, activeTab === 'active' && styles.tabBadgeActive]}>
+                <Text style={[styles.tabBadgeText, activeTab === 'active' && styles.tabBadgeTextActive]}>
+                  {activeOrders.length}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tabItem, activeTab === 'history' && styles.tabItemActive]}
+            onPress={() => setActiveTab('history')}
+            activeOpacity={0.8}>
+            <History size={16} color={activeTab === 'history' ? '#ffffff' : '#6b7280'} />
+            <Text style={[styles.tabItemText, activeTab === 'history' && styles.tabItemTextActive]}>
+              Delivered History
+            </Text>
+            {completedOrders.length > 0 && (
+              <View style={[styles.tabBadge, activeTab === 'history' && styles.tabBadgeActive]}>
+                <Text style={[styles.tabBadgeText, activeTab === 'history' && styles.tabBadgeTextActive]}>
+                  {completedOrders.length}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
 
-                <View style={[styles.orderCardAccent, { backgroundColor: getStatusColor(order.status) }]} />
-
-                <View style={styles.orderCardInner}>
-                  <View style={styles.orderCardTop}>
-                    <View style={styles.orderCardLeft}>
-                      <View style={[styles.packageIconWrap, { backgroundColor: getStatusBg(order.status) }]}>
-                        <Package size={20} color={getStatusColor(order.status)} />
-                      </View>
-                      <View>
-                        <Text style={styles.orderNumber}>{order.order_number}</Text>
-                        <View style={[styles.statusPill, { backgroundColor: getStatusBg(order.status) }]}>
-                          <View style={[styles.statusDotSmall, { backgroundColor: getStatusColor(order.status) }]} />
-                          <Text style={[styles.statusPillText, { color: getStatusColor(order.status) }]}>
-                            {getStatusLabel(order.status)}
-                          </Text>
+        {activeTab === 'active' ? (
+          activeOrders.length === 0 && pendingAssignments.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Package size={64} color="#d1d5db" />
+              <Text style={styles.emptyText}>No active orders</Text>
+              <Text style={styles.emptySubtext}>New assignments will appear here</Text>
+            </View>
+          ) : activeOrders.length > 0 ? (
+            <>
+              {activeOrders.map((order) => (
+                <TouchableOpacity
+                  key={order.id}
+                  style={styles.orderCard}
+                  onPress={() => { setSelectedOrder(order); setModalVisible(true); }}
+                  activeOpacity={0.92}>
+                  <View style={[styles.orderCardAccent, { backgroundColor: getStatusColor(order.status) }]} />
+                  <View style={styles.orderCardInner}>
+                    <View style={styles.orderCardTop}>
+                      <View style={styles.orderCardLeft}>
+                        <View style={[styles.packageIconWrap, { backgroundColor: getStatusBg(order.status) }]}>
+                          <Package size={20} color={getStatusColor(order.status)} />
+                        </View>
+                        <View>
+                          <Text style={styles.orderNumber}>{order.order_number}</Text>
+                          <View style={[styles.statusPill, { backgroundColor: getStatusBg(order.status) }]}>
+                            <View style={[styles.statusDotSmall, { backgroundColor: getStatusColor(order.status) }]} />
+                            <Text style={[styles.statusPillText, { color: getStatusColor(order.status) }]}>
+                              {getStatusLabel(order.status)}
+                            </Text>
+                          </View>
                         </View>
                       </View>
-                    </View>
-                    <View style={styles.orderCardRight}>
-                      <Text style={styles.orderFeeLabel}>Fee</Text>
-                      <Text style={styles.orderFee}>{'\u20A6'}{(order.delivery_fee || order.total || 0).toLocaleString()}</Text>
-                    </View>
-                  </View>
-
-                  {order.customer && (
-                    <View style={styles.recipientRow}>
-                      <View style={styles.recipientAvatar}>
-                        <User size={14} color="#3b82f6" />
-                      </View>
-                      <View style={styles.recipientInfo}>
-                        <Text style={styles.recipientName}>{order.customer.full_name || 'Unknown Customer'}</Text>
-                        {order.customer.phone && (
-                          <Text style={styles.recipientPhone}>{order.customer.phone}</Text>
-                        )}
+                      <View style={styles.orderCardRight}>
+                        <Text style={styles.orderFeeLabel}>Fee</Text>
+                        <Text style={styles.orderFee}>{'\u20A6'}{(order.delivery_fee || order.total || 0).toLocaleString()}</Text>
                       </View>
                     </View>
-                  )}
-
-                  <View style={styles.routeContainer}>
-                    {order.pickup_address && (
-                      <View style={styles.routeRow}>
-                        <View style={styles.routeDotGreen} />
-                        <View style={styles.routeTextWrap}>
-                          <Text style={styles.routeLabel}>From</Text>
-                          <Text style={styles.routeAddress} numberOfLines={1}>{order.pickup_address}</Text>
+                    {order.customer && (
+                      <View style={styles.recipientRow}>
+                        <View style={styles.recipientAvatar}>
+                          <User size={14} color="#3b82f6" />
+                        </View>
+                        <View style={styles.recipientInfo}>
+                          <Text style={styles.recipientName}>{order.customer.full_name || 'Unknown Customer'}</Text>
+                          {order.customer.phone && <Text style={styles.recipientPhone}>{order.customer.phone}</Text>}
                         </View>
                       </View>
                     )}
-                    {order.pickup_address && order.delivery_address && (
-                      <View style={styles.routeLine} />
+                    <View style={styles.routeContainer}>
+                      {order.pickup_address && (
+                        <View style={styles.routeRow}>
+                          <View style={styles.routeDotGreen} />
+                          <View style={styles.routeTextWrap}>
+                            <Text style={styles.routeLabel}>From</Text>
+                            <Text style={styles.routeAddress} numberOfLines={1}>{order.pickup_address}</Text>
+                          </View>
+                        </View>
+                      )}
+                      {order.pickup_address && order.delivery_address && <View style={styles.routeLine} />}
+                      {order.delivery_address && (
+                        <View style={styles.routeRow}>
+                          <View style={styles.routeDotRed} />
+                          <View style={styles.routeTextWrap}>
+                            <Text style={styles.routeLabel}>To</Text>
+                            <Text style={styles.routeAddress} numberOfLines={1}>{order.delivery_address}</Text>
+                          </View>
+                        </View>
+                      )}
+                    </View>
+                    <View style={styles.orderCardFooter}>
+                      <View style={styles.timeChip}>
+                        <Clock size={12} color="#9ca3af" />
+                        <Text style={styles.timeChipText}>
+                          {new Date(order.created_at).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </Text>
+                      </View>
+                      <View style={styles.viewDetailChip}>
+                        <Text style={styles.viewDetailText}>View Details</Text>
+                        <ArrowRight size={13} color="#3b82f6" />
+                      </View>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </>
+          ) : null
+        ) : (
+          <>
+            <View style={styles.searchContainer}>
+              <Search size={18} color="#9ca3af" style={styles.searchIcon} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search by order number, customer, address..."
+                placeholderTextColor="#9ca3af"
+                value={historySearch}
+                onChangeText={setHistorySearch}
+                clearButtonMode="while-editing"
+              />
+              {historySearch.length > 0 && (
+                <TouchableOpacity onPress={() => setHistorySearch('')} style={styles.searchClear}>
+                  <X size={16} color="#9ca3af" />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {(() => {
+              const q = historySearch.toLowerCase().trim();
+              const filtered = completedOrders.filter(o =>
+                !q ||
+                o.order_number.toLowerCase().includes(q) ||
+                (o.customer?.full_name || '').toLowerCase().includes(q) ||
+                (o.delivery_address || '').toLowerCase().includes(q) ||
+                (o.pickup_address || '').toLowerCase().includes(q)
+              );
+
+              if (filtered.length === 0) {
+                return (
+                  <View style={styles.emptyState}>
+                    <History size={64} color="#d1d5db" />
+                    <Text style={styles.emptyText}>
+                      {q ? 'No results found' : 'No delivered orders yet'}
+                    </Text>
+                    <Text style={styles.emptySubtext}>
+                      {q ? 'Try a different search term' : 'Completed deliveries will appear here'}
+                    </Text>
+                  </View>
+                );
+              }
+
+              return filtered.map((order) => (
+                <TouchableOpacity
+                  key={order.id}
+                  style={styles.historyCard}
+                  onPress={() => { setSelectedOrder(order); setModalVisible(true); }}
+                  activeOpacity={0.92}>
+                  <View style={styles.historyCardLeft}>
+                    <View style={styles.historyIconWrap}>
+                      <CheckCircle size={20} color="#10b981" />
+                    </View>
+                  </View>
+                  <View style={styles.historyCardBody}>
+                    <View style={styles.historyCardTop}>
+                      <Text style={styles.historyOrderNumber}>{order.order_number}</Text>
+                      <Text style={styles.historyFee}>{'\u20A6'}{(order.delivery_fee || order.total || 0).toLocaleString()}</Text>
+                    </View>
+                    {order.customer?.full_name && (
+                      <View style={styles.historyCustomerRow}>
+                        <User size={12} color="#6b7280" />
+                        <Text style={styles.historyCustomerName}>{order.customer.full_name}</Text>
+                      </View>
                     )}
                     {order.delivery_address && (
-                      <View style={styles.routeRow}>
+                      <View style={styles.historyAddressRow}>
                         <View style={styles.routeDotRed} />
-                        <View style={styles.routeTextWrap}>
-                          <Text style={styles.routeLabel}>To</Text>
-                          <Text style={styles.routeAddress} numberOfLines={1}>{order.delivery_address}</Text>
-                        </View>
+                        <Text style={styles.historyAddress} numberOfLines={1}>{order.delivery_address}</Text>
                       </View>
                     )}
-                  </View>
-
-                  <View style={styles.orderCardFooter}>
-                    <View style={styles.timeChip}>
-                      <Clock size={12} color="#9ca3af" />
-                      <Text style={styles.timeChipText}>
-                        {new Date(order.created_at).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </Text>
+                    <View style={styles.historyFooter}>
+                      <View style={styles.historyDeliveredBadge}>
+                        <CheckCircle size={11} color="#059669" />
+                        <Text style={styles.historyDeliveredText}>Delivered</Text>
+                      </View>
+                      <View style={styles.timeChip}>
+                        <Clock size={11} color="#9ca3af" />
+                        <Text style={styles.timeChipText}>
+                          {new Date(order.created_at).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </Text>
+                      </View>
                     </View>
-                    <View style={styles.viewDetailChip}>
-                      <Text style={styles.viewDetailText}>View Details</Text>
-                      <ArrowRight size={13} color="#3b82f6" />
-                    </View>
                   </View>
-                </View>
-              </TouchableOpacity>
-            ))}
+                  <View style={styles.historyCardChevron}>
+                    <ArrowRight size={16} color="#d1d5db" />
+                  </View>
+                </TouchableOpacity>
+              ));
+            })()}
           </>
-        ) : null}
+        )}
       </ScrollView>
 
       <Modal
@@ -1618,5 +1735,176 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#ffffff',
+  },
+
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: '#f1f5f9',
+    borderRadius: 16,
+    padding: 4,
+    marginBottom: 20,
+    gap: 4,
+  },
+  tabItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  tabItemActive: {
+    backgroundColor: '#1e3a5f',
+    shadowColor: '#1e3a5f',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  tabItemText: {
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
+    color: '#6b7280',
+  },
+  tabItemTextActive: {
+    color: '#ffffff',
+  },
+  tabBadge: {
+    backgroundColor: '#e5e7eb',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 5,
+  },
+  tabBadgeActive: {
+    backgroundColor: 'rgba(255,255,255,0.25)',
+  },
+  tabBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#374151',
+  },
+  tabBadgeTextActive: {
+    color: '#ffffff',
+  },
+
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#e5e7eb',
+    paddingHorizontal: 14,
+    marginBottom: 16,
+    height: 48,
+    gap: 10,
+  },
+  searchIcon: {},
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: '#111827',
+    height: '100%',
+  },
+  searchClear: {
+    padding: 4,
+  },
+
+  historyCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    overflow: 'hidden',
+  },
+  historyCardLeft: {
+    paddingHorizontal: 14,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  historyIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#ecfdf5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  historyCardBody: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingRight: 4,
+    gap: 5,
+  },
+  historyCardTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  historyOrderNumber: {
+    fontSize: 14,
+    fontFamily: Fonts.bold,
+    color: '#111827',
+  },
+  historyFee: {
+    fontSize: 15,
+    fontFamily: Fonts.bold,
+    color: '#059669',
+  },
+  historyCustomerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  historyCustomerName: {
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
+    color: '#374151',
+  },
+  historyAddressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  historyAddress: {
+    flex: 1,
+    fontSize: 12,
+    color: '#6b7280',
+  },
+  historyFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  historyDeliveredBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#ecfdf5',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  historyDeliveredText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#059669',
+  },
+  historyCardChevron: {
+    paddingHorizontal: 12,
   },
 });
