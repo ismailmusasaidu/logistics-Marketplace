@@ -1103,8 +1103,8 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   tabActive: { borderBottomColor: '#8b5cf6' },
-  tabText: { fontSize: 14, fontWeight: '600', color: '#6b7280' },
-  tabTextActive: { color: '#8b5cf6' },
+  tabText: { fontSize: 14, fontWeight: '600', color: '#6b7280', fontFamily: 'SpaceGrotesk-SemiBold' },
+  tabTextActive: { color: '#8b5cf6', fontFamily: 'SpaceGrotesk-Bold' },
   content: { flex: 1 },
   section: { padding: 16 },
   sectionHeader: {
