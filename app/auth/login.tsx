@@ -88,7 +88,7 @@ export default function LoginScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#ff9a1f', '#ff8c00', '#e67a00']}
+        colors={['#1a1a1a', '#2d1a00', '#3d2200']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.headerGradient, { paddingTop: insets.top + 24 }]}
@@ -106,7 +106,7 @@ export default function LoginScreen() {
           ]}
         >
           <View style={styles.logoIcon}>
-            <Layers size={32} color="#ff8c00" strokeWidth={2.5} />
+            <Layers size={32} color="#f97316" strokeWidth={2.5} />
           </View>
           <Text style={styles.brandName}>Danhausa</Text>
           <Text style={styles.brandTagline}>Logistics & Marketplace</Text>
@@ -192,7 +192,7 @@ export default function LoginScreen() {
               activeOpacity={0.85}
             >
               <LinearGradient
-                colors={loading ? ['#ccc', '#bbb'] : ['#ff9a1f', '#ff7b00']}
+                colors={loading ? ['#ccc', '#bbb'] : ['#f97316', '#e85d04']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.signInGradient}
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'rgba(249, 115, 22, 0.12)',
     top: -60,
     right: -40,
   },
@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
     width: 140,
     height: 140,
     borderRadius: 70,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: 'rgba(249, 115, 22, 0.08)',
     bottom: -30,
     left: -30,
   },
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
   welcomeAccent: {
     fontSize: 14,
     fontFamily: Fonts.playfairItalic,
-    color: '#ff8c00',
+    color: '#f97316',
     marginBottom: 4,
   },
   welcomeSubtitle: {
@@ -393,16 +393,16 @@ const styles = StyleSheet.create({
     marginTop: -4,
   },
   forgotPasswordText: {
-    color: '#ff8c00',
+    color: '#f97316',
     fontSize: 13,
     fontFamily: Fonts.semiBold,
   },
   signInButton: {
     borderRadius: 14,
     overflow: 'hidden',
-    shadowColor: '#ff8c00',
+    shadowColor: '#f97316',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 5,
   },
@@ -447,7 +447,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
   },
   signUpLink: {
-    color: '#ff8c00',
+    color: '#f97316',
     fontSize: 14,
     fontFamily: Fonts.bold,
   },
