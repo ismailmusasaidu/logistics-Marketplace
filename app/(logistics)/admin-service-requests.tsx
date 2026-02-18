@@ -417,10 +417,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '800',
+    fontFamily: 'SpaceGrotesk-Bold',
     color: '#111827',
+    letterSpacing: -0.5,
   },
   badge: {
-    backgroundColor: '#8b5cf6',
+    backgroundColor: '#0ea5e9',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
@@ -429,6 +431,7 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '700',
+    fontFamily: 'SpaceGrotesk-Bold',
   },
   searchContainer: {
     flexDirection: 'row',
@@ -482,11 +485,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#f3f4f6',
   },
   filterButtonActive: {
-    backgroundColor: '#8b5cf6',
+    backgroundColor: '#0ea5e9',
   },
   filterText: {
     fontSize: 14,
     fontWeight: '600',
+    fontFamily: 'SpaceGrotesk-SemiBold',
     color: '#6b7280',
   },
   filterTextActive: {
@@ -536,6 +540,7 @@ const styles = StyleSheet.create({
   serviceTypeText: {
     fontSize: 16,
     fontWeight: '700',
+    fontFamily: 'SpaceGrotesk-Bold',
     color: '#111827',
   },
   headerActions: {
@@ -627,6 +632,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
+    fontFamily: 'SpaceGrotesk-Bold',
     color: '#111827',
   },
   modalBody: {
@@ -703,6 +709,7 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
+    fontFamily: 'SpaceGrotesk-SemiBold',
     color: '#374151',
   },
   saveButton: {
@@ -715,6 +722,7 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontSize: 16,
     fontWeight: '600',
+    fontFamily: 'SpaceGrotesk-SemiBold',
     color: '#ffffff',
   },
 });

@@ -728,7 +728,9 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '800',
+    fontFamily: 'SpaceGrotesk-Bold',
     color: '#111827',
+    letterSpacing: -0.5,
   },
   badge: {
     backgroundColor: '#0ea5e9',
@@ -740,6 +742,7 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '700',
+    fontFamily: 'SpaceGrotesk-Bold',
   },
   filterContainer: {
     flexDirection: 'row',
@@ -764,6 +767,7 @@ const styles = StyleSheet.create({
   filterText: {
     fontSize: 14,
     fontWeight: '600',
+    fontFamily: 'SpaceGrotesk-SemiBold',
     color: '#6b7280',
   },
   filterTextActive: {
@@ -853,6 +857,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6b7280',
     fontWeight: '600',
+    fontFamily: 'SpaceGrotesk-SemiBold',
+    letterSpacing: 0.5,
     marginBottom: 12,
   },
   customerInfo: {
@@ -871,6 +877,7 @@ const styles = StyleSheet.create({
   customerName: {
     fontSize: 14,
     fontWeight: '600',
+    fontFamily: 'SpaceGrotesk-SemiBold',
     color: '#111827',
   },
   customerContact: {
@@ -1034,6 +1041,7 @@ const styles = StyleSheet.create({
   feeText: {
     fontSize: 16,
     fontWeight: '700',
+    fontFamily: 'SpaceGrotesk-Bold',
     color: '#0ea5e9',
   },
   paymentMethodBadge: {
@@ -1097,6 +1105,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
+    fontFamily: 'SpaceGrotesk-Bold',
     color: '#111827',
   },
   modalBody: {
