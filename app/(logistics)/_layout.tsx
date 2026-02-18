@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Tabs, router } from 'expo-router';
-import { Package, User, LayoutDashboard, Bike, Users, DollarSign, Headphones, ArrowLeft } from 'lucide-react-native';
+import { Package, User, LayoutDashboard, Bike, Users, DollarSign, Headphones, ArrowLeft, Star } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -260,6 +260,15 @@ export default function TabLayout() {
             title: 'Services',
             tabBarIcon: ({ size, color }) => (
               <Headphones size={size} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="admin-reviews"
+          options={{
+            title: 'Reviews',
+            tabBarIcon: ({ size, color }) => (
+              <Star size={size} color={color} />
             ),
           }}
         />
