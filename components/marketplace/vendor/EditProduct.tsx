@@ -25,6 +25,7 @@ import {
   ToggleLeft,
   Pencil,
   Percent,
+  Scale,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/marketplace/supabase';
@@ -53,6 +54,9 @@ export default function EditProduct({ product, onBack, onSuccess }: EditProductP
     product.discount_percentage ? String(product.discount_percentage) : ''
   );
   const [discountActive, setDiscountActive] = useState(product.discount_active || false);
+  const [weightKg, setWeightKg] = useState(
+    product.weight_kg != null ? String(product.weight_kg) : ''
+  );
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [showReviews, setShowReviews] = useState(false);
@@ -96,6 +100,7 @@ export default function EditProduct({ product, onBack, onSuccess }: EditProductP
           category_id: categoryId,
           is_available: isAvailable,
           image_url: imageUrl.trim() || null,
+          weight_kg: weightKg ? parseFloat(weightKg) : null,
           discount_percentage: Math.min(Math.max(discountPct, 0), 100),
           discount_active: discountActive && discountPct > 0,
         })
@@ -227,6 +232,25 @@ export default function EditProduct({ product, onBack, onSuccess }: EditProductP
                       keyboardType="number-pad"
                     />
                   </View>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <View style={styles.labelRow}>
+                    <Scale size={14} color="#888" />
+                    <Text style={styles.label}>Weight (kg)</Text>
+                  </View>
+                  <View style={styles.inputWithSuffix}>
+                    <TextInput
+                      style={[styles.input, styles.suffixInput, Platform.OS === 'web' && { outlineStyle: 'none' } as any]}
+                      placeholder="0.000"
+                      placeholderTextColor="#b0b0b0"
+                      value={weightKg}
+                      onChangeText={setWeightKg}
+                      keyboardType="decimal-pad"
+                    />
+                    <Text style={styles.suffixText}>kg</Text>
+                  </View>
+                  <Text style={styles.helperText}>Weight per unit (optional)</Text>
                 </View>
               </View>
 
@@ -570,6 +594,23 @@ const styles = StyleSheet.create({
   prefixInput: {
     flex: 1,
     paddingLeft: 34,
+  },
+  inputWithSuffix: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  suffixInput: {
+    flex: 1,
+    paddingRight: 42,
+  },
+  suffixText: {
+    position: 'absolute',
+    right: 16,
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
+    color: '#888',
+    zIndex: 1,
   },
   helperText: {
     fontSize: 12,

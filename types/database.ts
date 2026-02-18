@@ -91,6 +91,7 @@ export interface Product {
   total_reviews: number;
   discount_percentage: number;
   discount_active: boolean;
+  weight_kg?: number;
   created_at: string;
   updated_at: string;
 }

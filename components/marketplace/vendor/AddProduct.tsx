@@ -28,6 +28,7 @@ import {
   Percent,
   ToggleLeft,
   ToggleRight,
+  Scale,
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '@/lib/marketplace/supabase';
@@ -63,6 +64,7 @@ export default function AddProduct({ onBack, onSuccess }: AddProductProps) {
     price: '',
     unit: 'lb',
     stock_quantity: '',
+    weight_kg: '',
     discount_percentage: '',
     discount_active: false,
   });
@@ -294,6 +296,7 @@ export default function AddProduct({ onBack, onSuccess }: AddProductProps) {
           price: parseFloat(formData.price),
           unit: formData.unit,
           stock_quantity: parseInt(formData.stock_quantity),
+          weight_kg: formData.weight_kg ? parseFloat(formData.weight_kg) : null,
           is_available: true,
           is_featured: false,
           discount_percentage: Math.min(Math.max(discountPct, 0), 100),
@@ -585,21 +588,42 @@ export default function AddProduct({ onBack, onSuccess }: AddProductProps) {
               </View>
             </View>
 
-            <View style={styles.inputGroup}>
-              <View style={styles.labelRow}>
-                <Layers size={14} color="#888" />
-                <Text style={styles.label}>Stock Quantity</Text>
-                <Text style={styles.required}>*</Text>
+            <View style={styles.row}>
+              <View style={[styles.inputGroup, styles.flex1]}>
+                <View style={styles.labelRow}>
+                  <Layers size={14} color="#888" />
+                  <Text style={styles.label}>Stock Quantity</Text>
+                  <Text style={styles.required}>*</Text>
+                </View>
+                <TextInput
+                  style={[styles.input, Platform.OS === 'web' && { outlineStyle: 'none' } as any]}
+                  placeholder="0"
+                  placeholderTextColor="#b0b0b0"
+                  value={formData.stock_quantity}
+                  onChangeText={(text) => setFormData({ ...formData, stock_quantity: text })}
+                  keyboardType="number-pad"
+                />
+                <Text style={styles.helperText}>Items available for sale</Text>
               </View>
-              <TextInput
-                style={[styles.input, Platform.OS === 'web' && { outlineStyle: 'none' } as any]}
-                placeholder="0"
-                placeholderTextColor="#b0b0b0"
-                value={formData.stock_quantity}
-                onChangeText={(text) => setFormData({ ...formData, stock_quantity: text })}
-                keyboardType="number-pad"
-              />
-              <Text style={styles.helperText}>Number of items available for sale</Text>
+
+              <View style={[styles.inputGroup, styles.flex1]}>
+                <View style={styles.labelRow}>
+                  <Scale size={14} color="#888" />
+                  <Text style={styles.label}>Weight (kg)</Text>
+                </View>
+                <View style={styles.inputWithSuffix}>
+                  <TextInput
+                    style={[styles.input, styles.suffixInput, Platform.OS === 'web' && { outlineStyle: 'none' } as any]}
+                    placeholder="0.000"
+                    placeholderTextColor="#b0b0b0"
+                    value={formData.weight_kg}
+                    onChangeText={(text) => setFormData({ ...formData, weight_kg: text })}
+                    keyboardType="decimal-pad"
+                  />
+                  <Text style={styles.suffixText}>kg</Text>
+                </View>
+                <Text style={styles.helperText}>Weight per unit</Text>
+              </View>
             </View>
 
             <View style={styles.discountDivider} />
@@ -978,6 +1002,23 @@ const styles = StyleSheet.create({
   prefixInput: {
     flex: 1,
     paddingLeft: 34,
+  },
+  inputWithSuffix: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  suffixInput: {
+    flex: 1,
+    paddingRight: 42,
+  },
+  suffixText: {
+    position: 'absolute',
+    right: 16,
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
+    color: '#888',
+    zIndex: 1,
   },
   helperText: {
     fontSize: 12,
