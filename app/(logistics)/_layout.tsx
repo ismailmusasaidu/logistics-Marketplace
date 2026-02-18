@@ -38,6 +38,11 @@ export default function TabLayout() {
           headerShown: false,
           tabBarActiveTintColor: '#f97316',
           tabBarInactiveTintColor: '#6b7280',
+          tabBarLabelStyle: {
+            fontFamily: 'SpaceGrotesk-SemiBold',
+            fontSize: 11,
+            letterSpacing: 0.3,
+          },
           tabBarStyle: {
             backgroundColor: '#ffffff',
             borderTopWidth: 1,
@@ -105,6 +110,11 @@ export default function TabLayout() {
           headerShown: false,
           tabBarActiveTintColor: '#3b82f6',
           tabBarInactiveTintColor: '#6b7280',
+          tabBarLabelStyle: {
+            fontFamily: 'SpaceGrotesk-SemiBold',
+            fontSize: 11,
+            letterSpacing: 0.3,
+          },
           tabBarStyle: {
             backgroundColor: '#ffffff',
             borderTopWidth: 1,
@@ -166,8 +176,9 @@ export default function TabLayout() {
           tabBarInactiveTintColor: '#6b7280',
           tabBarLabelStyle: {
             fontSize: 10,
-            fontWeight: '600',
+            fontFamily: 'SpaceGrotesk-SemiBold',
             marginTop: 2,
+            letterSpacing: 0.3,
           },
           tabBarIconStyle: {
             marginTop: 2,
