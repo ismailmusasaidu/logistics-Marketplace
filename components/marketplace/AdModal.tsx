@@ -16,6 +16,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { X, Sparkles, Star, TrendingUp, Gift, Zap } from 'lucide-react-native';
 import { Fonts } from '@/constants/fonts';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width, height } = Dimensions.get('window');
 
@@ -39,6 +40,7 @@ interface AdModalProps {
 }
 
 export default function AdModal({ visible, advert, onClose }: AdModalProps) {
+  const insets = useSafeAreaInsets();
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const sparkleAnim = useRef(new Animated.Value(0)).current;
@@ -171,13 +173,13 @@ export default function AdModal({ visible, advert, onClose }: AdModalProps) {
             },
           ]}
         >
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+          <TouchableOpacity style={[styles.closeButton, { top: insets.top + 16 }]} onPress={onClose}>
             <View style={styles.closeButtonInner}>
               <X size={20} color="#ffffff" />
             </View>
           </TouchableOpacity>
 
-          <View style={styles.hotBadge}>
+          <View style={[styles.hotBadge, { top: insets.top + 16 }]}>
             <LinearGradient
               colors={['#ff4757', '#ff6348']}
               start={{ x: 0, y: 0 }}
@@ -368,7 +370,6 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     position: 'absolute',
-    top: 50,
     right: 20,
     zIndex: 10,
   },
@@ -398,7 +399,6 @@ const styles = StyleSheet.create({
   },
   hotBadge: {
     position: 'absolute',
-    top: 50,
     left: 20,
     zIndex: 10,
     borderRadius: 20,

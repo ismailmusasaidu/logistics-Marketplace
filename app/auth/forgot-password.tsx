@@ -16,8 +16,10 @@ import { supabase } from '@/lib/supabase';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, Mail, KeyRound } from 'lucide-react-native';
 import { Fonts } from '@/constants/fonts';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ForgotPasswordScreen() {
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -85,7 +87,7 @@ export default function ForgotPasswordScreen() {
           colors={['#ff9a1f', '#ff8c00', '#e67a00']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.headerGradient}
+          style={[styles.headerGradient, { paddingTop: insets.top + 24 }]}
         >
           <View style={styles.decorCircle1} />
           <View style={styles.decorCircle2} />
@@ -281,7 +283,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f5f0',
   },
   headerGradient: {
-    paddingTop: 56,
     paddingBottom: 36,
     alignItems: 'center',
     overflow: 'hidden',

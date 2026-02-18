@@ -4,8 +4,10 @@ import { router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CheckCircle } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ResetPasswordScreen() {
+  const insets = useSafeAreaInsets();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -65,7 +67,7 @@ export default function ResetPasswordScreen() {
         colors={['#ff8c00', '#ff6b00', '#ff4500']}
         style={styles.container}
       >
-        <View style={styles.content}>
+        <View style={[styles.content, { paddingTop: insets.top }]}>
           <View style={styles.errorContainer}>
             <Text style={styles.errorTitle}>Invalid or Expired Link</Text>
             <Text style={styles.errorMessage}>
@@ -89,7 +91,7 @@ export default function ResetPasswordScreen() {
         colors={['#ff8c00', '#ff6b00', '#ff4500']}
         style={styles.container}
       >
-        <View style={styles.content}>
+        <View style={[styles.content, { paddingTop: insets.top }]}>
           <View style={styles.successContainer}>
             <View style={styles.iconContainer}>
               <CheckCircle size={64} color="#ffffff" strokeWidth={2} />

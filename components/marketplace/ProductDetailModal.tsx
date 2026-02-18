@@ -23,6 +23,7 @@ import ProductReviews from './ProductReviews';
 import ReviewForm from './ReviewForm';
 import ZoomableImage from './ZoomableImage';
 import { Fonts } from '@/constants/fonts';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -51,6 +52,7 @@ export default function ProductDetailModal({
   product,
   onClose,
 }: ProductDetailModalProps) {
+  const insets = useSafeAreaInsets();
   const { profile } = useAuth();
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -494,7 +496,7 @@ export default function ProductDetailModal({
             </View>
           </ScrollView>
 
-          <View style={styles.footer}>
+          <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
             <TouchableOpacity
               style={[styles.addButton, loading && styles.addButtonDisabled]}
               onPress={addToCart}
@@ -524,7 +526,7 @@ export default function ProductDetailModal({
         <View style={styles.fullScreenOverlay}>
           <View style={styles.fullScreenContainer}>
             <TouchableOpacity
-              style={styles.fullScreenCloseButton}
+              style={[styles.fullScreenCloseButton, { top: insets.top + 16 }]}
               onPress={closeFullScreenImage}
               activeOpacity={0.8}
             >
@@ -948,7 +950,6 @@ const styles = StyleSheet.create({
   },
   footer: {
     padding: 20,
-    paddingBottom: 32,
     backgroundColor: '#ffffff',
     borderTopWidth: 1,
     borderTopColor: '#f0ebe4',
@@ -1000,7 +1001,6 @@ const styles = StyleSheet.create({
   },
   fullScreenCloseButton: {
     position: 'absolute',
-    top: 50,
     right: 20,
     zIndex: 999,
   },

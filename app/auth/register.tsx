@@ -25,8 +25,10 @@ import {
   Briefcase,
   Bike,
 } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function RegisterScreen() {
+  const insets = useSafeAreaInsets();
   const [accountType, setAccountType] = useState<UserRole>('customer');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -153,7 +155,7 @@ export default function RegisterScreen() {
         colors={['#ff9a1f', '#ff8c00', '#e67a00']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={styles.headerGradient}
+        style={[styles.headerGradient, { paddingTop: insets.top + 20 }]}
       >
         <View style={styles.decorCircle1} />
         <View style={styles.decorCircle2} />
@@ -537,7 +539,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f5f0',
   },
   headerGradient: {
-    paddingTop: 50,
     paddingBottom: 32,
     alignItems: 'center',
     overflow: 'hidden',

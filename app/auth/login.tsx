@@ -16,8 +16,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Fonts } from '@/constants/fonts';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Eye, EyeOff, Layers } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function LoginScreen() {
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -89,7 +91,7 @@ export default function LoginScreen() {
         colors={['#ff9a1f', '#ff8c00', '#e67a00']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={styles.headerGradient}
+        style={[styles.headerGradient, { paddingTop: insets.top + 24 }]}
       >
         <View style={styles.decorCircle1} />
         <View style={styles.decorCircle2} />
@@ -230,7 +232,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f5f0',
   },
   headerGradient: {
-    paddingTop: 60,
     paddingBottom: 40,
     alignItems: 'center',
     overflow: 'hidden',

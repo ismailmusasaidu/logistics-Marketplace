@@ -5,8 +5,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/contexts/AuthContext';
 import { router } from 'expo-router';
 import { Fonts } from '@/constants/fonts';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function VendorPendingScreen() {
+  const insets = useSafeAreaInsets();
   const { signOut, profile, refreshProfile } = useAuth();
   const isRider = profile?.role === 'rider';
   const isRejected = profile?.vendor_status === 'rejected';
@@ -75,7 +77,7 @@ export default function VendorPendingScreen() {
         colors={isRejected ? ['#ef4444', '#dc2626', '#b91c1c'] : ['#ff9a1f', '#ff8c00', '#e67a00']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={styles.headerGradient}
+        style={[styles.headerGradient, { paddingTop: insets.top + 28 }]}
       >
         <View style={styles.decorCircle1} />
         <View style={styles.decorCircle2} />
@@ -199,7 +201,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f5f0',
   },
   headerGradient: {
-    paddingTop: 72,
     paddingBottom: 44,
     alignItems: 'center',
     overflow: 'hidden',
