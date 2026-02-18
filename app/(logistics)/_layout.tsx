@@ -99,6 +99,7 @@ export default function TabLayout() {
         <Tabs.Screen name="admin-bank-accounts" options={{ href: null }} />
         <Tabs.Screen name="admin-zones" options={{ href: null }} />
         <Tabs.Screen name="admin-service-requests" options={{ href: null }} />
+        <Tabs.Screen name="admin-reviews" options={{ href: null }} />
       </Tabs>
     );
   }
@@ -163,6 +164,7 @@ export default function TabLayout() {
         <Tabs.Screen name="admin-bank-accounts" options={{ href: null }} />
         <Tabs.Screen name="admin-zones" options={{ href: null }} />
         <Tabs.Screen name="admin-service-requests" options={{ href: null }} />
+        <Tabs.Screen name="admin-reviews" options={{ href: null }} />
       </Tabs>
     );
   }
