@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Modal, TextInput, Platform, Linking, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Package, MapPin, Clock, Plus, X, User, Phone, ChevronDown, ChevronUp, Layers, Navigation, Search, Tag, Receipt, Star, ArrowDown, Truck, CheckCircle2, CircleDot } from 'lucide-react-native';
+import { Package, MapPin, Clock, Plus, X, User, Phone, ChevronDown, ChevronUp, Layers, Navigation, Search, Tag, Receipt, Star, ArrowDown, Truck, CheckCircle2, CircleDot, RefreshCw } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { Order } from '@/lib/supabase';
 import { coreBackend } from '@/lib/coreBackend';
@@ -20,7 +20,7 @@ import { matchAddressToZone } from '@/lib/zoneMatching';
 import { Fonts } from '@/constants/fonts';
 
 export default function CustomerHome() {
-  const { profile, locationAddress, locationPermissionDenied } = useAuth();
+  const { profile, locationAddress, locationPermissionDenied, locationLoading, refreshLocation } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -637,8 +637,19 @@ export default function CustomerHome() {
             <View style={styles.locationRow}>
               <MapPin size={13} color="#f97316" />
               <Text style={styles.locationText} numberOfLines={2}>
-                {locationAddress || 'Location unavailable'}
+                {locationLoading ? 'Updating location...' : (locationAddress || 'Location unavailable')}
               </Text>
+              <TouchableOpacity
+                style={styles.locationRefreshBtn}
+                onPress={refreshLocation}
+                disabled={locationLoading}
+                activeOpacity={0.7}>
+                {locationLoading ? (
+                  <ActivityIndicator size={12} color="#f97316" />
+                ) : (
+                  <RefreshCw size={12} color="#f97316" />
+                )}
+              </TouchableOpacity>
             </View>
           </View>
           <View style={styles.headerButtons}>
@@ -1262,7 +1273,7 @@ const styles = StyleSheet.create({
   },
   locationRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 5,
   },
   locationText: {
@@ -1271,6 +1282,16 @@ const styles = StyleSheet.create({
     color: '#a8a29e',
     flex: 1,
     lineHeight: 18,
+  },
+  locationRefreshBtn: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(249,115,22,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(249,115,22,0.3)',
   },
   addButton: {
     backgroundColor: '#f97316',

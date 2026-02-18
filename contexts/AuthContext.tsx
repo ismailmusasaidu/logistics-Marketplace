@@ -15,6 +15,8 @@ type AuthContextType = {
   refreshProfile: () => Promise<void>;
   locationAddress: string | null;
   locationPermissionDenied: boolean;
+  locationLoading: boolean;
+  refreshLocation: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -134,6 +136,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const refreshLocation = async () => {
+    if (user?.id) {
+      await requestAndSaveLocation(user.id);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -147,6 +155,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         refreshProfile,
         locationAddress: locationState.address,
         locationPermissionDenied: locationState.permissionDenied,
+        locationLoading: locationState.loading,
+        refreshLocation,
       }}
     >
       {children}

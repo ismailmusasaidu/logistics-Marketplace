@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Modal, Animated, Linking, Dimensions, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Modal, Animated, Linking, Dimensions, TextInput, ActivityIndicator } from 'react-native';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Bike, Package, CheckCircle, Clock, AlertCircle, Phone, User, X, Bell, Check, XCircle, Power, ArrowRight, Truck, Search, History } from 'lucide-react-native';
+import { Bike, Package, CheckCircle, Clock, AlertCircle, Phone, User, X, Bell, Check, XCircle, Power, ArrowRight, Truck, Search, History, MapPin, RefreshCw } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Fonts } from '@/constants/fonts';
 import { Toast } from '@/components/Toast';
+import { useLocation } from '@/hooks/useLocation';
 
 type Order = {
   id: string;
@@ -46,6 +47,7 @@ type RiderStats = {
 
 export default function RiderHome() {
   const { profile } = useAuth();
+  const { locationState, requestAndSaveLocation, loadSavedLocation } = useLocation();
   const [orders, setOrders] = useState<Order[]>([]);
   const [pendingAssignments, setPendingAssignments] = useState<PendingAssignment[]>([]);
   const [riderId, setRiderId] = useState<string | null>(null);
@@ -90,8 +92,19 @@ export default function RiderHome() {
   useEffect(() => {
     if (profile?.id) {
       loadRiderId();
+      if (profile.location_lat && profile.location_lng) {
+        loadSavedLocation(profile);
+      } else {
+        requestAndSaveLocation(profile.id);
+      }
     }
   }, [profile?.id]);
+
+  const handleRefreshLocation = async () => {
+    if (profile?.id) {
+      await requestAndSaveLocation(profile.id);
+    }
+  };
 
   useEffect(() => {
     if (riderId) {
@@ -539,6 +552,33 @@ export default function RiderHome() {
             <Text style={styles.statNumber}>{completedOrders.length}</Text>
             <Text style={styles.statLabel}>Completed</Text>
           </View>
+        </View>
+
+        <View style={styles.locationCard}>
+          <View style={styles.locationCardLeft}>
+            <View style={styles.locationIconWrap}>
+              <MapPin size={18} color="#3b82f6" />
+            </View>
+            <View style={styles.locationCardInfo}>
+              <Text style={styles.locationCardLabel}>My Location</Text>
+              <Text style={styles.locationCardAddress} numberOfLines={2}>
+                {locationState.loading
+                  ? 'Updating location...'
+                  : locationState.address || 'Location unavailable'}
+              </Text>
+            </View>
+          </View>
+          <TouchableOpacity
+            style={[styles.locationRefreshBtn, locationState.loading && styles.locationRefreshBtnDisabled]}
+            onPress={handleRefreshLocation}
+            disabled={locationState.loading}
+            activeOpacity={0.7}>
+            {locationState.loading ? (
+              <ActivityIndicator size={14} color="#3b82f6" />
+            ) : (
+              <RefreshCw size={14} color="#3b82f6" />
+            )}
+          </TouchableOpacity>
         </View>
 
         <View style={styles.tabBar}>
@@ -1192,6 +1232,68 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.bold,
     color: '#111827',
     marginBottom: 16,
+  },
+
+  locationCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  locationCardLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  locationIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: '#eff6ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  locationCardInfo: {
+    flex: 1,
+  },
+  locationCardLabel: {
+    fontSize: 11,
+    fontFamily: Fonts.semiBold,
+    color: '#9ca3af',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 3,
+  },
+  locationCardAddress: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: '#1f2937',
+    lineHeight: 18,
+  },
+  locationRefreshBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: '#eff6ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#bfdbfe',
+  },
+  locationRefreshBtnDisabled: {
+    opacity: 0.5,
   },
 
   orderCard: {

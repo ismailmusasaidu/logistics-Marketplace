@@ -19,6 +19,10 @@ export type Profile = {
   is_suspended: boolean;
   suspended_at: string | null;
   suspended_by: string | null;
+  location_lat: number | null;
+  location_lng: number | null;
+  location_address: string | null;
+  location_updated_at: string | null;
   created_at: string;
   updated_at: string;
 };
