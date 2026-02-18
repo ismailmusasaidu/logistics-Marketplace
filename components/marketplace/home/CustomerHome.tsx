@@ -9,9 +9,10 @@ import {
   ScrollView,
   ActivityIndicator,
   Animated,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Search, ShoppingBag } from 'lucide-react-native';
+import { Search, ShoppingBag, SlidersHorizontal } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '@/lib/marketplace/supabase';
@@ -61,20 +62,12 @@ export default function CustomerHome() {
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
+  const slideAnim = useRef(new Animated.Value(16)).current;
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 600,
-        useNativeDriver: true,
-      }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 500, useNativeDriver: true }),
     ]).start();
   }, []);
 
@@ -84,26 +77,16 @@ export default function CustomerHome() {
 
     const subscription = supabase
       .channel('products_updates')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'products',
-        },
-        (payload) => {
-          setProducts((prev) =>
-            prev.map((product) =>
-              product.id === payload.new.id ? (payload.new as Product) : product
-            )
-          );
-        }
-      )
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'products' }, (payload) => {
+        setProducts((prev) =>
+          prev.map((product) =>
+            product.id === payload.new.id ? (payload.new as Product) : product
+          )
+        );
+      })
       .subscribe();
 
-    return () => {
-      subscription.unsubscribe();
-    };
+    return () => { subscription.unsubscribe(); };
   }, []);
 
   useEffect(() => {
@@ -120,7 +103,6 @@ export default function CustomerHome() {
         .select('*')
         .eq('is_active', true)
         .order('display_order');
-
       if (error) throw error;
       setCategories(data || []);
     } catch (error) {
@@ -130,18 +112,13 @@ export default function CustomerHome() {
 
   const fetchProducts = async (pageNum: number = 0, reset: boolean = false) => {
     try {
-      if (reset) {
-        setLoading(true);
-      } else {
-        setLoadingMore(true);
-      }
+      if (reset) setLoading(true);
+      else setLoadingMore(true);
 
       const from = pageNum * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
 
-      let query = supabase
-        .from('products')
-        .select('*', { count: 'exact' });
+      let query = supabase.from('products').select('*', { count: 'exact' });
 
       if (filters.inStockOnly) {
         query = query.eq('is_available', true).gt('stock_quantity', 0);
@@ -149,54 +126,26 @@ export default function CustomerHome() {
         query = query.eq('is_available', true);
       }
 
-      if (selectedCategory) {
-        query = query.eq('category_id', selectedCategory);
-      }
-
-      if (filters.minPrice !== '') {
-        query = query.gte('price', parseFloat(filters.minPrice));
-      }
-
-      if (filters.maxPrice !== '') {
-        query = query.lte('price', parseFloat(filters.maxPrice));
-      }
-
-      if (filters.onSaleOnly) {
-        query = query.gt('discount_percentage', 0);
-      }
-
-      if (filters.minRating !== null) {
-        query = query.gte('rating', filters.minRating);
-      }
+      if (selectedCategory) query = query.eq('category_id', selectedCategory);
+      if (filters.minPrice !== '') query = query.gte('price', parseFloat(filters.minPrice));
+      if (filters.maxPrice !== '') query = query.lte('price', parseFloat(filters.maxPrice));
+      if (filters.onSaleOnly) query = query.gt('discount_percentage', 0);
+      if (filters.minRating !== null) query = query.gte('rating', filters.minRating);
 
       switch (filters.sort) {
-        case 'price_asc':
-          query = query.order('price', { ascending: true });
-          break;
-        case 'price_desc':
-          query = query.order('price', { ascending: false });
-          break;
-        case 'rating_desc':
-          query = query.order('rating', { ascending: false });
-          break;
-        case 'name_asc':
-          query = query.order('name', { ascending: true });
-          break;
-        default:
-          query = query.order('created_at', { ascending: false });
+        case 'price_asc': query = query.order('price', { ascending: true }); break;
+        case 'price_desc': query = query.order('price', { ascending: false }); break;
+        case 'rating_desc': query = query.order('rating', { ascending: false }); break;
+        case 'name_asc': query = query.order('name', { ascending: true }); break;
+        default: query = query.order('created_at', { ascending: false });
       }
 
       const { data, error, count } = await query.range(from, to);
-
       if (error) throw error;
 
       const newProducts = data || [];
-
-      if (reset) {
-        setProducts(newProducts);
-      } else {
-        setProducts((prev) => [...prev, ...newProducts]);
-      }
+      if (reset) setProducts(newProducts);
+      else setProducts((prev) => [...prev, ...newProducts]);
 
       setHasMore(newProducts.length === PAGE_SIZE && (count ? (from + PAGE_SIZE) < count : true));
     } catch (error) {
@@ -210,21 +159,13 @@ export default function CustomerHome() {
   const checkAndShowAdvert = async () => {
     try {
       const { data: adverts, error } = await supabase
-        .from('adverts')
-        .select('*')
-        .eq('is_active', true)
-        .order('priority', { ascending: false });
-
+        .from('adverts').select('*').eq('is_active', true).order('priority', { ascending: false });
       if (error || !adverts || adverts.length === 0) return;
-
       const advert = adverts[0] as Advert;
       const shouldShow = await shouldShowAdvert(advert);
-
       if (shouldShow) {
         setCurrentAdvert(advert);
-        setTimeout(() => {
-          setShowAdModal(true);
-        }, 1000);
+        setTimeout(() => { setShowAdModal(true); }, 1000);
         await markAdvertAsShown(advert);
       }
     } catch (error) {
@@ -234,74 +175,48 @@ export default function CustomerHome() {
 
   const shouldShowAdvert = async (advert: Advert): Promise<boolean> => {
     const storageKey = `advert_shown_${advert.id}`;
-
     if (advert.display_frequency === 'always') return true;
-
     const lastShownStr = await AsyncStorage.getItem(storageKey);
-
     if (!lastShownStr && advert.display_frequency === 'once') return true;
-
     if (advert.display_frequency === 'daily' && lastShownStr) {
       const lastShown = new Date(lastShownStr);
       const now = new Date();
       const hoursSinceShown = (now.getTime() - lastShown.getTime()) / (1000 * 60 * 60);
       return hoursSinceShown >= 24;
     }
-
     if (!lastShownStr && advert.display_frequency === 'daily') return true;
-
     return false;
   };
 
   const markAdvertAsShown = async (advert: Advert) => {
-    const storageKey = `advert_shown_${advert.id}`;
-    await AsyncStorage.setItem(storageKey, new Date().toISOString());
+    await AsyncStorage.setItem(`advert_shown_${advert.id}`, new Date().toISOString());
   };
 
-  const closeAdModal = () => {
-    setShowAdModal(false);
-    setCurrentAdvert(null);
-  };
+  const closeAdModal = () => { setShowAdModal(false); setCurrentAdvert(null); };
 
   const openProductDetail = (product: Product) => {
     setSelectedProduct(product);
     setModalVisible(true);
   };
 
-  const closeProductDetail = () => {
-    setModalVisible(false);
-    setSelectedProduct(null);
-  };
+  const closeProductDetail = () => { setModalVisible(false); setSelectedProduct(null); };
 
   const addToCart = async (productId: string, e?: any) => {
     if (e) e.stopPropagation();
     if (!profile) return;
-
     try {
       const { data: existingItem } = await supabase
-        .from('carts')
-        .select('id, quantity')
-        .eq('user_id', profile.id)
-        .eq('product_id', productId)
-        .maybeSingle();
-
+        .from('carts').select('id, quantity')
+        .eq('user_id', profile.id).eq('product_id', productId).maybeSingle();
       if (existingItem) {
-        const { error } = await supabase
-          .from('carts')
-          .update({ quantity: existingItem.quantity + 1 })
-          .eq('id', existingItem.id);
+        const { error } = await supabase.from('carts')
+          .update({ quantity: existingItem.quantity + 1 }).eq('id', existingItem.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from('carts')
-          .insert({
-            user_id: profile.id,
-            product_id: productId,
-            quantity: 1,
-          });
+        const { error } = await supabase.from('carts')
+          .insert({ user_id: profile.id, product_id: productId, quantity: 1 });
         if (error) throw error;
       }
-
       cartEvents.emit();
     } catch (error: any) {
       console.error('Error adding to cart:', error);
@@ -316,90 +231,81 @@ export default function CustomerHome() {
     }
   };
 
-  const handleApplyFilters = (newFilters: FilterState) => {
-    setFilters(newFilters);
-  };
+  const handleApplyFilters = (newFilters: FilterState) => { setFilters(newFilters); };
 
   const filteredProducts = products.filter((product) =>
     product.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const firstName = profile?.full_name?.split(' ')[0] || 'Guest';
+  const firstName = profile?.full_name?.split(' ')[0] || 'there';
 
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#ff9a1f', '#ff8c00', '#e67a00']}
+        colors={['#1a1a1a', '#2d1a00', '#3d2200']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={[styles.header, { paddingTop: insets.top + 12 }]}
+        style={[styles.header, { paddingTop: insets.top + 16 }]}
       >
-        <View style={styles.decorCircle1} />
-        <View style={styles.decorCircle2} />
+        <View style={styles.decorBlob1} />
+        <View style={styles.decorBlob2} />
+        <View style={styles.decorBlob3} />
 
-        <Animated.View
-          style={[
-            styles.headerInner,
-            { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
-          ]}
-        >
-          <View style={styles.greetingRow}>
-            <View style={styles.greetingTextWrap}>
-              <Text style={styles.greeting}>Hello, {firstName}</Text>
-              <Text style={styles.subtitle}>What would you like to order today?</Text>
+        <Animated.View style={[styles.headerInner, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+          <View style={styles.topRow}>
+            <View style={styles.greetingBlock}>
+              <Text style={styles.greetingEyebrow}>Good to see you</Text>
+              <Text style={styles.greetingName}>Hi, {firstName} 👋</Text>
             </View>
-            <View style={styles.headerLogoIcon}>
-              <ShoppingBag size={22} color="#ff8c00" strokeWidth={2.5} />
+            <View style={styles.headerIconCircle}>
+              <ShoppingBag size={20} color="#f97316" strokeWidth={2} />
             </View>
           </View>
 
-          <View style={[styles.searchContainer, searchFocused && styles.searchContainerFocused]}>
-            <Search size={20} color={searchFocused ? '#ff8c00' : '#9ca3af'} strokeWidth={2} />
+          <View style={[styles.searchBar, searchFocused && styles.searchBarFocused]}>
+            <Search size={18} color={searchFocused ? '#f97316' : '#9ca3af'} strokeWidth={2} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search products..."
-              placeholderTextColor="#b0b0b0"
+              placeholder="Search products, vendors..."
+              placeholderTextColor="#9ca3af"
               value={searchQuery}
               onChangeText={setSearchQuery}
               onFocus={() => setSearchFocused(true)}
               onBlur={() => setSearchFocused(false)}
             />
+            {searchQuery.length === 0 && (
+              <View style={styles.searchKbd}>
+                <SlidersHorizontal size={14} color="#9ca3af" strokeWidth={1.8} />
+              </View>
+            )}
           </View>
         </Animated.View>
       </LinearGradient>
 
-      <View style={styles.categoriesWrapper}>
+      <View style={styles.categorySection}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoriesContent}
+          contentContainerStyle={styles.categoryList}
         >
           <TouchableOpacity
-            style={[styles.categoryChip, !selectedCategory && styles.categoryChipActive]}
+            style={[styles.chip, !selectedCategory && styles.chipActive]}
             onPress={() => setSelectedCategory(null)}
-            activeOpacity={0.8}
+            activeOpacity={0.75}
           >
-            <Text style={[styles.categoryText, !selectedCategory && styles.categoryTextActive]}>
-              All
-            </Text>
+            {!selectedCategory && <View style={styles.chipDot} />}
+            <Text style={[styles.chipText, !selectedCategory && styles.chipTextActive]}>All</Text>
           </TouchableOpacity>
-          {categories.map((category) => (
+          {categories.map((cat) => (
             <TouchableOpacity
-              key={category.id}
-              style={[
-                styles.categoryChip,
-                selectedCategory === category.id && styles.categoryChipActive,
-              ]}
-              onPress={() => setSelectedCategory(category.id)}
-              activeOpacity={0.8}
+              key={cat.id}
+              style={[styles.chip, selectedCategory === cat.id && styles.chipActive]}
+              onPress={() => setSelectedCategory(cat.id)}
+              activeOpacity={0.75}
             >
-              <Text
-                style={[
-                  styles.categoryText,
-                  selectedCategory === category.id && styles.categoryTextActive,
-                ]}
-              >
-                {category.name}
+              {selectedCategory === cat.id && <View style={styles.chipDot} />}
+              <Text style={[styles.chipText, selectedCategory === cat.id && styles.chipTextActive]}>
+                {cat.name}
               </Text>
             </TouchableOpacity>
           ))}
@@ -413,13 +319,15 @@ export default function CustomerHome() {
       />
 
       {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#ff8c00" />
-          <Text style={styles.loadingLabel}>Loading products...</Text>
+        <View style={styles.loadingBox}>
+          <ActivityIndicator size="large" color="#f97316" />
+          <Text style={styles.loadingText}>Loading products...</Text>
         </View>
       ) : filteredProducts.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <ShoppingBag size={48} color="#d4d4d4" strokeWidth={1.5} />
+        <View style={styles.emptyBox}>
+          <View style={styles.emptyIconWrap}>
+            <ShoppingBag size={36} color="#f97316" strokeWidth={1.5} />
+          </View>
           <Text style={styles.emptyTitle}>No products found</Text>
           <Text style={styles.emptySubtitle}>
             {searchQuery ? 'Try a different search term' : 'Check back later for new arrivals'}
@@ -430,22 +338,26 @@ export default function CustomerHome() {
           data={filteredProducts}
           keyExtractor={(item) => item.id}
           numColumns={2}
-          contentContainerStyle={styles.productList}
+          contentContainerStyle={styles.productGrid}
           showsVerticalScrollIndicator={false}
-          columnWrapperStyle={styles.row}
+          columnWrapperStyle={styles.gridRow}
           onEndReached={loadMoreProducts}
           onEndReachedThreshold={0.5}
-          ListHeaderComponent={<PromoBannerSlider />}
+          ListHeaderComponent={
+            <View style={styles.bannerSection}>
+              <PromoBannerSlider />
+            </View>
+          }
           ListFooterComponent={
             loadingMore ? (
               <View style={styles.footerLoader}>
-                <ActivityIndicator size="small" color="#ff8c00" />
-                <Text style={styles.loadingText}>Loading more...</Text>
+                <ActivityIndicator size="small" color="#f97316" />
+                <Text style={styles.footerLoaderText}>Loading more...</Text>
               </View>
-            ) : null
+            ) : <View style={{ height: 24 }} />
           }
           renderItem={({ item }) => (
-            <View style={styles.cardWrapper}>
+            <View style={styles.cardWrap}>
               <ProductCard
                 product={item}
                 onPress={() => openProductDetail(item)}
@@ -474,181 +386,211 @@ export default function CustomerHome() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f5f0',
+    backgroundColor: '#f9f9f9',
   },
   header: {
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 24,
     overflow: 'hidden',
-    position: 'relative',
   },
-  decorCircle1: {
+  decorBlob1: {
     position: 'absolute',
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: 'rgba(255, 255, 255, 0.07)',
-    top: -50,
-    right: -30,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: 'rgba(249,115,22,0.1)',
+    top: -80,
+    right: -60,
   },
-  decorCircle2: {
+  decorBlob2: {
     position: 'absolute',
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    bottom: -20,
-    left: -20,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(249,115,22,0.06)',
+    bottom: -40,
+    left: -30,
+  },
+  decorBlob3: {
+    position: 'absolute',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    top: 20,
+    left: '45%',
   },
   headerInner: {
     position: 'relative',
     zIndex: 1,
+    gap: 16,
   },
-  greetingRow: {
+  topRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    justifyContent: 'space-between',
   },
-  greetingTextWrap: {
-    flex: 1,
+  greetingBlock: {
+    gap: 2,
   },
-  greeting: {
-    fontSize: 26,
-    fontFamily: Fonts.spaceBold,
+  greetingEyebrow: {
+    fontSize: 12,
+    fontFamily: Fonts.medium,
+    color: 'rgba(255,255,255,0.5)',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  greetingName: {
+    fontSize: 24,
+    fontFamily: Fonts.bold,
     color: '#ffffff',
-    marginBottom: 4,
-    letterSpacing: -0.5,
+    letterSpacing: -0.3,
   },
-  subtitle: {
-    fontSize: 14,
-    fontFamily: Fonts.spaceMedium,
-    color: 'rgba(255, 255, 255, 0.85)',
-  },
-  headerLogoIcon: {
+  headerIconCircle: {
     width: 44,
     height: 44,
-    borderRadius: 14,
-    backgroundColor: '#ffffff',
+    borderRadius: 22,
+    backgroundColor: 'rgba(249,115,22,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(249,115,22,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
-  searchContainer: {
+  searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 14,
     paddingHorizontal: 14,
+    paddingVertical: 2,
     gap: 10,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.12)',
   },
-  searchContainerFocused: {
-    borderColor: '#ffffff',
+  searchBarFocused: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderColor: 'rgba(249,115,22,0.6)',
   },
   searchInput: {
     flex: 1,
     paddingVertical: 12,
-    fontSize: 15,
-    fontFamily: Fonts.spaceRegular,
-    color: '#1a1a1a',
-    outlineStyle: 'none',
-  },
-  categoriesWrapper: {
-    paddingVertical: 14,
-  },
-  categoriesContent: {
-    paddingHorizontal: 20,
-    gap: 8,
-  },
-  categoryChip: {
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: '#ffffff',
-    borderWidth: 1.5,
-    borderColor: '#eee',
-  },
-  categoryChipActive: {
-    backgroundColor: '#ff8c00',
-    borderColor: '#ff8c00',
-    shadowColor: '#ff8c00',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  categoryText: {
     fontSize: 14,
-    fontFamily: Fonts.spaceSemiBold,
-    color: '#666',
-    letterSpacing: 0.1,
-  },
-  categoryTextActive: {
+    fontFamily: Fonts.regular,
     color: '#ffffff',
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
   },
-  loadingContainer: {
+  searchKbd: {
+    width: 28,
+    height: 28,
+    borderRadius: 7,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  categorySection: {
+    backgroundColor: '#ffffff',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  categoryList: {
+    paddingHorizontal: 16,
+    gap: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: '#f5f5f5',
+    borderWidth: 1.5,
+    borderColor: '#ebebeb',
+  },
+  chipActive: {
+    backgroundColor: '#fff5ee',
+    borderColor: '#f97316',
+  },
+  chipDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#f97316',
+  },
+  chipText: {
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
+    color: '#6b6b6b',
+  },
+  chipTextActive: {
+    color: '#f97316',
+  },
+  loadingBox: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     gap: 12,
   },
-  loadingLabel: {
+  loadingText: {
     fontSize: 14,
-    fontFamily: Fonts.spaceMedium,
-    color: '#999',
+    fontFamily: Fonts.medium,
+    color: '#aaa',
   },
-  emptyContainer: {
+  emptyBox: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 10,
     paddingHorizontal: 40,
-    gap: 8,
+  },
+  emptyIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#fff5ee',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
   },
   emptyTitle: {
     fontSize: 18,
-    fontFamily: Fonts.spaceBold,
-    color: '#444',
-    marginTop: 8,
-    letterSpacing: -0.3,
+    fontFamily: Fonts.bold,
+    color: '#1a1a1a',
+    letterSpacing: -0.2,
   },
   emptySubtitle: {
     fontSize: 14,
-    fontFamily: Fonts.spaceMedium,
+    fontFamily: Fonts.regular,
     color: '#999',
     textAlign: 'center',
+    lineHeight: 20,
   },
-  productList: {
-    padding: 12,
-    paddingBottom: 32,
+  bannerSection: {
+    marginBottom: 4,
   },
-  row: {
+  productGrid: {
+    paddingHorizontal: 10,
+    paddingTop: 10,
+    paddingBottom: 24,
+  },
+  gridRow: {
     justifyContent: 'space-between',
-    paddingHorizontal: 4,
   },
-  cardWrapper: {
+  cardWrap: {
     flex: 1,
     maxWidth: '50%',
   },
   footerLoader: {
     paddingVertical: 20,
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
+    gap: 8,
   },
-  loadingText: {
+  footerLoaderText: {
     fontSize: 13,
-    fontFamily: Fonts.spaceMedium,
-    color: '#999',
+    fontFamily: Fonts.medium,
+    color: '#aaa',
   },
 });

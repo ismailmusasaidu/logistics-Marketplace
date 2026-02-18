@@ -6,20 +6,19 @@ import {
   ScrollView,
   Image,
   TouchableOpacity,
-  Dimensions,
   NativeSyntheticEvent,
   NativeScrollEvent,
   Linking,
   Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Flame, Star, TrendingUp, Timer, ChevronRight } from 'lucide-react-native';
+import { Flame, Star, TrendingUp, Timer, ArrowRight } from 'lucide-react-native';
 import { supabase } from '@/lib/marketplace/supabase';
 import { Advert } from '@/types/database';
 import { Fonts } from '@/constants/fonts';
 
-const SLIDER_HORIZONTAL_MARGIN = 20;
-const CARD_GAP = 12;
+const SLIDER_PADDING = 16;
+const CARD_GAP = 10;
 const AUTO_SCROLL_INTERVAL = 4000;
 
 export default function PromoBannerSlider() {
@@ -30,22 +29,16 @@ export default function PromoBannerSlider() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isUserScrolling = useRef(false);
 
-  useEffect(() => {
-    fetchBanners();
-  }, []);
+  useEffect(() => { fetchBanners(); }, []);
 
   const startAutoScroll = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     if (banners.length <= 1 || cardWidth === 0) return;
-
     timerRef.current = setInterval(() => {
       if (isUserScrolling.current) return;
       setActiveIndex((prev) => {
         const next = (prev + 1) % banners.length;
-        scrollRef.current?.scrollTo({
-          x: next * (cardWidth + CARD_GAP),
-          animated: true,
-        });
+        scrollRef.current?.scrollTo({ x: next * (cardWidth + CARD_GAP), animated: true });
         return next;
       });
     }, AUTO_SCROLL_INTERVAL);
@@ -53,19 +46,13 @@ export default function PromoBannerSlider() {
 
   useEffect(() => {
     startAutoScroll();
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [startAutoScroll]);
 
   const fetchBanners = async () => {
     try {
       const { data, error } = await supabase
-        .from('adverts')
-        .select('*')
-        .eq('is_active', true)
-        .order('priority', { ascending: false });
-
+        .from('adverts').select('*').eq('is_active', true).order('priority', { ascending: false });
       if (error) throw error;
       setBanners((data as Advert[]) || []);
     } catch (error) {
@@ -80,9 +67,7 @@ export default function PromoBannerSlider() {
     setActiveIndex(Math.max(0, Math.min(index, banners.length - 1)));
   };
 
-  const handleScrollBegin = () => {
-    isUserScrolling.current = true;
-  };
+  const handleScrollBegin = () => { isUserScrolling.current = true; };
 
   const handleScrollEnd = () => {
     isUserScrolling.current = false;
@@ -90,28 +75,26 @@ export default function PromoBannerSlider() {
   };
 
   const handleBannerPress = (banner: Advert) => {
-    if (banner.action_url) {
-      Linking.openURL(banner.action_url).catch(() => {});
-    }
+    if (banner.action_url) Linking.openURL(banner.action_url).catch(() => {});
   };
 
   const handleLayout = (e: any) => {
     const containerWidth = e.nativeEvent.layout.width;
-    setCardWidth(containerWidth - SLIDER_HORIZONTAL_MARGIN * 2);
+    setCardWidth(containerWidth - SLIDER_PADDING * 2);
   };
 
   if (banners.length === 0) return null;
 
   const getBadgeInfo = (banner: Advert) => {
-    if (banner.hot_deal_text) return { text: banner.hot_deal_text, icon: Flame, colors: ['#ef4444', '#dc2626'] as const };
-    if (banner.featured_text) return { text: banner.featured_text, icon: Star, colors: ['#f59e0b', '#d97706'] as const };
-    if (banner.trending_text) return { text: banner.trending_text, icon: TrendingUp, colors: ['#059669', '#047857'] as const };
-    if (banner.limited_offer_text) return { text: banner.limited_offer_text, icon: Timer, colors: ['#7c3aed', '#6d28d9'] as const };
+    if (banner.hot_deal_text) return { text: banner.hot_deal_text, icon: Flame, color: '#ef4444' };
+    if (banner.featured_text) return { text: banner.featured_text, icon: Star, color: '#f59e0b' };
+    if (banner.trending_text) return { text: banner.trending_text, icon: TrendingUp, color: '#10b981' };
+    if (banner.limited_offer_text) return { text: banner.limited_offer_text, icon: Timer, color: '#3b82f6' };
     return null;
   };
 
   return (
-    <View style={styles.container} onLayout={handleLayout}>
+    <View style={styles.wrapper} onLayout={handleLayout}>
       {cardWidth > 0 && (
         <>
           <ScrollView
@@ -127,57 +110,53 @@ export default function PromoBannerSlider() {
             onScrollEndDrag={handleScrollEnd}
             onMomentumScrollEnd={handleScrollEnd}
             scrollEventThrottle={16}
-            contentContainerStyle={{
-              paddingHorizontal: SLIDER_HORIZONTAL_MARGIN,
-              gap: CARD_GAP,
-            }}
+            contentContainerStyle={{ paddingHorizontal: SLIDER_PADDING, gap: CARD_GAP }}
           >
-            {banners.map((banner, index) => {
+            {banners.map((banner) => {
               const badge = getBadgeInfo(banner);
               return (
                 <TouchableOpacity
                   key={banner.id}
                   style={[styles.card, { width: cardWidth }]}
                   onPress={() => handleBannerPress(banner)}
-                  activeOpacity={0.95}
+                  activeOpacity={0.93}
                 >
                   {banner.image_url ? (
-                    <Image source={{ uri: banner.image_url }} style={styles.cardImage} />
+                    <Image source={{ uri: banner.image_url }} style={styles.cardBg} />
                   ) : (
                     <LinearGradient
-                      colors={['#ff9a1f', '#ff6b00']}
+                      colors={['#1a1a1a', '#2d1a00', '#f97316']}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 1 }}
-                      style={styles.cardImage}
+                      style={styles.cardBg}
                     />
                   )}
+
                   <LinearGradient
-                    colors={['transparent', 'rgba(0,0,0,0.35)', 'rgba(0,0,0,0.75)']}
-                    style={styles.cardOverlay}
+                    colors={['transparent', 'rgba(0,0,0,0.25)', 'rgba(0,0,0,0.72)']}
+                    style={styles.overlay}
                   >
-                    <View style={styles.cardContent}>
-                      {badge && (
-                        <View style={styles.badgeRow}>
-                          <LinearGradient
-                            colors={[...badge.colors]}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                            style={styles.badge}
-                          >
-                            <badge.icon size={12} color="#ffffff" fill="#ffffff" />
-                            <Text style={styles.badgeText}>{badge.text}</Text>
-                          </LinearGradient>
+                    {badge && (
+                      <View style={[styles.badge, { backgroundColor: badge.color }]}>
+                        <badge.icon size={11} color="#ffffff" fill="#ffffff" />
+                        <Text style={styles.badgeText}>{badge.text}</Text>
+                      </View>
+                    )}
+
+                    <Text style={styles.cardTitle} numberOfLines={2}>{banner.title}</Text>
+
+                    {banner.description ? (
+                      <Text style={styles.cardDesc} numberOfLines={1}>{banner.description}</Text>
+                    ) : null}
+
+                    {banner.action_text && (
+                      <View style={styles.ctaRow}>
+                        <Text style={styles.ctaText}>{banner.action_text}</Text>
+                        <View style={styles.ctaArrow}>
+                          <ArrowRight size={12} color="#f97316" strokeWidth={2.5} />
                         </View>
-                      )}
-                      <Text style={styles.cardTitle} numberOfLines={2}>{banner.title}</Text>
-                      <Text style={styles.cardDescription} numberOfLines={2}>{banner.description}</Text>
-                      {banner.action_text && (
-                        <View style={styles.actionRow}>
-                          <Text style={styles.actionText}>{banner.action_text}</Text>
-                          <ChevronRight size={14} color="#ffffff" strokeWidth={2.5} />
-                        </View>
-                      )}
-                    </View>
+                      </View>
+                    )}
                   </LinearGradient>
                 </TouchableOpacity>
               );
@@ -186,13 +165,10 @@ export default function PromoBannerSlider() {
 
           {banners.length > 1 && (
             <View style={styles.pagination}>
-              {banners.map((_, index) => (
+              {banners.map((_, i) => (
                 <View
-                  key={index}
-                  style={[
-                    styles.dot,
-                    index === activeIndex && styles.dotActive,
-                  ]}
+                  key={i}
+                  style={[styles.pagDot, i === activeIndex && styles.pagDotActive]}
                 />
               ))}
             </View>
@@ -204,97 +180,101 @@ export default function PromoBannerSlider() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    marginBottom: 6,
+  wrapper: {
+    marginBottom: 8,
+    paddingTop: 4,
   },
   card: {
-    height: 170,
-    borderRadius: 18,
+    height: 160,
+    borderRadius: 16,
     overflow: 'hidden',
-    backgroundColor: '#e5e5e5',
+    backgroundColor: '#1a1a1a',
     ...(Platform.OS === 'web'
-      ? { boxShadow: '0 4px 16px rgba(0,0,0,0.10)' }
+      ? { boxShadow: '0 4px 20px rgba(0,0,0,0.12)' }
       : {
           shadowColor: '#000',
           shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.1,
+          shadowOpacity: 0.12,
           shadowRadius: 16,
-          elevation: 5,
+          elevation: 6,
         }),
   },
-  cardImage: {
+  cardBg: {
     ...StyleSheet.absoluteFillObject,
     width: '100%',
     height: '100%',
+    resizeMode: 'cover',
   },
-  cardOverlay: {
+  overlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'flex-end',
-  },
-  cardContent: {
     padding: 16,
     paddingBottom: 14,
-    gap: 4,
-  },
-  badgeRow: {
-    flexDirection: 'row',
-    marginBottom: 4,
+    gap: 5,
   },
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 10,
+    gap: 4,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 9,
     paddingVertical: 4,
     borderRadius: 20,
+    marginBottom: 2,
   },
   badgeText: {
-    fontSize: 11,
+    fontSize: 10,
     fontFamily: Fonts.bold,
     color: '#ffffff',
-    letterSpacing: 0.4,
+    letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
   cardTitle: {
-    fontSize: 18,
-    fontFamily: Fonts.headingBold,
+    fontSize: 17,
+    fontFamily: Fonts.bold,
     color: '#ffffff',
     letterSpacing: -0.2,
     lineHeight: 22,
   },
-  cardDescription: {
-    fontSize: 13,
+  cardDesc: {
+    fontSize: 12,
     fontFamily: Fonts.regular,
-    color: 'rgba(255,255,255,0.85)',
-    lineHeight: 18,
+    color: 'rgba(255,255,255,0.75)',
   },
-  actionRow: {
+  ctaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 6,
+    gap: 6,
+    marginTop: 2,
   },
-  actionText: {
-    fontSize: 13,
+  ctaText: {
+    fontSize: 12,
     fontFamily: Fonts.semiBold,
-    color: '#ffffff',
-    letterSpacing: 0.2,
+    color: 'rgba(255,255,255,0.9)',
+  },
+  ctaArrow: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   pagination: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
     marginTop: 10,
   },
-  dot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
+  pagDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: '#d4d4d4',
   },
-  dotActive: {
-    width: 22,
-    backgroundColor: '#ff8c00',
+  pagDotActive: {
+    width: 20,
+    backgroundColor: '#f97316',
   },
 });

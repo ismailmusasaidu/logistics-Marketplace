@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
+  Platform,
 } from 'react-native';
 import { Star, ShoppingCart, Heart } from 'lucide-react-native';
 import { Product, ProductImage } from '@/types/database';
@@ -46,11 +47,7 @@ export default function ProductCard({ product, onPress, onAddToCart }: ProductCa
         .select('*')
         .eq('product_id', product.id)
         .order('display_order');
-
-      if (error) {
-        console.error('Error fetching product images:', error);
-        return;
-      }
+      if (error) { console.error('Error fetching product images:', error); return; }
       if (data && data.length > 0) setImages(data);
     } catch (error) {
       console.error('Error fetching product images:', error);
@@ -73,10 +70,7 @@ export default function ProductCard({ product, onPress, onAddToCart }: ProductCa
     created_at: ''
   }];
 
-  const isValidImageUrl = (url: string) => {
-    if (!url) return false;
-    return url.startsWith('http://') || url.startsWith('https://');
-  };
+  const isValidImageUrl = (url: string) => url && (url.startsWith('http://') || url.startsWith('https://'));
 
   const currentImageUrl = displayImages[currentImageIndex]?.image_url;
   const isValidUrl = isValidImageUrl(currentImageUrl);
@@ -95,236 +89,238 @@ export default function ProductCard({ product, onPress, onAddToCart }: ProductCa
   };
 
   return (
-    <View style={styles.card}>
-      <TouchableOpacity activeOpacity={0.85} onPress={onPress}>
-        <View style={styles.imageContainer}>
-          <Image
-            source={{ uri: finalImageUrl }}
-            style={styles.productImage}
-            onError={() => {
-              setFailedImages(prev => new Set(prev).add(currentImageUrl));
-            }}
-          />
+    <TouchableOpacity
+      style={styles.card}
+      activeOpacity={0.9}
+      onPress={onPress}
+    >
+      <View style={styles.imageWrap}>
+        <Image
+          source={{ uri: finalImageUrl }}
+          style={styles.image}
+          resizeMode="cover"
+          onError={() => {
+            setFailedImages(prev => new Set(prev).add(currentImageUrl));
+          }}
+        />
 
-          {hasDiscount && (
-            <View style={styles.discountBadge}>
-              <Text style={styles.discountBadgeText}>-{product.discount_percentage}%</Text>
-            </View>
-          )}
+        {hasDiscount && (
+          <View style={styles.saleBadge}>
+            <Text style={styles.saleBadgeText}>-{product.discount_percentage}%</Text>
+          </View>
+        )}
+
+        <TouchableOpacity
+          style={[styles.heartBtn, inWishlist && styles.heartBtnActive]}
+          onPress={handleWishlistToggle}
+          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+        >
+          <Heart
+            size={15}
+            color="#ffffff"
+            fill={inWishlist ? '#ffffff' : 'none'}
+            strokeWidth={2.5}
+          />
+        </TouchableOpacity>
+
+        {images.length > 1 && (
+          <View style={styles.dots}>
+            {images.map((_, i) => (
+              <View
+                key={i}
+                style={[styles.dot, i === currentImageIndex && styles.dotActive]}
+              />
+            ))}
+          </View>
+        )}
+      </View>
+
+      <View style={styles.body}>
+        <Text style={styles.name} numberOfLines={2}>{product.name}</Text>
+
+        <View style={styles.ratingPill}>
+          <Star size={11} color="#f59e0b" fill="#f59e0b" />
+          <Text style={styles.ratingValue}>{product.rating.toFixed(1)}</Text>
+        </View>
+
+        <View style={styles.footer}>
+          <View style={styles.priceGroup}>
+            <Text style={styles.price}>
+              {'\u20A6'}{discountedPrice.toLocaleString('en-NG', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+            </Text>
+            {hasDiscount && (
+              <Text style={styles.originalPrice}>
+                {'\u20A6'}{product.price.toLocaleString('en-NG', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+              </Text>
+            )}
+            <Text style={styles.unit}>/{product.unit}</Text>
+          </View>
 
           <TouchableOpacity
-            style={[styles.wishlistButton, inWishlist && styles.wishlistButtonActive]}
-            onPress={handleWishlistToggle}
+            style={styles.cartBtn}
+            onPress={onAddToCart}
+            activeOpacity={0.8}
+            hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
           >
-            <Heart
-              size={18}
-              color={inWishlist ? '#ffffff' : '#ffffff'}
-              fill={inWishlist ? '#ffffff' : 'none'}
-              strokeWidth={2.5}
-            />
+            <ShoppingCart size={14} color="#ffffff" strokeWidth={2.5} />
           </TouchableOpacity>
-
-          {images.length > 1 && (
-            <View style={styles.dotsContainer}>
-              {images.map((_, index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.dot,
-                    currentImageIndex === index && styles.dotActive,
-                  ]}
-                />
-              ))}
-            </View>
-          )}
         </View>
-
-        <View style={styles.infoSection}>
-          <Text style={styles.productName} numberOfLines={2}>
-            {product.name}
-          </Text>
-
-          <View style={styles.ratingRow}>
-            <Star size={13} color="#f59e0b" fill="#f59e0b" />
-            <Text style={styles.ratingText}>{product.rating.toFixed(1)}</Text>
-          </View>
-
-          <View style={styles.footer}>
-            <View style={styles.priceBlock}>
-              <Text style={styles.price}>
-                {'\u20A6'}{discountedPrice.toLocaleString('en-NG', { minimumFractionDigits: 2 })}
-              </Text>
-              <Text style={[styles.originalPrice, !hasDiscount && styles.hidden]}>
-                {'\u20A6'}{product.price.toLocaleString('en-NG', { minimumFractionDigits: 2 })}
-              </Text>
-              <Text style={styles.unit}>per {product.unit}</Text>
-            </View>
-            <TouchableOpacity
-              style={styles.cartButton}
-              onPress={onAddToCart}
-              activeOpacity={0.8}
-            >
-              <ShoppingCart size={16} color="#ffffff" strokeWidth={2.5} />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </TouchableOpacity>
-    </View>
+      </View>
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
+    flex: 1,
     backgroundColor: '#ffffff',
-    borderRadius: 18,
-    margin: 6,
+    borderRadius: 16,
+    margin: 5,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 3,
     borderWidth: 1,
-    borderColor: '#f0ebe4',
+    borderColor: '#efefef',
+    ...(Platform.OS === 'web'
+      ? { boxShadow: '0 2px 12px rgba(0,0,0,0.07)' }
+      : {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.07,
+          shadowRadius: 10,
+          elevation: 3,
+        }),
   },
-  imageContainer: {
+  imageWrap: {
     width: '100%',
-    height: 170,
+    aspectRatio: 1,
+    backgroundColor: '#f7f7f7',
     overflow: 'hidden',
     position: 'relative',
-    backgroundColor: '#f5f0ea',
   },
-  wishlistButton: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    borderRadius: 10,
-    padding: 7,
-    zIndex: 10,
-  },
-  wishlistButtonActive: {
-    backgroundColor: '#ff8c00',
-  },
-  productImage: {
+  image: {
     width: '100%',
-    height: 170,
-    backgroundColor: '#f0ebe4',
-    resizeMode: 'cover',
+    height: '100%',
   },
-  dotsContainer: {
+  saleBadge: {
     position: 'absolute',
-    bottom: 10,
+    top: 8,
+    left: 8,
+    backgroundColor: '#ef4444',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+    zIndex: 2,
+  },
+  saleBadgeText: {
+    fontSize: 10,
+    fontFamily: Fonts.bold,
+    color: '#ffffff',
+    letterSpacing: 0.3,
+  },
+  heartBtn: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(0,0,0,0.28)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  heartBtnActive: {
+    backgroundColor: '#ef4444',
+  },
+  dots: {
+    position: 'absolute',
+    bottom: 7,
     left: 0,
     right: 0,
     flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'center',
-    gap: 5,
+    gap: 4,
   },
   dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: 'rgba(255,255,255,0.5)',
   },
   dotActive: {
+    width: 14,
     backgroundColor: '#ffffff',
-    width: 18,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.25,
-    shadowRadius: 2,
   },
-  infoSection: {
-    padding: 12,
+  body: {
+    padding: 10,
+    paddingTop: 9,
+    gap: 6,
   },
-  productName: {
-    fontSize: 14,
+  name: {
+    fontSize: 13,
     fontFamily: Fonts.semiBold,
-    color: '#1a1a1a',
-    marginBottom: 6,
-    height: 36,
+    color: '#111111',
     lineHeight: 18,
-    letterSpacing: 0.1,
+    minHeight: 36,
   },
-  ratingRow: {
+  ratingPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginBottom: 10,
-    backgroundColor: '#fef9f0',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    gap: 3,
     alignSelf: 'flex-start',
+    backgroundColor: '#fffbeb',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: '#fde68a',
   },
-  ratingText: {
-    fontSize: 12,
+  ratingValue: {
+    fontSize: 11,
     fontFamily: Fonts.bold,
     color: '#92400e',
   },
   footer: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'flex-end',
+    marginTop: 2,
+  },
+  priceGroup: {
+    flex: 1,
+    gap: 1,
   },
   price: {
-    fontSize: 17,
-    fontFamily: Fonts.headingBold,
-    color: '#1a1a1a',
-    letterSpacing: 0.2,
-  },
-  unit: {
-    fontSize: 11,
-    fontFamily: Fonts.regular,
-    color: '#999',
-    marginTop: 1,
-  },
-  priceBlock: {
-    justifyContent: 'flex-end',
+    fontSize: 15,
+    fontFamily: Fonts.bold,
+    color: '#0f0f0f',
+    letterSpacing: -0.2,
   },
   originalPrice: {
-    fontSize: 12,
-    fontFamily: Fonts.medium,
-    color: '#999',
-    textDecorationLine: 'line-through',
-    marginTop: 1,
-  },
-  hidden: {
-    opacity: 0,
-  },
-  discountBadge: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
-    backgroundColor: '#ef4444',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    zIndex: 10,
-    shadowColor: '#ef4444',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  discountBadgeText: {
     fontSize: 11,
-    fontFamily: Fonts.bold,
-    color: '#ffffff',
-    letterSpacing: 0.3,
+    fontFamily: Fonts.regular,
+    color: '#c0c0c0',
+    textDecorationLine: 'line-through',
   },
-  cartButton: {
-    backgroundColor: '#ff8c00',
-    borderRadius: 11,
-    padding: 10,
-    shadowColor: '#ff8c00',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
+  unit: {
+    fontSize: 10,
+    fontFamily: Fonts.regular,
+    color: '#b0b0b0',
+  },
+  cartBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: '#f97316',
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...(Platform.OS === 'web'
+      ? { boxShadow: '0 2px 8px rgba(249,115,22,0.35)' }
+      : {
+          shadowColor: '#f97316',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.35,
+          shadowRadius: 5,
+          elevation: 3,
+        }),
   },
 });
