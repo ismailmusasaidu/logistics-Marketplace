@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Trash2, Plus, Minus, ShoppingBag } from 'lucide-react-native';
+import { Trash2, Plus, Minus, ShoppingBag, Scale } from 'lucide-react-native';
 import { supabase } from '@/lib/marketplace/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { cartEvents } from '@/lib/marketplace/cartEvents';
@@ -29,6 +29,7 @@ interface CartItemWithProduct {
     unit: string;
     image_url: string;
     vendor_id: string;
+    weight_kg: number | null;
   };
 }
 
@@ -95,7 +96,8 @@ export default function CartScreen() {
             price,
             unit,
             image_url,
-            vendor_id
+            vendor_id,
+            weight_kg
           )
         `
         )
@@ -173,6 +175,15 @@ export default function CartScreen() {
     return cartItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
   };
 
+  const calculateTotalWeight = () => {
+    return cartItems.reduce((sum, item) => {
+      if (item.product.weight_kg == null) return sum;
+      return sum + item.product.weight_kg * item.quantity;
+    }, 0);
+  };
+
+  const hasAnyWeight = cartItems.some((item) => item.product.weight_kg != null);
+
   const handleCheckout = () => {
     if (cartItems.length === 0) return;
     router.push('/checkout');
@@ -245,6 +256,17 @@ export default function CartScreen() {
                 <Text style={styles.itemPrice}>
                   ₦{item.product.price.toFixed(2)} / {item.product.unit}
                 </Text>
+                {item.product.weight_kg != null && (
+                  <View style={styles.itemWeightRow}>
+                    <Scale size={11} color="#9ca3af" strokeWidth={2} />
+                    <Text style={styles.itemWeightText}>
+                      {(item.product.weight_kg * item.quantity).toFixed(3)} kg
+                      {item.quantity > 1 && (
+                        <Text style={styles.itemWeightUnit}> ({item.product.weight_kg} kg each)</Text>
+                      )}
+                    </Text>
+                  </View>
+                )}
                 <View style={styles.quantityContainer}>
                   <TouchableOpacity
                     style={styles.quantityButton}
@@ -282,6 +304,19 @@ export default function CartScreen() {
       />
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
+        {hasAnyWeight && (
+          <View style={styles.weightContainer}>
+            <View style={styles.weightIconWrap}>
+              <Scale size={14} color="#ff8c00" strokeWidth={2.2} />
+            </View>
+            <Text style={styles.weightLabel}>Total Weight</Text>
+            <Text style={styles.weightValue}>
+              {calculateTotalWeight() >= 1
+                ? `${calculateTotalWeight().toFixed(3)} kg`
+                : `${(calculateTotalWeight() * 1000).toFixed(0)} g`}
+            </Text>
+          </View>
+        )}
         <View style={styles.totalContainer}>
           <Text style={styles.totalLabel}>Total</Text>
           <Text style={styles.totalAmount}>₦{calculateTotal().toFixed(2)}</Text>
@@ -411,6 +446,57 @@ const styles = StyleSheet.create({
     paddingTop: 14,
     borderTopWidth: 1,
     borderTopColor: '#f0ebe4',
+  },
+  weightContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#fff7ed',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#ffedd5',
+  },
+  weightIconWrap: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#ffedd5',
+  },
+  weightLabel: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: Fonts.spaceMedium,
+    color: '#92400e',
+    letterSpacing: 0.1,
+  },
+  weightValue: {
+    fontSize: 14,
+    fontFamily: Fonts.spaceBold,
+    color: '#ff8c00',
+    letterSpacing: -0.3,
+  },
+  itemWeightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+  },
+  itemWeightText: {
+    fontSize: 11,
+    fontFamily: Fonts.spaceMedium,
+    color: '#9ca3af',
+  },
+  itemWeightUnit: {
+    fontSize: 10,
+    fontFamily: Fonts.spaceRegular,
+    color: '#c4c9d4',
   },
   totalContainer: {
     flexDirection: 'row',
