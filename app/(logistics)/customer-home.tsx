@@ -986,95 +986,152 @@ export default function CustomerHome() {
         onRequestClose={() => setModalVisible(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Create New Order</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <X size={24} color="#6b7280" />
-              </TouchableOpacity>
-            </View>
+            <View style={styles.modalHandle} />
+            <LinearGradient
+              colors={['#1c1917', '#292524']}
+              style={styles.modalHeaderGradient}>
+              <View style={styles.modalHeaderInner}>
+                <View style={styles.modalHeaderLeft}>
+                  <View style={styles.modalIconBadge}>
+                    <Package size={20} color="#f97316" />
+                  </View>
+                  <View>
+                    <Text style={styles.modalTitle}>Create New Order</Text>
+                    <Text style={styles.modalSubtitle}>Fill in delivery details below</Text>
+                  </View>
+                </View>
+                <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setModalVisible(false)}>
+                  <X size={18} color="#a8a29e" />
+                </TouchableOpacity>
+              </View>
+            </LinearGradient>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Pickup Address</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="e.g. 10 Admiralty Way, near Mega Chicken, Lekki Phase 1, Lagos"
-                  value={newOrder.pickupAddress}
-                  onChangeText={(text) => setNewOrder({ ...newOrder, pickupAddress: text })}
-                />
+            <ScrollView showsVerticalScrollIndicator={false} style={styles.modalScrollView} contentContainerStyle={styles.modalScrollContent}>
+              <View style={styles.formSection}>
+                <View style={styles.sectionHeader}>
+                  <View style={styles.sectionDot} />
+                  <Text style={styles.sectionTitle}>Pickup Details</Text>
+                </View>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Pickup Address</Text>
+                  <View style={styles.inputWrapper}>
+                    <MapPin size={16} color="#f97316" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.inputWithIcon}
+                      placeholder="e.g. 10 Admiralty Way, Lekki Phase 1, Lagos"
+                      placeholderTextColor="#9ca3af"
+                      value={newOrder.pickupAddress}
+                      onChangeText={(text) => setNewOrder({ ...newOrder, pickupAddress: text })}
+                    />
+                  </View>
+                </View>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Pickup Instructions <Text style={styles.optionalLabel}>(Optional)</Text></Text>
+                  <TextInput
+                    style={[styles.input, styles.textArea]}
+                    placeholder="e.g. Gate code, Parking info, Contact person..."
+                    placeholderTextColor="#9ca3af"
+                    value={newOrder.pickupInstructions}
+                    onChangeText={(text) => setNewOrder({ ...newOrder, pickupInstructions: text })}
+                    multiline
+                    numberOfLines={2}
+                  />
+                </View>
               </View>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Pickup Instructions (Optional)</Text>
-                <TextInput
-                  style={[styles.input, styles.textArea]}
-                  placeholder="e.g. Gate code, Parking info, Contact person..."
-                  value={newOrder.pickupInstructions}
-                  onChangeText={(text) => setNewOrder({ ...newOrder, pickupInstructions: text })}
-                  multiline
-                  numberOfLines={2}
-                />
+              <View style={styles.routeConnector}>
+                <View style={styles.routeConnectorLine} />
+                <View style={styles.routeConnectorIcon}>
+                  <ArrowDown size={14} color="#f97316" />
+                </View>
+                <View style={styles.routeConnectorLine} />
               </View>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Delivery Address</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="e.g. Plot 1234, opposite Eko Hotel, Victoria Island, Lagos"
-                  value={newOrder.deliveryAddress}
-                  onChangeText={(text) => setNewOrder({ ...newOrder, deliveryAddress: text })}
-                />
+              <View style={styles.formSection}>
+                <View style={styles.sectionHeader}>
+                  <View style={[styles.sectionDot, styles.sectionDotDelivery]} />
+                  <Text style={styles.sectionTitle}>Delivery Details</Text>
+                </View>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Delivery Address</Text>
+                  <View style={styles.inputWrapper}>
+                    <MapPin size={16} color="#22c55e" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.inputWithIcon}
+                      placeholder="e.g. Plot 1234, Victoria Island, Lagos"
+                      placeholderTextColor="#9ca3af"
+                      value={newOrder.deliveryAddress}
+                      onChangeText={(text) => setNewOrder({ ...newOrder, deliveryAddress: text })}
+                    />
+                  </View>
+                </View>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Delivery Instructions <Text style={styles.optionalLabel}>(Optional)</Text></Text>
+                  <TextInput
+                    style={[styles.input, styles.textArea]}
+                    placeholder="e.g. Call on arrival, Floor/Unit info, Security procedures..."
+                    placeholderTextColor="#9ca3af"
+                    value={newOrder.deliveryInstructions}
+                    onChangeText={(text) => setNewOrder({ ...newOrder, deliveryInstructions: text })}
+                    multiline
+                    numberOfLines={2}
+                  />
+                </View>
               </View>
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Delivery Instructions (Optional)</Text>
-                <TextInput
-                  style={[styles.input, styles.textArea]}
-                  placeholder="e.g. Call on arrival, Floor/Unit info, Security procedures..."
-                  value={newOrder.deliveryInstructions}
-                  onChangeText={(text) => setNewOrder({ ...newOrder, deliveryInstructions: text })}
-                  multiline
-                  numberOfLines={2}
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Recipient Name</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="John Doe"
-                  value={newOrder.recipientName}
-                  onChangeText={(text) => setNewOrder({ ...newOrder, recipientName: text })}
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Recipient Phone</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="+1 234 567 8900"
-                  value={newOrder.recipientPhone}
-                  onChangeText={(text) => setNewOrder({ ...newOrder, recipientPhone: text })}
-                  keyboardType="phone-pad"
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Package Description</Text>
-                <TextInput
-                  style={[styles.input, styles.textArea]}
-                  placeholder="Describe your package"
-                  value={newOrder.packageDescription}
-                  onChangeText={(text) => setNewOrder({ ...newOrder, packageDescription: text })}
-                  multiline
-                  numberOfLines={3}
-                />
+              <View style={styles.formSection}>
+                <View style={styles.sectionHeader}>
+                  <View style={[styles.sectionDot, styles.sectionDotRecipient]} />
+                  <Text style={styles.sectionTitle}>Recipient Info</Text>
+                </View>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Recipient Name</Text>
+                  <View style={styles.inputWrapper}>
+                    <User size={16} color="#6b7280" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.inputWithIcon}
+                      placeholder="John Doe"
+                      placeholderTextColor="#9ca3af"
+                      value={newOrder.recipientName}
+                      onChangeText={(text) => setNewOrder({ ...newOrder, recipientName: text })}
+                    />
+                  </View>
+                </View>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Recipient Phone</Text>
+                  <View style={styles.inputWrapper}>
+                    <Phone size={16} color="#6b7280" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.inputWithIcon}
+                      placeholder="+234 800 000 0000"
+                      placeholderTextColor="#9ca3af"
+                      value={newOrder.recipientPhone}
+                      onChangeText={(text) => setNewOrder({ ...newOrder, recipientPhone: text })}
+                      keyboardType="phone-pad"
+                    />
+                  </View>
+                </View>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Package Description</Text>
+                  <View style={styles.inputWrapper}>
+                    <Package size={16} color="#6b7280" style={styles.inputIcon} />
+                    <TextInput
+                      style={[styles.inputWithIcon, styles.textArea]}
+                      placeholder="Describe your package"
+                      placeholderTextColor="#9ca3af"
+                      value={newOrder.packageDescription}
+                      onChangeText={(text) => setNewOrder({ ...newOrder, packageDescription: text })}
+                      multiline
+                      numberOfLines={3}
+                    />
+                  </View>
+                </View>
               </View>
 
               {(newOrder.pickupAddress && newOrder.deliveryAddress) && (
                 <View style={styles.distanceDisplayContainer}>
                   <View style={styles.distanceHeader}>
-                    <Navigation size={20} color="#f97316" />
+                    <Navigation size={18} color="#f97316" />
                     <Text style={styles.distanceTitle}>Delivery Distance</Text>
                   </View>
                   {calculatingDistance ? (
@@ -1095,67 +1152,71 @@ export default function CustomerHome() {
                 </View>
               )}
 
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Order Size (Optional)</Text>
-                <View style={styles.orderTypesContainer}>
-                  {['small', 'medium', 'large'].map((size) => (
-                    <TouchableOpacity
-                      key={size}
-                      style={[
-                        styles.orderTypeChip,
-                        newOrder.orderSize === size && styles.orderTypeChipActive,
-                      ]}
-                      onPress={() => setNewOrder({ ...newOrder, orderSize: size as 'small' | 'medium' | 'large' })}>
-                      <Text
+              <View style={styles.formSection}>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Order Size <Text style={styles.optionalLabel}>(Optional)</Text></Text>
+                  <View style={styles.orderTypesContainer}>
+                    {['small', 'medium', 'large'].map((size) => (
+                      <TouchableOpacity
+                        key={size}
                         style={[
-                          styles.orderTypeChipText,
-                          newOrder.orderSize === size && styles.orderTypeChipTextActive,
-                        ]}>
-                        {size.charAt(0).toUpperCase() + size.slice(1)}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                          styles.orderTypeChip,
+                          newOrder.orderSize === size && styles.orderTypeChipActive,
+                        ]}
+                        onPress={() => setNewOrder({ ...newOrder, orderSize: size as 'small' | 'medium' | 'large' })}>
+                        <Text
+                          style={[
+                            styles.orderTypeChipText,
+                            newOrder.orderSize === size && styles.orderTypeChipTextActive,
+                          ]}>
+                          {size.charAt(0).toUpperCase() + size.slice(1)}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
                 </View>
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Order Type (Optional)</Text>
-                <View style={styles.orderTypesContainer}>
-                  {orderTypeOptions.map((type) => (
-                    <TouchableOpacity
-                      key={type}
-                      style={[
-                        styles.orderTypeChip,
-                        newOrder.orderTypes.includes(type) && styles.orderTypeChipActive,
-                      ]}
-                      onPress={() => toggleOrderType(type)}>
-                      <Text
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Order Type <Text style={styles.optionalLabel}>(Optional)</Text></Text>
+                  <View style={styles.orderTypesContainer}>
+                    {orderTypeOptions.map((type) => (
+                      <TouchableOpacity
+                        key={type}
                         style={[
-                          styles.orderTypeChipText,
-                          newOrder.orderTypes.includes(type) && styles.orderTypeChipTextActive,
-                        ]}>
-                        {type}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                          styles.orderTypeChip,
+                          newOrder.orderTypes.includes(type) && styles.orderTypeChipActive,
+                        ]}
+                        onPress={() => toggleOrderType(type)}>
+                        <Text
+                          style={[
+                            styles.orderTypeChipText,
+                            newOrder.orderTypes.includes(type) && styles.orderTypeChipTextActive,
+                          ]}>
+                          {type}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
                 </View>
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Promo Code (Optional)</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter promo code"
-                  value={newOrder.promoCode}
-                  onChangeText={(text) => setNewOrder({ ...newOrder, promoCode: text.toUpperCase() })}
-                  autoCapitalize="characters"
-                />
-                {validatedPromo && (
-                  <Text style={styles.promoSuccess}>✓ {validatedPromo.promo_name} applied!</Text>
-                )}
-                {newOrder.promoCode && !validatedPromo && pricingBreakdown && !calculatingDistance && (
-                  <Text style={styles.promoError}>Invalid or expired promo code</Text>
-                )}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Promo Code <Text style={styles.optionalLabel}>(Optional)</Text></Text>
+                  <View style={styles.inputWrapper}>
+                    <Tag size={16} color="#6b7280" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.inputWithIcon}
+                      placeholder="Enter promo code"
+                      placeholderTextColor="#9ca3af"
+                      value={newOrder.promoCode}
+                      onChangeText={(text) => setNewOrder({ ...newOrder, promoCode: text.toUpperCase() })}
+                      autoCapitalize="characters"
+                    />
+                  </View>
+                  {validatedPromo && (
+                    <Text style={styles.promoSuccess}>✓ {validatedPromo.promo_name} applied!</Text>
+                  )}
+                  {newOrder.promoCode && !validatedPromo && pricingBreakdown && !calculatingDistance && (
+                    <Text style={styles.promoError}>Invalid or expired promo code</Text>
+                  )}
+                </View>
               </View>
 
               {pricingBreakdown && (
@@ -1168,8 +1229,9 @@ export default function CustomerHome() {
                 style={[styles.createButton, !pricingBreakdown && styles.createButtonDisabled]}
                 onPress={proceedToCheckout}
                 disabled={!pricingBreakdown}>
+                <Receipt size={18} color="#ffffff" />
                 <Text style={styles.createButtonText}>
-                  {pricingBreakdown ? `Proceed to Checkout - ₦${pricingBreakdown.finalPrice.toFixed(2)}` : 'Calculate Price First'}
+                  {pricingBreakdown ? `Proceed to Checkout — ₦${pricingBreakdown.finalPrice.toFixed(2)}` : 'Calculate Price First'}
                 </Text>
               </TouchableOpacity>
             </ScrollView>
@@ -1656,60 +1718,204 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#ffffff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    maxHeight: '90%',
+    backgroundColor: '#f5f4f2',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    maxHeight: '92%',
+    overflow: 'hidden',
   },
-  modalHeader: {
+  modalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.35)',
+    borderRadius: 2,
+    alignSelf: 'center',
+    position: 'absolute',
+    top: 10,
+    zIndex: 10,
+  },
+  modalHeaderGradient: {
+    paddingTop: 28,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+  },
+  modalHeaderInner: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    justifyContent: 'space-between',
+  },
+  modalHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    flex: 1,
+  },
+  modalIconBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(249,115,22,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(249,115,22,0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 17,
     fontFamily: Fonts.poppinsBold,
-    color: '#111827',
+    color: '#fafaf9',
+  },
+  modalSubtitle: {
+    fontSize: 12,
+    fontFamily: Fonts.poppinsRegular,
+    color: '#a8a29e',
+    marginTop: 1,
+  },
+  modalCloseBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  modalScrollView: {
+    flex: 1,
+  },
+  modalScrollContent: {
+    padding: 16,
+    paddingBottom: 36,
+  },
+  formSection: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#ede9e4',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 14,
+  },
+  sectionDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#f97316',
+  },
+  sectionDotDelivery: {
+    backgroundColor: '#22c55e',
+  },
+  sectionDotRecipient: {
+    backgroundColor: '#3b82f6',
+  },
+  sectionTitle: {
+    fontSize: 11,
+    fontFamily: Fonts.poppinsSemiBold,
+    color: '#9ca3af',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  routeConnector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+    marginHorizontal: 20,
+    gap: 8,
+  },
+  routeConnectorLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#e5e7eb',
+  },
+  routeConnectorIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: 'rgba(249,115,22,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(249,115,22,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: 12,
   },
   label: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: Fonts.poppinsSemiBold,
     color: '#374151',
-    marginBottom: 8,
+    marginBottom: 6,
+  },
+  optionalLabel: {
+    fontSize: 12,
+    fontFamily: Fonts.poppinsRegular,
+    color: '#9ca3af',
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#f9fafb',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    gap: 10,
+  },
+  inputIcon: {
+    marginTop: 1,
+  },
+  inputWithIcon: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: Fonts.poppinsRegular,
+    color: '#111827',
+    padding: 0,
   },
   input: {
     backgroundColor: '#f9fafb',
     borderWidth: 1,
     borderColor: '#e5e7eb',
     borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    fontSize: 14,
     fontFamily: Fonts.poppinsRegular,
     color: '#111827',
   },
   textArea: {
-    minHeight: 80,
+    minHeight: 70,
     textAlignVertical: 'top',
   },
   createButton: {
     backgroundColor: '#f97316',
-    padding: 18,
-    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 14,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
     marginTop: 8,
+    shadowColor: '#f97316',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   createButtonText: {
     color: '#ffffff',
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: Fonts.poppinsBold,
   },
   headerButtons: {
