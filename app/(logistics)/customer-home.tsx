@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Modal, TextInput, Platform, Linking, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Modal, TextInput, Platform, Linking, ActivityIndicator, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Package, MapPin, Clock, Plus, X, User, Phone, ChevronDown, ChevronUp, Layers, Navigation, Search, Tag, Receipt, Star, ArrowDown, Truck, CheckCircle2, CircleDot, RefreshCw } from 'lucide-react-native';
@@ -1307,6 +1307,8 @@ export default function CustomerHome() {
   );
 }
 
+const SCREEN_HEIGHT = Dimensions.get('window').height;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -1725,7 +1727,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f4f2',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    maxHeight: '92%',
+    maxHeight: SCREEN_HEIGHT * 0.88,
     overflow: 'hidden',
   },
   modalHandle: {
@@ -1786,7 +1788,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.1)',
   },
   modalScrollView: {
-    flex: 1,
+    flexGrow: 0,
+    flexShrink: 1,
   },
   modalScrollContent: {
     padding: 16,
