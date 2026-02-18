@@ -31,7 +31,16 @@ interface CartItemWithProduct {
     price: number;
     unit: string;
     vendor_id: string;
+    weight_kg: number | null;
   };
+}
+
+interface WeightSurchargeTier {
+  id: string;
+  min_weight_kg: number;
+  max_weight_kg: number | null;
+  charge_amount: number;
+  label: string;
 }
 
 interface DeliveryZone {
@@ -87,12 +96,14 @@ export default function CheckoutScreen() {
   const [loadingBankAccounts, setLoadingBankAccounts] = useState(false);
   const [speedOptions, setSpeedOptions] = useState<DeliverySpeedOption[]>([]);
   const [selectedSpeed, setSelectedSpeed] = useState<DeliverySpeedOption | null>(null);
+  const [weightSurchargeTiers, setWeightSurchargeTiers] = useState<WeightSurchargeTier[]>([]);
 
   useEffect(() => {
     fetchCartItems();
     loadZonesAndStoreAddress();
     fetchWalletBalance();
     fetchSpeedOptions();
+    fetchWeightSurchargeTiers();
   }, []);
 
   const fetchBankAccounts = async () => {
@@ -127,6 +138,42 @@ export default function CheckoutScreen() {
     } catch (error) {
       console.error('Error fetching speed options:', error);
     }
+  };
+
+  const fetchWeightSurchargeTiers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('weight_surcharge_tiers')
+        .select('id, min_weight_kg, max_weight_kg, charge_amount, label')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+      if (error) throw error;
+      setWeightSurchargeTiers(data || []);
+    } catch (err) {
+      console.error('Error fetching weight surcharge tiers:', err);
+    }
+  };
+
+  const calculateTotalWeight = () => {
+    return cartItems.reduce((sum, item) => {
+      if (item.product.weight_kg == null) return sum;
+      return sum + Number(item.product.weight_kg) * item.quantity;
+    }, 0);
+  };
+
+  const getApplicableWeightSurcharge = (): WeightSurchargeTier | null => {
+    const totalWeight = calculateTotalWeight();
+    const hasAnyWeight = cartItems.some((item) => item.product.weight_kg != null);
+    if (totalWeight === 0 || !hasAnyWeight) return null;
+    return (
+      weightSurchargeTiers.find((tier) => {
+        const min = Number(tier.min_weight_kg);
+        const max = tier.max_weight_kg != null ? Number(tier.max_weight_kg) : null;
+        const charge = Number(tier.charge_amount);
+        if (isNaN(min) || isNaN(charge)) return false;
+        return totalWeight >= min && (max == null || totalWeight < max);
+      }) ?? null
+    );
   };
 
   useEffect(() => {
@@ -238,7 +285,8 @@ export default function CheckoutScreen() {
             name,
             price,
             unit,
-            vendor_id
+            vendor_id,
+            weight_kg
           )
         `
         )
@@ -310,11 +358,17 @@ export default function CheckoutScreen() {
     return 0;
   };
 
+  const getWeightSurchargeAmount = (): number => {
+    const surcharge = getApplicableWeightSurcharge();
+    return surcharge ? Number(surcharge.charge_amount) : 0;
+  };
+
   const calculateTotal = () => {
     const subtotal = calculateSubtotal();
     const deliveryFee = deliveryType === 'delivery' ? calculatedDeliveryFee + getSpeedCost() : 0;
     const discount = calculateDiscount();
-    return Math.max(0, subtotal + deliveryFee - discount);
+    const weightSurcharge = getWeightSurchargeAmount();
+    return Math.max(0, subtotal + deliveryFee + weightSurcharge - discount);
   };
 
   const applyPromoCode = async () => {
@@ -571,6 +625,8 @@ export default function CheckoutScreen() {
       const subtotal = calculateSubtotal();
       const deliveryFee = deliveryType === 'delivery' ? calculatedDeliveryFee : 0;
       const discount = calculateDiscount();
+      const weightSurchargeAmount = getWeightSurchargeAmount();
+      const appliedWeightSurcharge = getApplicableWeightSurcharge();
       const total = calculateTotal();
 
       if (paymentMethod === 'wallet') {
@@ -609,6 +665,8 @@ export default function CheckoutScreen() {
           delivery_address: deliveryType === 'delivery' ? `${deliveryName}\n${deliveryPhone}\n${deliveryAddress}` : 'N/A',
           delivery_speed: deliveryType === 'delivery' ? (selectedSpeed?.name || null) : null,
           delivery_speed_cost: deliveryType === 'delivery' ? getSpeedCost() : 0,
+          weight_surcharge_amount: weightSurchargeAmount,
+          weight_surcharge_label: appliedWeightSurcharge?.label || null,
           status: 'pending',
           payment_method: paymentMethod,
           payment_status: (paymentMethod === 'wallet' || paymentCompleted) ? 'completed' : 'pending',
@@ -997,6 +1055,20 @@ export default function CheckoutScreen() {
                 <Text style={styles.summaryValue}>+₦{getSpeedCost().toFixed(2)}</Text>
               </View>
             )}
+
+            {(() => {
+              const surcharge = getApplicableWeightSurcharge();
+              if (!surcharge) return null;
+              return (
+                <View style={styles.weightSurchargeRow}>
+                  <View style={styles.weightSurchargeLeft}>
+                    <Text style={styles.weightSurchargeLabel}>{surcharge.label}</Text>
+                    <Text style={styles.weightSurchargeHint}>Weight-based charge</Text>
+                  </View>
+                  <Text style={styles.weightSurchargeValue}>+₦{Number(surcharge.charge_amount).toFixed(2)}</Text>
+                </View>
+              );
+            })()}
 
             {appliedPromo && (
               <View style={styles.summaryRow}>
@@ -2493,5 +2565,37 @@ const styles = StyleSheet.create({
   },
   speedCardCostActive: {
     color: '#f97316',
+  },
+  weightSurchargeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#fffbeb',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#fde68a',
+  },
+  weightSurchargeLeft: {
+    flex: 1,
+  },
+  weightSurchargeLabel: {
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
+    color: '#92400e',
+  },
+  weightSurchargeHint: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: '#a16207',
+    marginTop: 2,
+  },
+  weightSurchargeValue: {
+    fontSize: 15,
+    fontFamily: Fonts.bold,
+    color: '#b45309',
+    marginLeft: 8,
   },
 });
