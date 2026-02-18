@@ -43,6 +43,17 @@ interface DeliveryZone {
   is_active: boolean;
 }
 
+interface DeliverySpeedOption {
+  id: string;
+  name: string;
+  label: string;
+  description: string;
+  additional_cost: number;
+  estimated_time: string;
+  is_active: boolean;
+  display_order: number;
+}
+
 export default function CheckoutScreen() {
   const { profile } = useAuth();
   const insets = useSafeAreaInsets();
@@ -74,10 +85,14 @@ export default function CheckoutScreen() {
   const [applyingPromo, setApplyingPromo] = useState(false);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [loadingBankAccounts, setLoadingBankAccounts] = useState(false);
+  const [speedOptions, setSpeedOptions] = useState<DeliverySpeedOption[]>([]);
+  const [selectedSpeed, setSelectedSpeed] = useState<DeliverySpeedOption | null>(null);
+
   useEffect(() => {
     fetchCartItems();
     loadZonesAndStoreAddress();
     fetchWalletBalance();
+    fetchSpeedOptions();
   }, []);
 
   const fetchBankAccounts = async () => {
@@ -95,6 +110,22 @@ export default function CheckoutScreen() {
       console.error('Error fetching bank accounts:', error);
     } finally {
       setLoadingBankAccounts(false);
+    }
+  };
+
+  const fetchSpeedOptions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('delivery_speed_options')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order');
+      if (error) throw error;
+      const opts = data || [];
+      setSpeedOptions(opts);
+      if (opts.length > 0) setSelectedSpeed(opts[0]);
+    } catch (error) {
+      console.error('Error fetching speed options:', error);
     }
   };
 
@@ -254,11 +285,16 @@ export default function CheckoutScreen() {
     return cartItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
   };
 
+  const getSpeedCost = () => {
+    if (deliveryType !== 'delivery') return 0;
+    return selectedSpeed?.additional_cost || 0;
+  };
+
   const calculateDiscount = () => {
     if (!appliedPromo) return 0;
 
     const subtotal = calculateSubtotal();
-    const deliveryFee = deliveryType === 'delivery' ? calculatedDeliveryFee : 0;
+    const deliveryFee = deliveryType === 'delivery' ? calculatedDeliveryFee + getSpeedCost() : 0;
 
     if (appliedPromo.discount_type === 'percentage') {
       const discount = (subtotal * appliedPromo.discount_value) / 100;
@@ -276,7 +312,7 @@ export default function CheckoutScreen() {
 
   const calculateTotal = () => {
     const subtotal = calculateSubtotal();
-    const deliveryFee = deliveryType === 'delivery' ? calculatedDeliveryFee : 0;
+    const deliveryFee = deliveryType === 'delivery' ? calculatedDeliveryFee + getSpeedCost() : 0;
     const discount = calculateDiscount();
     return Math.max(0, subtotal + deliveryFee - discount);
   };
@@ -571,6 +607,8 @@ export default function CheckoutScreen() {
           total: total,
           delivery_type: deliveryType,
           delivery_address: deliveryType === 'delivery' ? `${deliveryName}\n${deliveryPhone}\n${deliveryAddress}` : 'N/A',
+          delivery_speed: deliveryType === 'delivery' ? (selectedSpeed?.name || null) : null,
+          delivery_speed_cost: deliveryType === 'delivery' ? getSpeedCost() : 0,
           status: 'pending',
           payment_method: paymentMethod,
           payment_status: (paymentMethod === 'wallet' || paymentCompleted) ? 'completed' : 'pending',
@@ -878,6 +916,50 @@ export default function CheckoutScreen() {
                 <Text style={styles.warningText}>Your location is outside our delivery zones. Please try a different address.</Text>
               </View>
             )}
+
+            {speedOptions.length > 0 && distanceKm !== null && calculatedDeliveryFee > 0 && (
+              <View style={styles.speedSection}>
+                <Text style={styles.speedSectionTitle}>Delivery Speed</Text>
+                {speedOptions.map((opt) => {
+                  const active = selectedSpeed?.id === opt.id;
+                  return (
+                    <TouchableOpacity
+                      key={opt.id}
+                      style={[styles.speedCard, active && styles.speedCardActive]}
+                      onPress={() => setSelectedSpeed(opt)}
+                      activeOpacity={0.8}
+                    >
+                      <View style={styles.speedCardLeft}>
+                        <View style={[styles.speedRadio, active && styles.speedRadioActive]}>
+                          {active && <View style={styles.speedRadioDot} />}
+                        </View>
+                        <View style={styles.speedCardInfo}>
+                          <View style={styles.speedCardTitleRow}>
+                            <Text style={[styles.speedCardName, active && styles.speedCardNameActive]}>
+                              {opt.label || opt.name}
+                            </Text>
+                            {opt.name === 'Express' && (
+                              <View style={styles.speedExpressBadge}>
+                                <Text style={styles.speedExpressBadgeText}>Fastest</Text>
+                              </View>
+                            )}
+                          </View>
+                          <Text style={styles.speedCardTime}>{opt.estimated_time}</Text>
+                          {opt.description ? (
+                            <Text style={styles.speedCardDesc}>{opt.description}</Text>
+                          ) : null}
+                        </View>
+                      </View>
+                      <Text style={[styles.speedCardCost, active && styles.speedCardCostActive]}>
+                        {opt.additional_cost > 0
+                          ? `+₦${opt.additional_cost.toLocaleString('en-NG')}`
+                          : 'Free'}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
           </View>
         )}
 
@@ -906,6 +988,13 @@ export default function CheckoutScreen() {
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Delivery Fee</Text>
                 <Text style={styles.summaryValue}>₦{calculatedDeliveryFee.toFixed(2)}</Text>
+              </View>
+            )}
+
+            {deliveryType === 'delivery' && selectedSpeed && getSpeedCost() > 0 && (
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>{selectedSpeed.label || selectedSpeed.name} Surcharge</Text>
+                <Text style={styles.summaryValue}>+₦{getSpeedCost().toFixed(2)}</Text>
               </View>
             )}
 
@@ -2301,5 +2390,105 @@ const styles = StyleSheet.create({
     color: '#dc2626',
     fontSize: 14,
     fontFamily: Fonts.bold,
+  },
+  speedSection: {
+    marginTop: 16,
+    gap: 8,
+  },
+  speedSectionTitle: {
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
+    color: '#374151',
+    marginBottom: 4,
+  },
+  speedCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1.5,
+    borderColor: '#e5e7eb',
+  },
+  speedCardActive: {
+    borderColor: '#f97316',
+    backgroundColor: '#fff8f3',
+  },
+  speedCardLeft: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    flex: 1,
+    gap: 12,
+  },
+  speedRadio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#d1d5db',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  speedRadioActive: {
+    borderColor: '#f97316',
+  },
+  speedRadioDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#f97316',
+  },
+  speedCardInfo: {
+    flex: 1,
+    gap: 3,
+  },
+  speedCardTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  speedCardName: {
+    fontSize: 15,
+    fontFamily: Fonts.semiBold,
+    color: '#111827',
+  },
+  speedCardNameActive: {
+    color: '#f97316',
+  },
+  speedExpressBadge: {
+    backgroundColor: '#fef3c7',
+    borderRadius: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: '#fbbf24',
+  },
+  speedExpressBadgeText: {
+    fontSize: 10,
+    fontFamily: Fonts.bold,
+    color: '#92400e',
+    letterSpacing: 0.3,
+  },
+  speedCardTime: {
+    fontSize: 12,
+    fontFamily: Fonts.medium,
+    color: '#6b7280',
+  },
+  speedCardDesc: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: '#9ca3af',
+    lineHeight: 16,
+  },
+  speedCardCost: {
+    fontSize: 14,
+    fontFamily: Fonts.bold,
+    color: '#374151',
+    marginLeft: 8,
+  },
+  speedCardCostActive: {
+    color: '#f97316',
   },
 });

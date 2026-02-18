@@ -29,6 +29,7 @@ import {
   Calendar,
   Hash,
   ChevronRight,
+  Zap,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/marketplace/supabase';
@@ -72,12 +73,24 @@ interface Promotion {
   is_active: boolean;
 }
 
-type TabKey = 'zones' | 'pricing' | 'promotions' | 'logs';
+interface DeliverySpeedOption {
+  id: string;
+  name: string;
+  label: string;
+  description: string;
+  additional_cost: number;
+  estimated_time: string;
+  is_active: boolean;
+  display_order: number;
+}
+
+type TabKey = 'zones' | 'pricing' | 'promotions' | 'speed' | 'logs';
 
 const TABS: { key: TabKey; label: string; icon: any }[] = [
   { key: 'zones', label: 'Zones', icon: MapPin },
   { key: 'pricing', label: 'Pricing', icon: DollarSign },
   { key: 'promotions', label: 'Promos', icon: Tag },
+  { key: 'speed', label: 'Speed', icon: Zap },
   { key: 'logs', label: 'Logs', icon: FileText },
 ];
 
@@ -99,6 +112,8 @@ export default function DeliveryManagement() {
   const [editingPromotion, setEditingPromotion] = useState<Promotion | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'zone' | 'promotion'; id: string; name: string } | null>(null);
   const [pricingSaved, setPricingSaved] = useState(false);
+  const [speedOptions, setSpeedOptions] = useState<DeliverySpeedOption[]>([]);
+  const [editingSpeed, setEditingSpeed] = useState<DeliverySpeedOption | null>(null);
 
   useEffect(() => {
     loadData();
@@ -110,6 +125,7 @@ export default function DeliveryManagement() {
       if (activeTab === 'zones') await loadZones();
       else if (activeTab === 'pricing') await loadPricing();
       else if (activeTab === 'promotions') await loadPromotions();
+      else if (activeTab === 'speed') await loadSpeedOptions();
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -140,6 +156,47 @@ export default function DeliveryManagement() {
       .select('*')
       .order('created_at', { ascending: false });
     if (!error && data) setPromotions(data);
+  };
+
+  const loadSpeedOptions = async () => {
+    const { data, error } = await supabase
+      .from('delivery_speed_options')
+      .select('*')
+      .order('display_order');
+    if (!error && data) setSpeedOptions(data);
+  };
+
+  const saveSpeedOption = async () => {
+    if (!editingSpeed) return;
+    const { error } = editingSpeed.id.startsWith('new-')
+      ? await supabase.from('delivery_speed_options').insert([{
+          name: editingSpeed.name,
+          label: editingSpeed.label,
+          description: editingSpeed.description,
+          additional_cost: editingSpeed.additional_cost,
+          estimated_time: editingSpeed.estimated_time,
+          is_active: editingSpeed.is_active,
+          display_order: editingSpeed.display_order,
+        }])
+      : await supabase.from('delivery_speed_options').update({
+          name: editingSpeed.name,
+          label: editingSpeed.label,
+          description: editingSpeed.description,
+          additional_cost: editingSpeed.additional_cost,
+          estimated_time: editingSpeed.estimated_time,
+          is_active: editingSpeed.is_active,
+          display_order: editingSpeed.display_order,
+          updated_at: new Date().toISOString(),
+        }).eq('id', editingSpeed.id);
+    if (!error) {
+      setEditingSpeed(null);
+      loadSpeedOptions();
+    }
+  };
+
+  const deleteSpeedOption = async (id: string) => {
+    const { error } = await supabase.from('delivery_speed_options').delete().eq('id', id);
+    if (!error) loadSpeedOptions();
   };
 
   const saveZone = async () => {
@@ -548,6 +605,121 @@ export default function DeliveryManagement() {
     </ScrollView>
   );
 
+  const renderSpeedForm = () => {
+    if (!editingSpeed) return null;
+    const isNew = editingSpeed.id.startsWith('new-');
+    return (
+      <ScrollView contentContainerStyle={styles.formScroll} showsVerticalScrollIndicator={false}>
+        <View style={styles.formHeader}>
+          <TouchableOpacity style={styles.formBackBtn} onPress={() => setEditingSpeed(null)}>
+            <ArrowLeft size={20} color="#ff8c00" />
+          </TouchableOpacity>
+          <Text style={styles.formTitle}>{isNew ? 'Add Speed Option' : 'Edit Speed Option'}</Text>
+        </View>
+
+        <View style={styles.formCard}>
+          <FormField label="Name (internal)" placeholder="e.g. Express" value={editingSpeed.name} onChangeText={(t) => setEditingSpeed({ ...editingSpeed, name: t })} />
+          <FormField label="Label (shown to customer)" placeholder="e.g. Express Delivery" value={editingSpeed.label} onChangeText={(t) => setEditingSpeed({ ...editingSpeed, label: t })} />
+          <FormField label="Description" placeholder="e.g. Priority handling and fastest delivery" value={editingSpeed.description} onChangeText={(t) => setEditingSpeed({ ...editingSpeed, description: t })} multiline />
+          <FormField label="Estimated Time" placeholder="e.g. 30–60 minutes" value={editingSpeed.estimated_time} onChangeText={(t) => setEditingSpeed({ ...editingSpeed, estimated_time: t })} />
+          <View style={styles.fieldRow}>
+            <View style={styles.fieldHalf}>
+              <FormField label="Additional Cost (₦)" placeholder="0" value={editingSpeed.additional_cost === 0 && isNew ? '' : String(editingSpeed.additional_cost)} onChangeText={(t) => setEditingSpeed({ ...editingSpeed, additional_cost: parseFloat(t) || 0 })} keyboardType="decimal-pad" />
+            </View>
+            <View style={styles.fieldHalf}>
+              <FormField label="Display Order" placeholder="1" value={String(editingSpeed.display_order)} onChangeText={(t) => setEditingSpeed({ ...editingSpeed, display_order: parseInt(t) || 0 })} keyboardType="number-pad" />
+            </View>
+          </View>
+
+          <TouchableOpacity style={styles.toggleRow} onPress={() => setEditingSpeed({ ...editingSpeed, is_active: !editingSpeed.is_active })}>
+            {editingSpeed.is_active ? <ToggleRight size={28} color="#ff8c00" /> : <ToggleLeft size={28} color="#8b909a" />}
+            <Text style={[styles.toggleLabel, editingSpeed.is_active && { color: '#1e293b' }]}>Active</Text>
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity style={styles.saveBtn} onPress={saveSpeedOption}>
+          <Check size={18} color="#ffffff" />
+          <Text style={styles.saveBtnText}>Save Speed Option</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    );
+  };
+
+  const renderSpeedList = () => (
+    <ScrollView contentContainerStyle={styles.tabScroll} showsVerticalScrollIndicator={false}>
+      <View style={styles.speedInfoBanner}>
+        <Zap size={16} color="#f97316" />
+        <Text style={styles.speedInfoText}>
+          These options appear in checkout when a customer chooses delivery. Additional cost is added on top of the zone fee.
+        </Text>
+      </View>
+
+      <TouchableOpacity
+        style={styles.addBtn}
+        onPress={() => setEditingSpeed({
+          id: `new-${Date.now()}`,
+          name: '',
+          label: '',
+          description: '',
+          additional_cost: 0,
+          estimated_time: '',
+          is_active: true,
+          display_order: speedOptions.length + 1,
+        })}
+      >
+        <Plus size={18} color="#ffffff" />
+        <Text style={styles.addBtnText}>Add Speed Option</Text>
+      </TouchableOpacity>
+
+      {speedOptions.length === 0 && (
+        <View style={styles.emptyState}>
+          <Zap size={40} color="#d1d5db" />
+          <Text style={styles.emptyText}>No speed options yet</Text>
+        </View>
+      )}
+
+      {speedOptions.map((opt) => (
+        <View key={opt.id} style={[styles.itemCard, !opt.is_active && styles.itemCardInactive]}>
+          <View style={styles.itemCardHeader}>
+            <View style={styles.itemNameRow}>
+              <View style={[styles.zoneIconWrap, { backgroundColor: opt.is_active ? '#fff7ed' : '#f1f5f9' }]}>
+                <Zap size={16} color={opt.is_active ? '#f97316' : '#8b909a'} />
+              </View>
+              <View style={styles.itemNameCol}>
+                <Text style={styles.itemName}>{opt.label || opt.name}</Text>
+                {opt.estimated_time ? <Text style={styles.itemDesc}>{opt.estimated_time}</Text> : null}
+              </View>
+            </View>
+            <View style={[styles.statusDot, { backgroundColor: opt.is_active ? '#059669' : '#8b909a' }]} />
+          </View>
+
+          <View style={styles.itemInfoRow}>
+            <View style={styles.infoChip}>
+              <DollarSign size={12} color="#059669" />
+              <Text style={styles.infoChipText}>
+                {opt.additional_cost > 0 ? `+₦${opt.additional_cost.toLocaleString()}` : 'Free'}
+              </Text>
+            </View>
+            {opt.description ? (
+              <Text style={[styles.itemDesc, { flex: 1 }]} numberOfLines={1}>{opt.description}</Text>
+            ) : null}
+          </View>
+
+          <View style={styles.itemActions}>
+            <TouchableOpacity style={styles.editItemBtn} onPress={() => setEditingSpeed(opt)}>
+              <Edit3 size={14} color="#ff8c00" />
+              <Text style={styles.editItemText}>Edit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.deleteItemBtn} onPress={() => deleteSpeedOption(opt.id)}>
+              <Trash2 size={14} color="#ef4444" />
+              <Text style={styles.deleteItemText}>Delete</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ))}
+    </ScrollView>
+  );
+
   const renderContent = () => {
     if (activeTab === 'logs') return <DeliveryLogs onBack={() => setActiveTab('zones')} />;
 
@@ -562,6 +734,7 @@ export default function DeliveryManagement() {
     if (activeTab === 'zones') return editingZone ? renderZoneForm() : renderZonesList();
     if (activeTab === 'pricing') return renderPricingTab();
     if (activeTab === 'promotions') return editingPromotion ? renderPromoForm() : renderPromosList();
+    if (activeTab === 'speed') return editingSpeed ? renderSpeedForm() : renderSpeedList();
     return null;
   };
 
@@ -1167,5 +1340,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Fonts.semiBold,
     color: '#ffffff',
+  },
+  speedInfoBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#fff7ed',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+  },
+  speedInfoText: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: '#92400e',
+    lineHeight: 18,
   },
 });
