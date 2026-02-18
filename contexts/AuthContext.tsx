@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { Profile } from '@/lib/supabase';
 import { coreBackend } from '@/lib/coreBackend';
+import { useLocation } from '@/hooks/useLocation';
 
 type AuthContextType = {
   session: Session | null;
@@ -12,6 +13,8 @@ type AuthContextType = {
   signUp: (email: string, password: string, fullName: string, role: 'customer' | 'rider' | 'vendor' | 'admin', phone?: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  locationAddress: string | null;
+  locationPermissionDenied: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,6 +24,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const { locationState, requestAndSaveLocation, loadSavedLocation } = useLocation();
 
   useEffect(() => {
     coreBackend.auth.getSession().then(({ data: { session }, error }) => {
@@ -51,7 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const loadProfile = async (userId: string) => {
+  const loadProfile = async (userId: string, requestLocation = false) => {
     try {
       const { data, error } = await coreBackend
         .from('profiles')
@@ -61,6 +65,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) throw error;
       setProfile(data);
+
+      if (data?.role === 'customer') {
+        if (requestLocation) {
+          requestAndSaveLocation(userId);
+        } else {
+          loadSavedLocation(data);
+        }
+      }
     } catch (error) {
       console.error('Error loading profile:', error);
     } finally {
@@ -69,15 +81,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await coreBackend.auth.signInWithPassword({
+    const { data, error } = await coreBackend.auth.signInWithPassword({
       email,
       password,
     });
     if (error) throw error;
+    if (data?.user) {
+      await loadProfile(data.user.id, true);
+    }
   };
 
   const signUp = async (email: string, password: string, fullName: string, role: 'customer' | 'rider' | 'vendor' | 'admin', phone?: string) => {
-    const { error } = await coreBackend.auth.signUp({
+    const { data, error } = await coreBackend.auth.signUp({
       email,
       password,
       options: {
@@ -91,6 +106,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     if (error) throw error;
+    if (data?.user && role === 'customer') {
+      requestAndSaveLocation(data.user.id);
+    }
   };
 
   const signOut = async () => {
@@ -127,6 +145,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signUp,
         signOut,
         refreshProfile,
+        locationAddress: locationState.address,
+        locationPermissionDenied: locationState.permissionDenied,
       }}
     >
       {children}

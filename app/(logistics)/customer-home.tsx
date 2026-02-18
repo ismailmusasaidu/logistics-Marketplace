@@ -20,7 +20,7 @@ import { matchAddressToZone } from '@/lib/zoneMatching';
 import { Fonts } from '@/constants/fonts';
 
 export default function CustomerHome() {
-  const { profile } = useAuth();
+  const { profile, locationAddress, locationPermissionDenied } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -614,9 +614,18 @@ export default function CustomerHome() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}> {profile?.full_name}</Text>
-          <Text style={styles.subGreeting}>Track your deliveries</Text>
+        <View style={styles.headerLeft}>
+          <Text style={styles.greeting}>{profile?.full_name}</Text>
+          {locationAddress ? (
+            <View style={styles.locationChip}>
+              <MapPin size={12} color="#f97316" />
+              <Text style={styles.locationText} numberOfLines={1}>{locationAddress}</Text>
+            </View>
+          ) : locationPermissionDenied ? (
+            <Text style={styles.subGreeting}>Track your deliveries</Text>
+          ) : (
+            <Text style={styles.subGreeting}>Track your deliveries</Text>
+          )}
         </View>
         <View style={styles.headerButtons}>
           <TouchableOpacity style={styles.bulkButton} onPress={() => setBulkModalVisible(true)}>
@@ -1225,6 +1234,23 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.poppinsRegular,
     color: '#6b7280',
     marginTop: 4,
+  },
+  headerLeft: {
+    flex: 1,
+    gap: 4,
+  },
+  locationChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+    maxWidth: 200,
+  },
+  locationText: {
+    fontSize: 13,
+    fontFamily: Fonts.poppinsRegular,
+    color: '#f97316',
+    flex: 1,
   },
   addButton: {
     backgroundColor: '#f97316',
