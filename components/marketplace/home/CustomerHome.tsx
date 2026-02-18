@@ -22,6 +22,7 @@ import ProductDetailModal from '@/components/marketplace/ProductDetailModal';
 import ProductCard from '@/components/marketplace/ProductCard';
 import AdModal from '@/components/marketplace/AdModal';
 import PromoBannerSlider from '@/components/marketplace/PromoBannerSlider';
+import FilterSortPanel, { FilterState, DEFAULT_FILTERS } from '@/components/marketplace/FilterSortPanel';
 import { Fonts } from '@/constants/fonts';
 
 interface Advert {
@@ -57,6 +58,7 @@ export default function CustomerHome() {
   const [currentAdvert, setCurrentAdvert] = useState<Advert | null>(null);
   const [showAdModal, setShowAdModal] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(20)).current;
@@ -109,7 +111,7 @@ export default function CustomerHome() {
     setPage(0);
     setHasMore(true);
     fetchProducts(0, true);
-  }, [selectedCategory]);
+  }, [selectedCategory, filters]);
 
   const fetchCategories = async () => {
     try {
@@ -139,17 +141,52 @@ export default function CustomerHome() {
 
       let query = supabase
         .from('products')
-        .select('*', { count: 'exact' })
-        .eq('is_available', true)
-        .gt('stock_quantity', 0);
+        .select('*', { count: 'exact' });
+
+      if (filters.inStockOnly) {
+        query = query.eq('is_available', true).gt('stock_quantity', 0);
+      } else {
+        query = query.eq('is_available', true);
+      }
 
       if (selectedCategory) {
         query = query.eq('category_id', selectedCategory);
       }
 
-      const { data, error, count } = await query
-        .order('created_at', { ascending: false })
-        .range(from, to);
+      if (filters.minPrice !== '') {
+        query = query.gte('price', parseFloat(filters.minPrice));
+      }
+
+      if (filters.maxPrice !== '') {
+        query = query.lte('price', parseFloat(filters.maxPrice));
+      }
+
+      if (filters.onSaleOnly) {
+        query = query.gt('discount_percentage', 0);
+      }
+
+      if (filters.minRating !== null) {
+        query = query.gte('average_rating', filters.minRating);
+      }
+
+      switch (filters.sort) {
+        case 'price_asc':
+          query = query.order('price', { ascending: true });
+          break;
+        case 'price_desc':
+          query = query.order('price', { ascending: false });
+          break;
+        case 'rating_desc':
+          query = query.order('average_rating', { ascending: false });
+          break;
+        case 'name_asc':
+          query = query.order('name', { ascending: true });
+          break;
+        default:
+          query = query.order('created_at', { ascending: false });
+      }
+
+      const { data, error, count } = await query.range(from, to);
 
       if (error) throw error;
 
@@ -279,6 +316,10 @@ export default function CustomerHome() {
     }
   };
 
+  const handleApplyFilters = (newFilters: FilterState) => {
+    setFilters(newFilters);
+  };
+
   const filteredProducts = products.filter((product) =>
     product.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -364,6 +405,12 @@ export default function CustomerHome() {
           ))}
         </ScrollView>
       </View>
+
+      <FilterSortPanel
+        filters={filters}
+        onApply={handleApplyFilters}
+        resultCount={filteredProducts.length}
+      />
 
       {loading ? (
         <View style={styles.loadingContainer}>
