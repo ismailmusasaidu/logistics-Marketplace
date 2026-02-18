@@ -166,7 +166,7 @@ export default function CustomerHome() {
       }
 
       if (filters.minRating !== null) {
-        query = query.gte('average_rating', filters.minRating);
+        query = query.gte('rating', filters.minRating);
       }
 
       switch (filters.sort) {
@@ -177,7 +177,7 @@ export default function CustomerHome() {
           query = query.order('price', { ascending: false });
           break;
         case 'rating_desc':
-          query = query.order('average_rating', { ascending: false });
+          query = query.order('rating', { ascending: false });
           break;
         case 'name_asc':
           query = query.order('name', { ascending: true });
