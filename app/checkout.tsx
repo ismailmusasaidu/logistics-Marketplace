@@ -2075,6 +2075,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
+    fontFamily: Fonts.regular,
     color: '#6b7280',
     marginTop: 12,
   },
@@ -2085,6 +2086,7 @@ const styles = StyleSheet.create({
   },
   noBankAccountsText: {
     fontSize: 14,
+    fontFamily: Fonts.regular,
     color: '#6b7280',
     textAlign: 'center',
     marginTop: 16,
@@ -2198,6 +2200,7 @@ const styles = StyleSheet.create({
   },
   transferNote: {
     fontSize: 14,
+    fontFamily: Fonts.regular,
     color: '#6b7280',
     textAlign: 'center',
     marginBottom: 20,

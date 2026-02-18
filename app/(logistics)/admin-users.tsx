@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Modal, TextInput, Platform } from 'react-native';
 import { Users, Mail, Phone, Shield, Edit2, Trash2, X, Plus, Search } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase, Profile } from '@/lib/supabase';
 import { Toast } from '@/components/Toast';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { Fonts } from '@/constants/fonts';
 
 export default function AdminUsers() {
+  const insets = useSafeAreaInsets();
   const [users, setUsers] = useState<Profile[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
@@ -169,7 +172,7 @@ export default function AdminUsers() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <Text style={styles.title}>Users</Text>
         <View style={styles.badge}>
           <Text style={styles.badgeText}>{filteredUsers.length}</Text>
@@ -356,15 +359,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 24,
-    paddingTop: 60,
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
   },
   title: {
     fontSize: 28,
-    fontWeight: '800',
-    fontFamily: 'SpaceGrotesk-Bold',
+    fontFamily: Fonts.bold,
     color: '#111827',
     letterSpacing: -0.5,
   },
@@ -377,8 +378,7 @@ const styles = StyleSheet.create({
   badgeText: {
     color: '#ffffff',
     fontSize: 14,
-    fontWeight: '700',
-    fontFamily: 'SpaceGrotesk-Bold',
+    fontFamily: Fonts.bold,
   },
   searchContainer: {
     flexDirection: 'row',

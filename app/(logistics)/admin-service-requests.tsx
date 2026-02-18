@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Modal, TextInput } from 'react-native';
 import { Package, Truck, Filter, X, Phone, MapPin, User, Clock, Edit2, Search } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { Toast } from '@/components/Toast';
+import { Fonts } from '@/constants/fonts';
 
 interface ServiceRequest {
   id: string;
@@ -23,6 +25,7 @@ interface ServiceRequest {
 }
 
 export default function AdminServiceRequests() {
+  const insets = useSafeAreaInsets();
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [filteredRequests, setFilteredRequests] = useState<ServiceRequest[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -173,7 +176,7 @@ export default function AdminServiceRequests() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <Text style={styles.title}>Service Requests</Text>
         <View style={styles.badge}>
           <Text style={styles.badgeText}>{filteredRequests.length}</Text>
@@ -409,15 +412,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 24,
-    paddingTop: 60,
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
   },
   title: {
     fontSize: 28,
-    fontWeight: '800',
-    fontFamily: 'SpaceGrotesk-Bold',
+    fontFamily: Fonts.bold,
     color: '#111827',
     letterSpacing: -0.5,
   },
@@ -430,8 +431,7 @@ const styles = StyleSheet.create({
   badgeText: {
     color: '#ffffff',
     fontSize: 14,
-    fontWeight: '700',
-    fontFamily: 'SpaceGrotesk-Bold',
+    fontFamily: Fonts.bold,
   },
   searchContainer: {
     flexDirection: 'row',
