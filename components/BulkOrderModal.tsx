@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Modal, Platform, ActivityIndicator } from 'react-native';
-import { X, Plus, Trash2, Package, MapPin, User, Phone, Navigation, Tag, Calendar, Clock } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { X, Plus, Trash2, Package, MapPin, User, Phone, Navigation, Tag, Calendar, Clock, ChevronDown, ChevronUp, Layers } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { calculateDistanceBetweenAddresses } from '@/lib/geocoding';
 import { pricingCalculator, Promotion } from '@/lib/pricingCalculator';
@@ -476,16 +477,28 @@ export default function BulkOrderModal({ visible, onClose, onSuccess, customerId
     subtotal: totalFee,
   };
 
+  const [expandedDelivery, setExpandedDelivery] = useState<string | null>('1');
+
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Create Bulk Order</Text>
-            <TouchableOpacity onPress={onClose}>
-              <X size={24} color="#6b7280" />
+          <View style={styles.modalHandle} />
+
+          <LinearGradient colors={['#1c1917', '#292524']} style={styles.header}>
+            <View style={styles.headerLeft}>
+              <View style={styles.headerIconWrap}>
+                <Layers size={20} color="#f97316" />
+              </View>
+              <View>
+                <Text style={styles.title}>Bulk Order</Text>
+                <Text style={styles.headerSubtitle}>{deliveries.length} {deliveries.length === 1 ? 'delivery' : 'deliveries'} · {discount > 0 ? `${discount}% bulk discount` : 'Add 3+ for discount'}</Text>
+              </View>
+            </View>
+            <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
+              <X size={18} color="#d6d3d1" />
             </TouchableOpacity>
-          </View>
+          </LinearGradient>
 
           {error && (
             <View style={styles.errorContainer}>
@@ -495,16 +508,46 @@ export default function BulkOrderModal({ visible, onClose, onSuccess, customerId
 
           <View style={styles.scrollContainer}>
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-            {deliveries.map((delivery, index) => (
-              <View key={delivery.id} style={styles.deliveryCard}>
-                <View style={styles.deliveryHeader}>
-                  <Text style={styles.deliveryTitle}>Delivery #{index + 1}</Text>
-                  {deliveries.length > 1 && (
-                    <TouchableOpacity onPress={() => removeDelivery(delivery.id)} style={styles.removeButton}>
-                      <Trash2 size={18} color="#ef4444" />
-                    </TouchableOpacity>
-                  )}
-                </View>
+            {deliveries.map((delivery, index) => {
+              const isExpanded = expandedDelivery === delivery.id;
+              return (
+              <View key={delivery.id} style={[styles.deliveryCard, isExpanded && styles.deliveryCardExpanded]}>
+                <TouchableOpacity
+                  style={styles.deliveryHeader}
+                  onPress={() => setExpandedDelivery(isExpanded ? null : delivery.id)}
+                  activeOpacity={0.8}>
+                  <View style={styles.deliveryHeaderLeft}>
+                    <View style={[styles.deliveryNumBadge, delivery.price ? styles.deliveryNumBadgeDone : styles.deliveryNumBadgePending]}>
+                      <Text style={[styles.deliveryNumText, delivery.price ? styles.deliveryNumTextDone : styles.deliveryNumTextPending]}>
+                        {index + 1}
+                      </Text>
+                    </View>
+                    <View>
+                      <Text style={styles.deliveryTitle}>Delivery #{index + 1}</Text>
+                      {delivery.deliveryAddress ? (
+                        <Text style={styles.deliveryPreview} numberOfLines={1}>{delivery.deliveryAddress}</Text>
+                      ) : (
+                        <Text style={styles.deliveryPreviewEmpty}>No address set</Text>
+                      )}
+                    </View>
+                  </View>
+                  <View style={styles.deliveryHeaderRight}>
+                    {delivery.price ? (
+                      <Text style={styles.deliveryPriceTag}>₦{delivery.price.toFixed(0)}</Text>
+                    ) : delivery.calculating ? (
+                      <ActivityIndicator size={14} color="#f97316" />
+                    ) : null}
+                    {deliveries.length > 1 && (
+                      <TouchableOpacity onPress={() => removeDelivery(delivery.id)} style={styles.removeButton} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                        <Trash2 size={15} color="#ef4444" />
+                      </TouchableOpacity>
+                    )}
+                    {isExpanded ? <ChevronUp size={18} color="#9ca3af" /> : <ChevronDown size={18} color="#9ca3af" />}
+                  </View>
+                </TouchableOpacity>
+
+              {isExpanded && (
+              <View style={styles.deliveryBody}>
 
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Pickup Address *</Text>
@@ -742,7 +785,10 @@ export default function BulkOrderModal({ visible, onClose, onSuccess, customerId
                   )}
                 </View>
               </View>
-            ))}
+              )}
+              </View>
+            );
+            })}
 
             <TouchableOpacity style={styles.addButton} onPress={addDelivery}>
               <Plus size={20} color="#f97316" />
@@ -814,29 +860,37 @@ export default function BulkOrderModal({ visible, onClose, onSuccess, customerId
             </View>
 
             <View style={styles.summaryCard}>
-              <Text style={styles.summaryTitle}>Order Summary</Text>
+              <View style={styles.summaryHeader}>
+                <Text style={styles.summaryTitle}>Order Summary</Text>
+                {discount > 0 && (
+                  <View style={styles.discountBadge}>
+                    <Text style={styles.discountBadgeText}>{discount}% OFF</Text>
+                  </View>
+                )}
+              </View>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Total Deliveries:</Text>
+                <Text style={styles.summaryLabel}>Total Deliveries</Text>
                 <Text style={styles.summaryValue}>{totalCount}</Text>
               </View>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Base Fee:</Text>
+                <Text style={styles.summaryLabel}>Base Fee</Text>
                 <Text style={styles.summaryValue}>₦{totalFee.toFixed(2)}</Text>
               </View>
               {discount > 0 && (
                 <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Bulk Discount ({discount}%):</Text>
+                  <Text style={styles.summaryLabel}>Bulk Discount ({discount}%)</Text>
                   <Text style={[styles.summaryValue, styles.discountText]}>-₦{bulkDiscountAmount.toFixed(2)}</Text>
                 </View>
               )}
               {validatedPromo && promoDiscount > 0 && (
                 <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Promo ({validatedPromo.code}):</Text>
+                  <Text style={styles.summaryLabel}>Promo ({validatedPromo.code})</Text>
                   <Text style={[styles.summaryValue, styles.discountText]}>-₦{promoDiscount.toFixed(2)}</Text>
                 </View>
               )}
+              <View style={styles.summaryDivider} />
               <View style={[styles.summaryRow, styles.totalRow]}>
-                <Text style={styles.totalLabel}>Final Fee:</Text>
+                <Text style={styles.totalLabel}>Final Fee</Text>
                 <Text style={styles.totalValue}>₦{finalFee.toFixed(2)}</Text>
               </View>
             </View>
@@ -874,58 +928,128 @@ export default function BulkOrderModal({ visible, onClose, onSuccess, customerId
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0,0,0,0.55)',
     justifyContent: 'flex-end',
   },
   modalContainer: {
-    backgroundColor: '#ffffff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    height: '95%',
+    backgroundColor: '#f8f9fa',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    height: '96%',
     display: 'flex',
     flexDirection: 'column',
+    overflow: 'hidden',
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: 10,
+    marginBottom: -6,
+    zIndex: 1,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 18,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(249,115,22,0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(249,115,22,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 20,
     fontFamily: Fonts.poppinsBold,
-    color: '#111827',
+    color: '#ffffff',
+    letterSpacing: 0.3,
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    fontFamily: Fonts.poppinsRegular,
+    color: '#a8a29e',
+    marginTop: 2,
+  },
+  closeBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   errorContainer: {
     backgroundColor: '#fef2f2',
     padding: 12,
-    marginHorizontal: 24,
-    marginTop: 16,
-    borderRadius: 8,
-  },
-  errorText: {
-    fontSize: 14,
-    fontFamily: Fonts.poppinsMedium,
-    color: '#ef4444',
-    fontWeight: '500',
-  },
-  summaryCard: {
-    backgroundColor: '#f9fafb',
-    margin: 24,
-    padding: 16,
+    marginHorizontal: 20,
+    marginTop: 12,
     borderRadius: 12,
     borderWidth: 1,
+    borderColor: '#fca5a5',
+  },
+  errorText: {
+    fontSize: 13,
+    fontFamily: Fonts.poppinsMedium,
+    color: '#dc2626',
+  },
+  summaryCard: {
+    backgroundColor: '#ffffff',
+    marginHorizontal: 20,
+    marginBottom: 20,
+    padding: 18,
+    borderRadius: 18,
+    borderWidth: 1,
     borderColor: '#e5e7eb',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  summaryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
   },
   summaryTitle: {
     fontSize: 16,
-    fontWeight: '700',
     fontFamily: Fonts.poppinsBold,
     color: '#111827',
-    marginBottom: 12,
+  },
+  discountBadge: {
+    backgroundColor: '#dcfce7',
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: '#86efac',
+  },
+  discountBadgeText: {
+    fontSize: 11,
+    fontFamily: Fonts.poppinsBold,
+    color: '#15803d',
+    letterSpacing: 0.5,
+  },
+  summaryDivider: {
+    height: 1,
+    backgroundColor: '#f3f4f6',
+    marginVertical: 10,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -936,104 +1060,170 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Fonts.poppinsMedium,
     color: '#6b7280',
-    fontWeight: '500',
   },
   summaryValue: {
     fontSize: 14,
     fontFamily: Fonts.poppinsSemiBold,
     color: '#111827',
-    fontWeight: '600',
   },
   discountText: {
-    color: '#f97316',
+    color: '#16a34a',
   },
   totalRow: {
-    marginTop: 8,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    marginTop: 4,
   },
   totalLabel: {
     fontSize: 16,
     fontFamily: Fonts.poppinsBold,
     color: '#111827',
-    fontWeight: '700',
   },
   totalValue: {
-    fontSize: 18,
+    fontSize: 20,
     fontFamily: Fonts.poppinsBold,
     color: '#f97316',
-    fontWeight: '700',
   },
   scrollContainer: {
     flex: 1,
   },
   content: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
+    paddingTop: 16,
   },
   deliveryCard: {
     backgroundColor: '#ffffff',
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
+    marginBottom: 12,
+    borderWidth: 1.5,
     borderColor: '#e5e7eb',
+    overflow: 'hidden',
+  },
+  deliveryCardExpanded: {
+    borderColor: '#f97316',
+    shadowColor: '#f97316',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   deliveryHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  deliveryHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  deliveryNumBadge: {
+    width: 30,
+    height: 30,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deliveryNumBadgeDone: {
+    backgroundColor: '#dcfce7',
+  },
+  deliveryNumBadgePending: {
+    backgroundColor: '#f3f4f6',
+  },
+  deliveryNumText: {
+    fontSize: 13,
+    fontFamily: Fonts.poppinsBold,
+  },
+  deliveryNumTextDone: {
+    color: '#15803d',
+  },
+  deliveryNumTextPending: {
+    color: '#6b7280',
   },
   deliveryTitle: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 14,
     fontFamily: Fonts.poppinsBold,
     color: '#111827',
   },
+  deliveryPreview: {
+    fontSize: 11,
+    fontFamily: Fonts.poppinsRegular,
+    color: '#9ca3af',
+    marginTop: 2,
+    maxWidth: 180,
+  },
+  deliveryPreviewEmpty: {
+    fontSize: 11,
+    fontFamily: Fonts.poppinsRegular,
+    color: '#d1d5db',
+    marginTop: 2,
+  },
+  deliveryHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  deliveryPriceTag: {
+    fontSize: 13,
+    fontFamily: Fonts.poppinsBold,
+    color: '#f97316',
+    backgroundColor: '#fff7ed',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  deliveryBody: {
+    paddingHorizontal: 14,
+    paddingBottom: 14,
+    borderTopWidth: 1,
+    borderTopColor: '#f3f4f6',
+  },
   removeButton: {
-    padding: 8,
+    padding: 4,
   },
   inputGroup: {
-    marginBottom: 16,
+    marginBottom: 14,
+    marginTop: 12,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 12,
     fontFamily: Fonts.poppinsSemiBold,
     color: '#374151',
-    marginBottom: 8,
+    marginBottom: 7,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   inputWithIcon: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     backgroundColor: '#f9fafb',
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#e5e7eb',
     borderRadius: 12,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 6,
   },
   input: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: Fonts.poppinsRegular,
     color: '#111827',
-    minHeight: 40,
+    minHeight: 38,
   },
   inputSimple: {
     backgroundColor: '#f9fafb',
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#e5e7eb',
     borderRadius: 12,
-    padding: 12,
-    fontSize: 16,
+    padding: 11,
+    fontSize: 14,
     fontFamily: Fonts.poppinsRegular,
     color: '#111827',
   },
   textArea: {
-    minHeight: 80,
+    minHeight: 72,
     textAlignVertical: 'top',
   },
   addButton: {
@@ -1041,62 +1231,69 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    padding: 16,
-    borderRadius: 12,
+    padding: 14,
+    borderRadius: 14,
     borderWidth: 2,
     borderColor: '#f97316',
     borderStyle: 'dashed',
-    marginBottom: 24,
+    marginBottom: 20,
+    backgroundColor: '#fff7ed',
   },
   addButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 14,
     fontFamily: Fonts.poppinsSemiBold,
     color: '#f97316',
   },
   footer: {
     flexDirection: 'row',
-    padding: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     gap: 12,
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
+    backgroundColor: '#ffffff',
   },
   cancelButton: {
     flex: 1,
-    padding: 16,
-    borderRadius: 12,
+    paddingVertical: 14,
+    borderRadius: 14,
     backgroundColor: '#f3f4f6',
     alignItems: 'center',
   },
   cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 15,
     fontFamily: Fonts.poppinsSemiBold,
     color: '#374151',
   },
   submitButton: {
-    flex: 1,
-    padding: 16,
-    borderRadius: 12,
+    flex: 2,
+    paddingVertical: 14,
+    borderRadius: 14,
     backgroundColor: '#f97316',
     alignItems: 'center',
+    shadowColor: '#f97316',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   submitButtonDisabled: {
-    opacity: 0.6,
+    opacity: 0.55,
+    shadowOpacity: 0,
   },
   submitButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    fontFamily: Fonts.poppinsSemiBold,
+    fontSize: 15,
+    fontFamily: Fonts.poppinsBold,
     color: '#ffffff',
+    letterSpacing: 0.3,
   },
   distanceCard: {
     backgroundColor: '#f0fdf4',
     borderRadius: 12,
     padding: 12,
-    marginBottom: 16,
+    marginBottom: 14,
     borderWidth: 1,
-    borderColor: '#d1fae5',
+    borderColor: '#bbf7d0',
   },
   distanceHeader: {
     flexDirection: 'row',
@@ -1105,10 +1302,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   distanceTitle: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 12,
     fontFamily: Fonts.poppinsSemiBold,
-    color: '#f97316',
+    color: '#16a34a',
   },
   calculatingContainer: {
     flexDirection: 'row',
@@ -1116,17 +1312,17 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   calculatingText: {
-    fontSize: 13,
+    fontSize: 12,
     fontFamily: Fonts.poppinsRegular,
     color: '#6b7280',
   },
   distanceError: {
     backgroundColor: '#fef2f2',
     padding: 8,
-    borderRadius: 6,
+    borderRadius: 8,
   },
   distanceErrorText: {
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: Fonts.poppinsRegular,
     color: '#dc2626',
   },
@@ -1139,22 +1335,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   distanceLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontFamily: Fonts.poppinsMedium,
     color: '#6b7280',
-    fontWeight: '500',
   },
   distanceValue: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: Fonts.poppinsSemiBold,
     color: '#111827',
-    fontWeight: '600',
   },
   priceValue: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: Fonts.poppinsBold,
     color: '#f97316',
-    fontWeight: '700',
   },
   orderTypesContainer: {
     flexDirection: 'row',
@@ -1163,19 +1356,18 @@ const styles = StyleSheet.create({
   },
   orderTypeChip: {
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1.5,
     borderColor: '#e5e7eb',
     backgroundColor: '#f9fafb',
   },
   orderTypeChipActive: {
-    backgroundColor: '#d1fae5',
+    backgroundColor: '#fff7ed',
     borderColor: '#f97316',
   },
   orderTypeChipText: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 12,
     fontFamily: Fonts.poppinsSemiBold,
     color: '#6b7280',
   },
@@ -1193,27 +1385,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     backgroundColor: '#f9fafb',
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#e5e7eb',
     borderRadius: 12,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 6,
   },
   promoInput: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: Fonts.poppinsRegular,
     color: '#111827',
-    minHeight: 40,
+    minHeight: 38,
   },
   applyPromoButton: {
     backgroundColor: '#f97316',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 11,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    height: 56,
+    height: 50,
   },
   applyPromoButtonDisabled: {
     opacity: 0.6,
@@ -1221,7 +1413,6 @@ const styles = StyleSheet.create({
   applyPromoButtonText: {
     color: '#ffffff',
     fontSize: 14,
-    fontWeight: '600',
     fontFamily: Fonts.poppinsSemiBold,
   },
   promoApplied: {
@@ -1229,8 +1420,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: '#f0fdf4',
-    borderWidth: 1,
-    borderColor: '#d1fae5',
+    borderWidth: 1.5,
+    borderColor: '#86efac',
     borderRadius: 12,
     padding: 12,
   },
@@ -1241,7 +1432,6 @@ const styles = StyleSheet.create({
   },
   promoAppliedCode: {
     fontSize: 14,
-    fontWeight: '700',
     fontFamily: Fonts.poppinsBold,
     color: '#f97316',
   },
@@ -1255,10 +1445,9 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   promoErrorText: {
-    fontSize: 13,
+    fontSize: 12,
     fontFamily: Fonts.poppinsMedium,
     color: '#ef4444',
-    fontWeight: '500',
     marginTop: 6,
   },
   deliveryTimeToggle: {
@@ -1272,20 +1461,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingVertical: 9,
+    paddingHorizontal: 10,
     borderRadius: 10,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#e5e7eb',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f9fafb',
   },
   timeToggleButtonActive: {
     backgroundColor: '#f97316',
     borderColor: '#f97316',
   },
   timeToggleButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 13,
     fontFamily: Fonts.poppinsSemiBold,
     color: '#6b7280',
   },
@@ -1295,16 +1483,15 @@ const styles = StyleSheet.create({
   schedulingRow: {
     flexDirection: 'row',
     gap: 12,
-    marginTop: 12,
+    marginTop: 10,
   },
   schedulingInput: {
     flex: 1,
     gap: 6,
   },
   schedulingLabel: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 12,
     fontFamily: Fonts.poppinsSemiBold,
-    color: '#111827',
+    color: '#374151',
   },
 });

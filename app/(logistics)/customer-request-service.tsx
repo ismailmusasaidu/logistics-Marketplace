@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Package, Truck, X, CheckCircle, Clock } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Package, Truck, X, CheckCircle, Clock, ChevronRight, ArrowUpRight, MapPin, Phone, User, AlertCircle } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Toast } from '@/components/Toast';
@@ -113,117 +114,176 @@ export default function CustomerRequestService() {
     return type === 'gadget_delivery' ? 'Gadget Delivery' : 'Relocation Service';
   };
 
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      pending: '#f59e0b',
-      contacted: '#3b82f6',
-      confirmed: '#8b5cf6',
-      completed: '#10b981',
-      cancelled: '#ef4444',
+  const getStatusConfig = (status: string) => {
+    const configs: Record<string, { color: string; bg: string; label: string }> = {
+      pending: { color: '#d97706', bg: '#fef3c7', label: 'Pending' },
+      contacted: { color: '#2563eb', bg: '#dbeafe', label: 'Contacted' },
+      confirmed: { color: '#7c3aed', bg: '#ede9fe', label: 'Confirmed' },
+      completed: { color: '#059669', bg: '#d1fae5', label: 'Completed' },
+      cancelled: { color: '#dc2626', bg: '#fee2e2', label: 'Cancelled' },
     };
-    return colors[status] || '#6b7280';
-  };
-
-  const getStatusLabel = (status: string) => {
-    return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+    return configs[status] || { color: '#6b7280', bg: '#f3f4f6', label: status };
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Request Service</Text>
-          <Text style={styles.subtitle}>Simple logistics and relocation</Text>
+      <LinearGradient
+        colors={['#1c1917', '#292524']}
+        style={styles.header}>
+        <View style={styles.headerContent}>
+          <View style={styles.headerBadge}>
+            <Text style={styles.headerBadgeText}>LOGISTICS</Text>
+          </View>
+          <Text style={styles.headerTitle}>Request a Service</Text>
+          <Text style={styles.headerSubtitle}>
+            Fast, reliable deliveries and relocation — all handled by our expert team.
+          </Text>
         </View>
-      </View>
+      </LinearGradient>
 
       <ScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadMyRequests(); }} />}>
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadMyRequests(); }} tintColor="#f97316" />}>
 
         <View style={styles.servicesSection}>
           <Text style={styles.sectionTitle}>Choose a Service</Text>
 
           <TouchableOpacity
             style={styles.serviceCard}
-            onPress={() => handleOpenModal('gadget_delivery')}>
-            <View style={styles.serviceIconContainer}>
-              <Package size={32} color="#f97316" />
-            </View>
-            <View style={styles.serviceInfo}>
+            onPress={() => handleOpenModal('gadget_delivery')}
+            activeOpacity={0.9}>
+            <LinearGradient
+              colors={['#fff7ed', '#fff']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.serviceGradient}>
+              <View style={styles.serviceTop}>
+                <View style={[styles.serviceIconContainer, { backgroundColor: '#fff7ed', borderColor: '#fed7aa' }]}>
+                  <Package size={26} color="#f97316" />
+                </View>
+                <View style={styles.serviceArrow}>
+                  <ArrowUpRight size={18} color="#f97316" />
+                </View>
+              </View>
               <Text style={styles.serviceTitle}>Gadget Delivery</Text>
               <Text style={styles.serviceDescription}>
-                Fast and safe delivery of phones, laptops, electronics, and fragile items.
+                Safe and fast delivery of phones, laptops, electronics, and fragile items anywhere.
               </Text>
-            </View>
-            <View style={styles.serviceButton}>
-              <Text style={styles.serviceButtonText}>Request</Text>
-            </View>
+              <View style={styles.serviceFeatures}>
+                <View style={styles.featurePill}>
+                  <Text style={styles.featurePillText}>Phones & Laptops</Text>
+                </View>
+                <View style={styles.featurePill}>
+                  <Text style={styles.featurePillText}>Fragile Items</Text>
+                </View>
+              </View>
+              <View style={styles.serviceCta}>
+                <Text style={styles.serviceCtaText}>Request Pickup</Text>
+                <ChevronRight size={16} color="#f97316" />
+              </View>
+            </LinearGradient>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.serviceCard}
-            onPress={() => handleOpenModal('relocation')}>
-            <View style={styles.serviceIconContainer}>
-              <Truck size={32} color="#8b5cf6" />
-            </View>
-            <View style={styles.serviceInfo}>
+            onPress={() => handleOpenModal('relocation')}
+            activeOpacity={0.9}>
+            <LinearGradient
+              colors={['#f0fdf4', '#fff']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.serviceGradient}>
+              <View style={styles.serviceTop}>
+                <View style={[styles.serviceIconContainer, { backgroundColor: '#dcfce7', borderColor: '#bbf7d0' }]}>
+                  <Truck size={26} color="#16a34a" />
+                </View>
+                <View style={[styles.serviceArrow, { backgroundColor: '#dcfce7' }]}>
+                  <ArrowUpRight size={18} color="#16a34a" />
+                </View>
+              </View>
               <Text style={styles.serviceTitle}>Relocation Service</Text>
               <Text style={styles.serviceDescription}>
-                Move your home or shop easily with Danhausa relocation service.
+                Move your home or shop with ease. Our team handles everything from packing to delivery.
               </Text>
-            </View>
-            <View style={styles.serviceButton}>
-              <Text style={styles.serviceButtonText}>Request</Text>
-            </View>
+              <View style={styles.serviceFeatures}>
+                <View style={[styles.featurePill, { backgroundColor: '#dcfce7', borderColor: '#86efac' }]}>
+                  <Text style={[styles.featurePillText, { color: '#15803d' }]}>Home Moving</Text>
+                </View>
+                <View style={[styles.featurePill, { backgroundColor: '#dcfce7', borderColor: '#86efac' }]}>
+                  <Text style={[styles.featurePillText, { color: '#15803d' }]}>Office Relocation</Text>
+                </View>
+              </View>
+              <View style={[styles.serviceCta, { borderTopColor: '#bbf7d0' }]}>
+                <Text style={[styles.serviceCtaText, { color: '#16a34a' }]}>Request Service</Text>
+                <ChevronRight size={16} color="#16a34a" />
+              </View>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
 
         {myRequests.length > 0 && (
           <View style={styles.requestsSection}>
-            <Text style={styles.sectionTitle}>My Requests</Text>
-
-            {myRequests.map((request) => (
-              <View key={request.id} style={styles.requestCard}>
-                <View style={styles.requestHeader}>
-                  <Text style={styles.requestType}>{getServiceTypeLabel(request.service_type)}</Text>
-                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(request.status) }]}>
-                    <Text style={styles.statusText}>{getStatusLabel(request.status)}</Text>
-                  </View>
-                </View>
-
-                <View style={styles.requestDetails}>
-                  <View style={styles.requestRow}>
-                    <Text style={styles.requestLabel}>Pickup:</Text>
-                    <Text style={styles.requestValue}>{request.pickup_area}</Text>
-                  </View>
-                  <View style={styles.requestRow}>
-                    <Text style={styles.requestLabel}>Drop-off:</Text>
-                    <Text style={styles.requestValue}>{request.dropoff_area}</Text>
-                  </View>
-                  <View style={styles.requestRow}>
-                    <Text style={styles.requestLabel}>Phone:</Text>
-                    <Text style={styles.requestValue}>{request.phone}</Text>
-                  </View>
-                </View>
-
-                <View style={styles.requestFooter}>
-                  <Clock size={14} color="#6b7280" />
-                  <Text style={styles.requestDate}>
-                    {new Date(request.created_at).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                      hour: 'numeric',
-                      minute: '2-digit',
-                    })}
-                  </Text>
-                </View>
+            <View style={styles.requestsSectionHeader}>
+              <Text style={styles.sectionTitle}>My Requests</Text>
+              <View style={styles.requestsCountBadge}>
+                <Text style={styles.requestsCountText}>{myRequests.length}</Text>
               </View>
-            ))}
+            </View>
+
+            {myRequests.map((request) => {
+              const statusConfig = getStatusConfig(request.status);
+              return (
+                <View key={request.id} style={styles.requestCard}>
+                  <View style={styles.requestCardHeader}>
+                    <View style={styles.requestTypeRow}>
+                      <View style={[styles.requestTypeIcon, request.service_type === 'gadget_delivery' ? styles.requestTypeIconOrange : styles.requestTypeIconGreen]}>
+                        {request.service_type === 'gadget_delivery'
+                          ? <Package size={14} color={request.service_type === 'gadget_delivery' ? '#f97316' : '#16a34a'} />
+                          : <Truck size={14} color="#16a34a" />}
+                      </View>
+                      <Text style={styles.requestType}>{getServiceTypeLabel(request.service_type)}</Text>
+                    </View>
+                    <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
+                      <Text style={[styles.statusText, { color: statusConfig.color }]}>{statusConfig.label}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.requestRoute}>
+                    <View style={styles.routeRow}>
+                      <View style={[styles.routeDot, styles.routeDotFrom]} />
+                      <Text style={styles.routeText} numberOfLines={1}>{request.pickup_area}</Text>
+                    </View>
+                    <View style={styles.routeLine} />
+                    <View style={styles.routeRow}>
+                      <View style={[styles.routeDot, styles.routeDotTo]} />
+                      <Text style={styles.routeText} numberOfLines={1}>{request.dropoff_area}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.requestFooter}>
+                    <View style={styles.requestFooterLeft}>
+                      <Clock size={12} color="#9ca3af" />
+                      <Text style={styles.requestDate}>
+                        {new Date(request.created_at).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </Text>
+                    </View>
+                    <View style={styles.requestFooterRight}>
+                      <Phone size={12} color="#9ca3af" />
+                      <Text style={styles.requestDate}>{request.phone}</Text>
+                    </View>
+                  </View>
+                </View>
+              );
+            })}
           </View>
         )}
+
+        <View style={{ height: 32 }} />
       </ScrollView>
 
       <Modal
@@ -233,63 +293,107 @@ export default function CustomerRequestService() {
         onRequestClose={() => setModalVisible(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
+            <View style={styles.modalHandle} />
+
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                Request {serviceType === 'gadget_delivery' ? 'Gadget Delivery' : 'Relocation Service'}
-              </Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <X size={24} color="#6b7280" />
+              <View style={styles.modalHeaderLeft}>
+                <View style={[styles.modalHeaderIcon,
+                  serviceType === 'gadget_delivery'
+                    ? { backgroundColor: '#fff7ed' }
+                    : { backgroundColor: '#dcfce7' }]}>
+                  {serviceType === 'gadget_delivery'
+                    ? <Package size={20} color="#f97316" />
+                    : <Truck size={20} color="#16a34a" />}
+                </View>
+                <View>
+                  <Text style={styles.modalTitle}>
+                    {serviceType === 'gadget_delivery' ? 'Gadget Delivery' : 'Relocation Service'}
+                  </Text>
+                  <Text style={styles.modalSubtitle}>Fill in your details below</Text>
+                </View>
+              </View>
+              <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setModalVisible(false)}>
+                <X size={18} color="#374151" />
               </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-              <Text style={styles.modalDescription}>
-                Fill in your details and our team will contact you shortly to discuss full requirements.
-              </Text>
-
-              <Text style={styles.label}>Full Name *</Text>
-              <TextInput
-                style={styles.input}
-                value={fullName}
-                onChangeText={setFullName}
-                placeholder="Enter your full name"
-                placeholderTextColor="#9ca3af"
-              />
-
-              <Text style={styles.label}>Phone Number *</Text>
-              <TextInput
-                style={styles.input}
-                value={phone}
-                onChangeText={setPhone}
-                placeholder="Enter your phone number"
-                placeholderTextColor="#9ca3af"
-                keyboardType="phone-pad"
-              />
-
-              <Text style={styles.label}>Pickup Area *</Text>
-              <TextInput
-                style={styles.input}
-                value={pickupArea}
-                onChangeText={setPickupArea}
-                placeholder="e.g. 10 Admiralty Way, near Mega Chicken, Lekki Phase 1, Lagos"
-                placeholderTextColor="#9ca3af"
-              />
-
-              <Text style={styles.label}>Drop-off Area *</Text>
-              <TextInput
-                style={styles.input}
-                value={dropoffArea}
-                onChangeText={setDropoffArea}
-                placeholder="e.g. Plot 1234, opposite Eko Hotel, Victoria Island, Lagos"
-                placeholderTextColor="#9ca3af"
-              />
-
               <View style={styles.infoBox}>
-                <CheckCircle size={20} color="#10b981" />
+                <AlertCircle size={16} color="#2563eb" />
                 <Text style={styles.infoText}>
-                  Our team will call you to collect full details and provide a quote.
+                  Our team will call you to discuss full requirements and provide a quote.
                 </Text>
               </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Full Name</Text>
+                <View style={styles.inputWrapper}>
+                  <User size={16} color="#9ca3af" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    value={fullName}
+                    onChangeText={setFullName}
+                    placeholder="Enter your full name"
+                    placeholderTextColor="#d1d5db"
+                  />
+                </View>
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Phone Number</Text>
+                <View style={styles.inputWrapper}>
+                  <Phone size={16} color="#9ca3af" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    value={phone}
+                    onChangeText={setPhone}
+                    placeholder="e.g. +234 800 000 0000"
+                    placeholderTextColor="#d1d5db"
+                    keyboardType="phone-pad"
+                  />
+                </View>
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Pickup Area</Text>
+                <View style={[styles.inputWrapper, styles.inputWrapperMulti]}>
+                  <MapPin size={16} color="#9ca3af" style={styles.inputIcon} />
+                  <TextInput
+                    style={[styles.input, styles.inputMulti]}
+                    value={pickupArea}
+                    onChangeText={setPickupArea}
+                    placeholder="e.g. 10 Admiralty Way, Lekki Phase 1, Lagos"
+                    placeholderTextColor="#d1d5db"
+                    multiline
+                    numberOfLines={2}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Drop-off Area</Text>
+                <View style={[styles.inputWrapper, styles.inputWrapperMulti]}>
+                  <MapPin size={16} color="#f97316" style={styles.inputIcon} />
+                  <TextInput
+                    style={[styles.input, styles.inputMulti]}
+                    value={dropoffArea}
+                    onChangeText={setDropoffArea}
+                    placeholder="e.g. Plot 1234, Victoria Island, Lagos"
+                    placeholderTextColor="#d1d5db"
+                    multiline
+                    numberOfLines={2}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.successInfoBox}>
+                <CheckCircle size={16} color="#059669" />
+                <Text style={styles.successInfoText}>
+                  After submitting, our team typically responds within 30 minutes during business hours.
+                </Text>
+              </View>
+
+              <View style={{ height: 8 }} />
             </ScrollView>
 
             <View style={styles.modalFooter}>
@@ -299,7 +403,8 @@ export default function CustomerRequestService() {
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
+                style={[styles.submitButton, submitting && styles.submitButtonDisabled,
+                  serviceType === 'relocation' && styles.submitButtonGreen]}
                 onPress={handleSubmit}
                 disabled={submitting}>
                 <Text style={styles.submitButtonText}>
@@ -325,36 +430,54 @@ export default function CustomerRequestService() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#f8f9fa',
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 24,
-    paddingTop: 60,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    paddingTop: 8,
+    paddingBottom: 32,
+    paddingHorizontal: 24,
   },
-  title: {
-    fontSize: 28,
+  headerContent: {
+    gap: 6,
+  },
+  headerBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(249,115,22,0.2)',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(249,115,22,0.4)',
+    marginBottom: 6,
+  },
+  headerBadgeText: {
+    fontSize: 11,
     fontFamily: Fonts.poppinsBold,
-    color: '#111827',
-    letterSpacing: 0.5,
+    color: '#fb923c',
+    letterSpacing: 1.5,
   },
-  subtitle: {
+  headerTitle: {
+    fontSize: 30,
+    fontFamily: Fonts.poppinsBold,
+    color: '#ffffff',
+    letterSpacing: 0.3,
+    lineHeight: 38,
+  },
+  headerSubtitle: {
     fontSize: 14,
     fontFamily: Fonts.poppinsRegular,
-    color: '#6b7280',
+    color: '#a8a29e',
+    lineHeight: 20,
     marginTop: 4,
   },
   content: {
     flex: 1,
-    padding: 24,
+    paddingHorizontal: 20,
+    paddingTop: 24,
   },
   servicesSection: {
     marginBottom: 32,
+    gap: 16,
   },
   sectionTitle: {
     fontSize: 18,
@@ -364,57 +487,111 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   serviceCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
+    borderRadius: 20,
+    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#f3f4f6',
+  },
+  serviceGradient: {
+    padding: 20,
+  },
+  serviceTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 14,
   },
   serviceIconContainer: {
-    width: 64,
-    height: 64,
+    width: 52,
+    height: 52,
     borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  serviceArrow: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
     backgroundColor: '#fff7ed',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
-  },
-  serviceInfo: {
-    marginBottom: 16,
   },
   serviceTitle: {
     fontSize: 20,
     fontFamily: Fonts.poppinsBold,
     color: '#111827',
     marginBottom: 8,
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
   },
   serviceDescription: {
     fontSize: 14,
     fontFamily: Fonts.poppinsRegular,
     color: '#6b7280',
-    lineHeight: 20,
+    lineHeight: 21,
+    marginBottom: 14,
   },
-  serviceButton: {
-    backgroundColor: '#f97316',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 12,
+  serviceFeatures: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  featurePill: {
+    backgroundColor: '#fff7ed',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+  },
+  featurePillText: {
+    fontSize: 12,
+    fontFamily: Fonts.poppinsSemiBold,
+    color: '#ea580c',
+  },
+  serviceCta: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'flex-end',
+    borderTopWidth: 1,
+    borderTopColor: '#fed7aa',
+    paddingTop: 14,
+    gap: 4,
   },
-  serviceButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
+  serviceCtaText: {
+    fontSize: 14,
     fontFamily: Fonts.poppinsBold,
+    color: '#f97316',
+    letterSpacing: 0.3,
   },
   requestsSection: {
-    marginBottom: 24,
+    marginBottom: 16,
+  },
+  requestsSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 16,
+  },
+  requestsCountBadge: {
+    backgroundColor: '#f97316',
+    borderRadius: 12,
+    minWidth: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  requestsCountText: {
+    fontSize: 12,
+    fontFamily: Fonts.poppinsBold,
+    color: '#ffffff',
   },
   requestCard: {
     backgroundColor: '#ffffff',
@@ -426,160 +603,290 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
+    borderWidth: 1,
+    borderColor: '#f3f4f6',
   },
-  requestHeader: {
+  requestCardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
+  },
+  requestTypeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  requestTypeIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  requestTypeIconOrange: {
+    backgroundColor: '#fff7ed',
+  },
+  requestTypeIconGreen: {
+    backgroundColor: '#dcfce7',
   },
   requestType: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: Fonts.poppinsBold,
     color: '#111827',
   },
   statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
   },
   statusText: {
-    color: '#ffffff',
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: Fonts.poppinsBold,
+    letterSpacing: 0.3,
   },
-  requestDetails: {
-    gap: 8,
+  requestRoute: {
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    padding: 12,
     marginBottom: 12,
-  },
-  requestRow: {
-    flexDirection: 'row',
     gap: 8,
   },
-  requestLabel: {
-    fontSize: 14,
-    color: '#6b7280',
-    fontFamily: Fonts.poppinsSemiBold,
-    width: 70,
+  routeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
-  requestValue: {
+  routeDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  routeDotFrom: {
+    backgroundColor: '#3b82f6',
+  },
+  routeDotTo: {
+    backgroundColor: '#f97316',
+  },
+  routeLine: {
+    width: 2,
+    height: 14,
+    backgroundColor: '#e5e7eb',
+    marginLeft: 4,
+  },
+  routeText: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: Fonts.poppinsMedium,
-    color: '#111827',
+    color: '#374151',
   },
   requestFooter: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingTop: 12,
+    justifyContent: 'space-between',
+    paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: '#f3f4f6',
+  },
+  requestFooterLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  requestFooterRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
   },
   requestDate: {
     fontSize: 12,
     fontFamily: Fonts.poppinsRegular,
-    color: '#6b7280',
+    color: '#9ca3af',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
   modalContent: {
     backgroundColor: '#ffffff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '85%',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    maxHeight: '92%',
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 4,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 24,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: '#f3f4f6',
+  },
+  modalHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  modalHeaderIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontFamily: Fonts.poppinsBold,
     color: '#111827',
-    flex: 1,
+  },
+  modalSubtitle: {
+    fontSize: 12,
+    fontFamily: Fonts.poppinsRegular,
+    color: '#9ca3af',
+    marginTop: 2,
+  },
+  modalCloseBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: '#f3f4f6',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalBody: {
-    padding: 24,
-  },
-  modalDescription: {
-    fontSize: 14,
-    fontFamily: Fonts.poppinsRegular,
-    color: '#6b7280',
-    marginBottom: 20,
-    lineHeight: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontFamily: Fonts.poppinsSemiBold,
-    color: '#374151',
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 12,
-    padding: 12,
-    fontSize: 16,
-    fontFamily: Fonts.poppinsRegular,
-    color: '#111827',
-    marginBottom: 16,
+    paddingHorizontal: 24,
+    paddingTop: 20,
   },
   infoBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 12,
-    backgroundColor: '#dcfce7',
-    padding: 16,
-    borderRadius: 12,
-    marginTop: 8,
+    gap: 10,
+    backgroundColor: '#eff6ff',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
   },
   infoText: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 13,
+    fontFamily: Fonts.poppinsRegular,
+    color: '#1e40af',
+    lineHeight: 19,
+  },
+  formGroup: {
+    marginBottom: 18,
+  },
+  label: {
+    fontSize: 13,
+    fontFamily: Fonts.poppinsSemiBold,
+    color: '#374151',
+    marginBottom: 8,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f9fafb',
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#e5e7eb',
+    paddingHorizontal: 14,
+    paddingVertical: 2,
+  },
+  inputWrapperMulti: {
+    alignItems: 'flex-start',
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  inputIcon: {
+    marginRight: 10,
+    marginTop: 2,
+  },
+  input: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: Fonts.poppinsRegular,
+    color: '#111827',
+    paddingVertical: 12,
+  },
+  inputMulti: {
+    minHeight: 52,
+    textAlignVertical: 'top',
+    paddingTop: 0,
+  },
+  successInfoBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#f0fdf4',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+    marginBottom: 20,
+  },
+  successInfoText: {
+    flex: 1,
+    fontSize: 13,
     fontFamily: Fonts.poppinsRegular,
     color: '#166534',
-    lineHeight: 20,
+    lineHeight: 19,
   },
   modalFooter: {
     flexDirection: 'row',
-    padding: 24,
+    paddingHorizontal: 24,
+    paddingVertical: 20,
     gap: 12,
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: '#f3f4f6',
   },
   cancelButton: {
     flex: 1,
-    padding: 16,
-    borderRadius: 12,
+    paddingVertical: 15,
+    borderRadius: 14,
     backgroundColor: '#f3f4f6',
     alignItems: 'center',
   },
   cancelButtonText: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: Fonts.poppinsSemiBold,
     color: '#374151',
   },
   submitButton: {
-    flex: 1,
-    padding: 16,
-    borderRadius: 12,
+    flex: 2,
+    paddingVertical: 15,
+    borderRadius: 14,
     backgroundColor: '#f97316',
     alignItems: 'center',
+    shadowColor: '#f97316',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  submitButtonGreen: {
+    backgroundColor: '#16a34a',
+    shadowColor: '#16a34a',
   },
   submitButtonDisabled: {
     opacity: 0.5,
+    shadowOpacity: 0,
   },
   submitButtonText: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: Fonts.poppinsBold,
     color: '#ffffff',
+    letterSpacing: 0.3,
   },
 });

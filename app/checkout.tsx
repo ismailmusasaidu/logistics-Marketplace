@@ -1510,7 +1510,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 18,
-    fontFamily: Fonts.display,
+    fontFamily: Fonts.poppinsBold,
     color: '#999',
     marginBottom: 20,
   },
@@ -1555,7 +1555,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontFamily: Fonts.displayBold,
+    fontFamily: Fonts.poppinsBold,
     color: '#ffffff',
     letterSpacing: 0.3,
     flex: 1,
@@ -1569,7 +1569,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 19,
-    fontFamily: Fonts.display,
+    fontFamily: Fonts.poppinsBold,
     color: '#1a1a1a',
     marginBottom: 14,
     letterSpacing: 0.3,
@@ -1726,7 +1726,7 @@ const styles = StyleSheet.create({
   },
   deliveryFeeValue: {
     fontSize: 20,
-    fontFamily: Fonts.displayBold,
+    fontFamily: Fonts.poppinsBold,
     color: '#1e40af',
   },
   summaryCard: {
@@ -1769,12 +1769,12 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: 18,
-    fontFamily: Fonts.display,
+    fontFamily: Fonts.poppinsBold,
     color: '#1a1a1a',
   },
   totalValue: {
     fontSize: 24,
-    fontFamily: Fonts.displayBold,
+    fontFamily: Fonts.poppinsBold,
     color: '#c2410c',
     letterSpacing: -0.5,
   },
@@ -1832,7 +1832,7 @@ const styles = StyleSheet.create({
   },
   successTitle: {
     fontSize: 32,
-    fontFamily: Fonts.displayBold,
+    fontFamily: Fonts.poppinsBold,
     color: '#1a1a1a',
     marginBottom: 12,
     letterSpacing: 0.3,
@@ -1857,7 +1857,7 @@ const styles = StyleSheet.create({
   },
   orderDetailsTitle: {
     fontSize: 20,
-    fontFamily: Fonts.display,
+    fontFamily: Fonts.poppinsBold,
     color: '#1a1a1a',
     marginBottom: 20,
     letterSpacing: 0.3,
@@ -1888,7 +1888,7 @@ const styles = StyleSheet.create({
   },
   orderTotalValue: {
     fontSize: 24,
-    fontFamily: Fonts.displayBold,
+    fontFamily: Fonts.poppinsBold,
     color: '#c2410c',
     letterSpacing: -0.5,
   },
@@ -1903,7 +1903,7 @@ const styles = StyleSheet.create({
   },
   timelineTitle: {
     fontSize: 20,
-    fontFamily: Fonts.display,
+    fontFamily: Fonts.poppinsBold,
     color: '#1a1a1a',
     marginBottom: 24,
     letterSpacing: 0.3,
@@ -2013,7 +2013,7 @@ const styles = StyleSheet.create({
   },
   paymentTitle: {
     fontSize: 24,
-    fontFamily: Fonts.display,
+    fontFamily: Fonts.poppinsBold,
     color: '#1a1a1a',
   },
   closeButtonContainer: {
@@ -2103,14 +2103,14 @@ const styles = StyleSheet.create({
   },
   amountToPayValue: {
     fontSize: 32,
-    fontFamily: Fonts.displayBold,
+    fontFamily: Fonts.poppinsBold,
     color: '#c2410c',
     textAlign: 'center',
     marginBottom: 20,
   },
   bankAccountsSectionTitle: {
     fontSize: 16,
-    fontFamily: Fonts.display,
+    fontFamily: Fonts.poppinsBold,
     color: '#1a1a1a',
     marginBottom: 16,
   },
@@ -2154,7 +2154,7 @@ const styles = StyleSheet.create({
   },
   bankDetailValueHighlight: {
     fontSize: 24,
-    fontFamily: Fonts.displayBold,
+    fontFamily: Fonts.poppinsBold,
     color: '#c2410c',
   },
   instructionsBox: {
@@ -2240,7 +2240,7 @@ const styles = StyleSheet.create({
   },
   onlinePaymentAmount: {
     fontSize: 22,
-    fontFamily: Fonts.displayBold,
+    fontFamily: Fonts.poppinsBold,
     color: '#c2410c',
     textAlign: 'center',
   },
@@ -2260,7 +2260,7 @@ const styles = StyleSheet.create({
   },
   walletBalanceValue: {
     fontSize: 28,
-    fontFamily: Fonts.displayBold,
+    fontFamily: Fonts.poppinsBold,
     color: '#1e40af',
     marginBottom: 20,
   },
@@ -2274,7 +2274,7 @@ const styles = StyleSheet.create({
   },
   walletAmountValue: {
     fontSize: 24,
-    fontFamily: Fonts.displayBold,
+    fontFamily: Fonts.poppinsBold,
     color: '#1a1a1a',
   },
   walletNote: {
@@ -2304,7 +2304,7 @@ const styles = StyleSheet.create({
   },
   paymentInstructionsTitle: {
     fontSize: 20,
-    fontFamily: Fonts.display,
+    fontFamily: Fonts.poppinsBold,
     color: '#166534',
     marginTop: 16,
     marginBottom: 12,
