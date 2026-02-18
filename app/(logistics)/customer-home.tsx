@@ -615,7 +615,6 @@ export default function CustomerHome() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.greeting}>{profile?.full_name}</Text>
           {locationAddress ? (
             <View style={styles.locationChip}>
               <MapPin size={12} color="#f97316" />
@@ -626,6 +625,7 @@ export default function CustomerHome() {
           ) : (
             <Text style={styles.subGreeting}>Track your deliveries</Text>
           )}
+          <Text style={styles.greeting}>{profile?.full_name}</Text>
         </View>
         <View style={styles.headerButtons}>
           <TouchableOpacity style={styles.bulkButton} onPress={() => setBulkModalVisible(true)}>
@@ -1243,7 +1243,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginTop: 4,
     maxWidth: 200,
   },
   locationText: {
