@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Tabs, router } from 'expo-router';
-import { Package, User, LayoutDashboard, Bike, Users, DollarSign, Building2, MapPin, Headphones, ArrowLeft } from 'lucide-react-native';
+import { Package, User, LayoutDashboard, Bike, Users, DollarSign, Headphones, ArrowLeft } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -241,24 +241,8 @@ export default function TabLayout() {
             ),
           }}
         />
-        <Tabs.Screen
-          name="admin-bank-accounts"
-          options={{
-            title: 'Banks',
-            tabBarIcon: ({ size, color }) => (
-              <Building2 size={size} color={color} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="admin-zones"
-          options={{
-            title: 'Zones',
-            tabBarIcon: ({ size, color }) => (
-              <MapPin size={size} color={color} />
-            ),
-          }}
-        />
+        <Tabs.Screen name="admin-bank-accounts" options={{ href: null }} />
+        <Tabs.Screen name="admin-zones" options={{ href: null }} />
         <Tabs.Screen
           name="admin-service-requests"
           options={{
