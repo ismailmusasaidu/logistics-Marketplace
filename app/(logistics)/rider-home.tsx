@@ -1022,7 +1022,7 @@ const styles = StyleSheet.create({
   pendingSectionTitle: {
     flex: 1,
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: Fonts.bold,
     color: '#ffffff',
   },
   pendingBadge: {
@@ -1033,7 +1033,7 @@ const styles = StyleSheet.create({
   },
   pendingBadgeText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: Fonts.bold,
     color: '#059669',
   },
   assignmentCard: {
@@ -1050,7 +1050,7 @@ const styles = StyleSheet.create({
   },
   assignmentOrderNumber: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: Fonts.bold,
     color: '#111827',
   },
   countdownContainer: {
@@ -1064,7 +1064,7 @@ const styles = StyleSheet.create({
   },
   countdownText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: Fonts.bold,
     color: '#f59e0b',
   },
   countdownUrgent: {
@@ -1090,13 +1090,14 @@ const styles = StyleSheet.create({
   },
   addressLabel: {
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: Fonts.semiBold,
     color: '#6b7280',
     textTransform: 'uppercase',
     marginBottom: 2,
   },
   addressValue: {
     fontSize: 14,
+    fontFamily: Fonts.regular,
     color: '#111827',
     lineHeight: 20,
   },
@@ -1112,11 +1113,11 @@ const styles = StyleSheet.create({
   feeLabel: {
     fontSize: 14,
     color: '#6b7280',
-    fontWeight: '600',
+    fontFamily: Fonts.semiBold,
   },
   feeValue: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: Fonts.bold,
     color: '#059669',
   },
   assignmentActions: {
@@ -1137,7 +1138,7 @@ const styles = StyleSheet.create({
   },
   rejectButtonText: {
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: Fonts.bold,
     color: '#ef4444',
   },
   acceptButton: {
@@ -1152,7 +1153,7 @@ const styles = StyleSheet.create({
   },
   acceptButtonText: {
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: Fonts.bold,
     color: '#ffffff',
   },
   buttonDisabled: {
@@ -1255,7 +1256,7 @@ const styles = StyleSheet.create({
   },
   statusPillText: {
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: Fonts.bold,
   },
   orderCardRight: {
     alignItems: 'flex-end',
@@ -1263,7 +1264,7 @@ const styles = StyleSheet.create({
   orderFeeLabel: {
     fontSize: 11,
     color: '#9ca3af',
-    fontWeight: '600',
+    fontFamily: Fonts.semiBold,
     marginBottom: 2,
   },
   orderFee: {
@@ -1339,13 +1340,14 @@ const styles = StyleSheet.create({
   },
   routeLabel: {
     fontSize: 10,
-    fontWeight: '700',
+    fontFamily: Fonts.bold,
     color: '#9ca3af',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   routeAddress: {
     fontSize: 13,
+    fontFamily: Fonts.regular,
     color: '#374151',
     lineHeight: 18,
   },
@@ -1364,6 +1366,7 @@ const styles = StyleSheet.create({
   },
   timeChipText: {
     fontSize: 12,
+    fontFamily: Fonts.regular,
     color: '#9ca3af',
   },
   viewDetailChip: {
@@ -1374,7 +1377,7 @@ const styles = StyleSheet.create({
   viewDetailText: {
     fontSize: 12,
     color: '#3b82f6',
-    fontWeight: '600',
+    fontFamily: Fonts.semiBold,
   },
 
   emptyState: {
@@ -1444,6 +1447,7 @@ const styles = StyleSheet.create({
   },
   modalSubtitle: {
     fontSize: 13,
+    fontFamily: Fonts.regular,
     color: '#6b7280',
     marginTop: 2,
   },
@@ -1480,11 +1484,11 @@ const styles = StyleSheet.create({
   },
   statusBannerText: {
     fontSize: 15,
-    fontWeight: '700',
+    fontFamily: Fonts.bold,
   },
   statusBannerFee: {
     fontSize: 18,
-    fontWeight: '800',
+    fontFamily: Fonts.bold,
   },
 
   recipientCard: {
@@ -1502,7 +1506,7 @@ const styles = StyleSheet.create({
   },
   recipientCardLabel: {
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: Fonts.bold,
     color: '#6b7280',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
@@ -1522,7 +1526,7 @@ const styles = StyleSheet.create({
   },
   recipientCardAvatarText: {
     fontSize: 20,
-    fontWeight: '800',
+    fontFamily: Fonts.bold,
     color: '#1d4ed8',
   },
   recipientCardInfo: {
@@ -1546,7 +1550,7 @@ const styles = StyleSheet.create({
   },
   callButtonText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: Fonts.semiBold,
     color: '#ffffff',
   },
 
@@ -1559,7 +1563,7 @@ const styles = StyleSheet.create({
   },
   routeCardTitle: {
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: Fonts.bold,
     color: '#6b7280',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
@@ -1619,7 +1623,7 @@ const styles = StyleSheet.create({
   },
   routeStopLabel: {
     fontSize: 10,
-    fontWeight: '700',
+    fontFamily: Fonts.bold,
     color: '#9ca3af',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -1627,6 +1631,7 @@ const styles = StyleSheet.create({
   },
   routeStopAddress: {
     fontSize: 14,
+    fontFamily: Fonts.regular,
     color: '#1f2937',
     lineHeight: 20,
   },
@@ -1646,13 +1651,14 @@ const styles = StyleSheet.create({
   },
   notesLabel: {
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: Fonts.bold,
     color: '#92400e',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   notesText: {
     fontSize: 14,
+    fontFamily: Fonts.regular,
     color: '#78350f',
     lineHeight: 20,
   },
@@ -1668,6 +1674,7 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 12,
+    fontFamily: Fonts.regular,
     color: '#9ca3af',
   },
 
@@ -1685,7 +1692,7 @@ const styles = StyleSheet.create({
   statusInfoText: {
     fontSize: 14,
     color: '#92400e',
-    fontWeight: '500',
+    fontFamily: Fonts.medium,
   },
   statusInfoBannerSuccess: {
     flexDirection: 'row',
@@ -1698,7 +1705,7 @@ const styles = StyleSheet.create({
   statusInfoTextSuccess: {
     fontSize: 14,
     color: '#065f46',
-    fontWeight: '500',
+    fontFamily: Fonts.medium,
   },
   statusInfoBannerError: {
     flexDirection: 'row',
@@ -1711,7 +1718,7 @@ const styles = StyleSheet.create({
   statusInfoTextError: {
     fontSize: 14,
     color: '#991b1b',
-    fontWeight: '500',
+    fontFamily: Fonts.medium,
   },
   actionButtonDelivery: {
     flexDirection: 'row',
@@ -1733,7 +1740,7 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: Fonts.bold,
     color: '#ffffff',
   },
 
@@ -1882,6 +1889,7 @@ const styles = StyleSheet.create({
   historyAddress: {
     flex: 1,
     fontSize: 12,
+    fontFamily: Fonts.regular,
     color: '#6b7280',
   },
   historyFooter: {
@@ -1901,7 +1909,7 @@ const styles = StyleSheet.create({
   },
   historyDeliveredText: {
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: Fonts.bold,
     color: '#059669',
   },
   historyCardChevron: {
