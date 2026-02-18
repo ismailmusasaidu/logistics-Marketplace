@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, TextInput, ActivityIndicator } from 'react-native';
-import { User, Mail, LogOut, Edit, Save, X, Phone, Calendar, Bike, FileText, Hash } from 'lucide-react-native';
+import { User, Mail, LogOut, Edit, Save, X, Phone, Calendar, Bike, FileText, Hash, Star, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -13,6 +13,25 @@ interface RiderInfo {
   vehicle_number: string;
   license_number: string;
   zone_id: string | null;
+}
+
+interface RiderReview {
+  id: string;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+  customer_name: string;
+  order_ref: string;
+}
+
+interface ReviewStats {
+  total: number;
+  average: number;
+  star5: number;
+  star4: number;
+  star3: number;
+  star2: number;
+  star1: number;
 }
 
 export default function RiderProfile() {
@@ -28,9 +47,65 @@ export default function RiderProfile() {
   const [licenseNumber, setLicenseNumber] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [reviews, setReviews] = useState<RiderReview[]>([]);
+  const [reviewStats, setReviewStats] = useState<ReviewStats>({ total: 0, average: 0, star5: 0, star4: 0, star3: 0, star2: 0, star1: 0 });
+  const [reviewsExpanded, setReviewsExpanded] = useState(false);
+
+  const loadReviews = useCallback(async () => {
+    if (!profile?.id) return;
+    try {
+      const { data: riderRow } = await supabase
+        .from('riders')
+        .select('id')
+        .eq('user_id', profile.id)
+        .maybeSingle();
+
+      if (!riderRow) return;
+
+      const { data, error: rErr } = await supabase
+        .from('ratings')
+        .select('id, rating, comment, created_at, customer_id, order_id')
+        .eq('rider_id', riderRow.id)
+        .order('created_at', { ascending: false });
+
+      if (rErr || !data) return;
+
+      const enriched: RiderReview[] = await Promise.all(
+        data.map(async (r) => {
+          const [custRes] = await Promise.all([
+            supabase.from('profiles').select('full_name').eq('id', r.customer_id).maybeSingle(),
+          ]);
+          return {
+            id: r.id,
+            rating: r.rating,
+            comment: r.comment,
+            created_at: r.created_at,
+            customer_name: custRes.data?.full_name || 'Customer',
+            order_ref: r.order_id.slice(0, 8).toUpperCase(),
+          };
+        })
+      );
+
+      setReviews(enriched);
+      const total = enriched.length;
+      const avg = total > 0 ? enriched.reduce((s, r) => s + r.rating, 0) / total : 0;
+      setReviewStats({
+        total,
+        average: Math.round(avg * 10) / 10,
+        star5: enriched.filter(r => r.rating === 5).length,
+        star4: enriched.filter(r => r.rating === 4).length,
+        star3: enriched.filter(r => r.rating === 3).length,
+        star2: enriched.filter(r => r.rating === 2).length,
+        star1: enriched.filter(r => r.rating === 1).length,
+      });
+    } catch (e) {
+      console.error('Error loading reviews:', e);
+    }
+  }, [profile?.id]);
 
   useEffect(() => {
     loadRiderInfo();
+    loadReviews();
   }, [profile?.id]);
 
   const loadRiderInfo = async () => {
@@ -422,6 +497,100 @@ export default function RiderProfile() {
         )}
 
         <View style={styles.section}>
+          <TouchableOpacity
+            style={styles.reviewsSectionHeader}
+            onPress={() => setReviewsExpanded(!reviewsExpanded)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.reviewsSectionLeft}>
+              <View style={styles.reviewsIconBadge}>
+                <Star size={18} color="#f97316" fill="#f97316" />
+              </View>
+              <View>
+                <Text style={styles.sectionTitle}>My Reviews</Text>
+                <Text style={styles.reviewsSubtitle}>
+                  {reviewStats.total > 0
+                    ? `${reviewStats.average.toFixed(1)} avg · ${reviewStats.total} review${reviewStats.total !== 1 ? 's' : ''}`
+                    : 'No reviews yet'}
+                </Text>
+              </View>
+            </View>
+            {reviewsExpanded ? <ChevronUp size={20} color="#6b7280" /> : <ChevronDown size={20} color="#6b7280" />}
+          </TouchableOpacity>
+
+          {reviewsExpanded && (
+            <View style={styles.reviewsBody}>
+              {reviewStats.total > 0 && (
+                <View style={styles.reviewsStatsCard}>
+                  <View style={styles.reviewsStatsLeft}>
+                    <Text style={styles.reviewsAvgScore}>{reviewStats.average.toFixed(1)}</Text>
+                    <View style={{ flexDirection: 'row', gap: 3 }}>
+                      {[1, 2, 3, 4, 5].map(i => (
+                        <Star
+                          key={i}
+                          size={16}
+                          color="#f59e0b"
+                          fill={i <= Math.round(reviewStats.average) ? '#f59e0b' : 'transparent'}
+                        />
+                      ))}
+                    </View>
+                    <Text style={styles.reviewsAvgLabel}>{reviewStats.total} review{reviewStats.total !== 1 ? 's' : ''}</Text>
+                  </View>
+                  <View style={styles.reviewsStatsRight}>
+                    {[5, 4, 3, 2, 1].map(star => {
+                      const count = reviewStats[`star${star}` as keyof ReviewStats] as number;
+                      const pct = reviewStats.total > 0 ? Math.max((count / reviewStats.total) * 100, count > 0 ? 4 : 0) : 0;
+                      return (
+                        <View key={star} style={styles.reviewsBarRow}>
+                          <Text style={styles.reviewsBarLabel}>{star}</Text>
+                          <Star size={9} color="#f59e0b" fill="#f59e0b" />
+                          <View style={styles.reviewsBarTrack}>
+                            <View style={[styles.reviewsBarFill, { width: `${pct}%` as any }]} />
+                          </View>
+                          <Text style={styles.reviewsBarCount}>{count}</Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
+
+              {reviews.length === 0 ? (
+                <View style={styles.reviewsEmpty}>
+                  <Star size={40} color="#e5e7eb" />
+                  <Text style={styles.reviewsEmptyText}>No reviews yet</Text>
+                  <Text style={styles.reviewsEmptySubtext}>Customers will be able to rate you after each delivery</Text>
+                </View>
+              ) : (
+                reviews.map(review => (
+                  <View key={review.id} style={styles.reviewCard}>
+                    <View style={styles.reviewCardTop}>
+                      <View style={{ flexDirection: 'row', gap: 3 }}>
+                        {[1, 2, 3, 4, 5].map(i => (
+                          <Star key={i} size={14} color="#f59e0b" fill={i <= review.rating ? '#f59e0b' : 'transparent'} />
+                        ))}
+                      </View>
+                      <Text style={styles.reviewCardDate}>
+                        {new Date(review.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })}
+                      </Text>
+                    </View>
+                    {review.comment ? (
+                      <View style={styles.reviewCommentBox}>
+                        <MessageSquare size={13} color="#9ca3af" />
+                        <Text style={styles.reviewCommentText}>"{review.comment}"</Text>
+                      </View>
+                    ) : (
+                      <Text style={styles.reviewNoComment}>No comment left</Text>
+                    )}
+                    <Text style={styles.reviewCustomer}>— {review.customer_name} · Order #{review.order_ref}</Text>
+                  </View>
+                ))
+              )}
+            </View>
+          )}
+        </View>
+
+        <View style={styles.section}>
           <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
             <LogOut size={20} color="#ef4444" />
             <Text style={styles.signOutText}>Sign Out</Text>
@@ -746,5 +915,186 @@ const styles = StyleSheet.create({
   vehicleTypeTextActive: {
     color: '#f97316',
     fontFamily: Fonts.poppinsBold,
+  },
+  reviewsSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  reviewsSectionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  reviewsIconBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#fff7ed',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+  },
+  reviewsSubtitle: {
+    fontSize: 12,
+    fontFamily: Fonts.poppinsRegular,
+    color: '#6b7280',
+    marginTop: 2,
+  },
+  reviewsBody: {
+    marginTop: 10,
+    gap: 10,
+  },
+  reviewsStatsCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    padding: 16,
+    flexDirection: 'row',
+    gap: 16,
+    borderWidth: 1,
+    borderColor: '#f3f4f6',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  reviewsStatsLeft: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 72,
+    gap: 4,
+  },
+  reviewsAvgScore: {
+    fontSize: 36,
+    fontWeight: '800',
+    fontFamily: Fonts.poppinsBold,
+    color: '#111827',
+    lineHeight: 42,
+  },
+  reviewsAvgLabel: {
+    fontSize: 11,
+    color: '#9ca3af',
+    fontFamily: Fonts.poppinsRegular,
+    textAlign: 'center',
+  },
+  reviewsStatsRight: {
+    flex: 1,
+    gap: 5,
+    justifyContent: 'center',
+  },
+  reviewsBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  reviewsBarLabel: {
+    fontSize: 11,
+    fontFamily: Fonts.poppinsSemiBold,
+    color: '#374151',
+    width: 10,
+    textAlign: 'right',
+  },
+  reviewsBarTrack: {
+    flex: 1,
+    height: 7,
+    backgroundColor: '#f3f4f6',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  reviewsBarFill: {
+    height: '100%',
+    backgroundColor: '#f59e0b',
+    borderRadius: 4,
+  },
+  reviewsBarCount: {
+    fontSize: 11,
+    fontFamily: Fonts.poppinsRegular,
+    color: '#6b7280',
+    width: 18,
+    textAlign: 'right',
+  },
+  reviewsEmpty: {
+    alignItems: 'center',
+    paddingVertical: 32,
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#f3f4f6',
+  },
+  reviewsEmptyText: {
+    fontSize: 15,
+    fontFamily: Fonts.poppinsBold,
+    color: '#374151',
+  },
+  reviewsEmptySubtext: {
+    fontSize: 13,
+    fontFamily: Fonts.poppinsRegular,
+    color: '#9ca3af',
+    textAlign: 'center',
+    paddingHorizontal: 24,
+    lineHeight: 18,
+  },
+  reviewCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#f3f4f6',
+    gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  reviewCardTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  reviewCardDate: {
+    fontSize: 11,
+    color: '#9ca3af',
+    fontFamily: Fonts.poppinsRegular,
+  },
+  reviewCommentBox: {
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'flex-start',
+    backgroundColor: '#fafafa',
+    borderRadius: 8,
+    padding: 10,
+    borderLeftWidth: 2,
+    borderLeftColor: '#f59e0b',
+  },
+  reviewCommentText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#374151',
+    fontFamily: Fonts.poppinsRegular,
+    lineHeight: 18,
+    fontStyle: 'italic',
+  },
+  reviewNoComment: {
+    fontSize: 12,
+    color: '#d1d5db',
+    fontFamily: Fonts.poppinsRegular,
+    fontStyle: 'italic',
+  },
+  reviewCustomer: {
+    fontSize: 12,
+    color: '#6b7280',
+    fontFamily: Fonts.poppinsSemiBold,
   },
 });
