@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -39,6 +39,7 @@ export default function CartScreen() {
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showProductDetail, setShowProductDetail] = useState(false);
+  const suppressRealtimeRef = useRef(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -62,10 +63,10 @@ export default function CartScreen() {
           table: 'carts',
           filter: `user_id=eq.${profile.id}`,
         },
-        (payload) => {
-          // Add a small delay to ensure the database has fully committed the change
+        () => {
+          if (suppressRealtimeRef.current) return;
           setTimeout(() => {
-            fetchCartItems();
+            fetchCartItems(false);
           }, 100);
         }
       )
@@ -76,11 +77,11 @@ export default function CartScreen() {
     };
   }, [profile]);
 
-  const fetchCartItems = async () => {
+  const fetchCartItems = async (showLoader = true) => {
     if (!profile) return;
 
     try {
-      setLoading(true);
+      if (showLoader) setLoading(true);
       const { data, error } = await supabase
         .from('carts')
         .select(
@@ -120,6 +121,11 @@ export default function CartScreen() {
   const updateQuantity = async (cartId: string, newQuantity: number) => {
     if (newQuantity < 1) return;
 
+    setCartItems((prev) =>
+      prev.map((item) => (item.id === cartId ? { ...item, quantity: newQuantity } : item))
+    );
+
+    suppressRealtimeRef.current = true;
     try {
       const { error } = await supabase
         .from('carts')
@@ -128,31 +134,38 @@ export default function CartScreen() {
 
       if (error) throw error;
 
-      setCartItems(
-        cartItems.map((item) =>
-          item.id === cartId ? { ...item, quantity: newQuantity } : item
-        )
-      );
-
-      // Emit cart event to update badge
       cartEvents.emit();
     } catch (error) {
       console.error('Error updating quantity:', error);
+      setCartItems((prev) =>
+        prev.map((item) =>
+          item.id === cartId ? { ...item, quantity: newQuantity - 1 } : item
+        )
+      );
+    } finally {
+      setTimeout(() => {
+        suppressRealtimeRef.current = false;
+      }, 500);
     }
   };
 
   const removeItem = async (cartId: string) => {
+    setCartItems((prev) => prev.filter((item) => item.id !== cartId));
+
+    suppressRealtimeRef.current = true;
     try {
       const { error } = await supabase.from('carts').delete().eq('id', cartId);
 
       if (error) throw error;
 
-      setCartItems(cartItems.filter((item) => item.id !== cartId));
-
-      // Emit cart event to update badge
       cartEvents.emit();
     } catch (error) {
       console.error('Error removing item:', error);
+      fetchCartItems(false);
+    } finally {
+      setTimeout(() => {
+        suppressRealtimeRef.current = false;
+      }, 500);
     }
   };
 
