@@ -613,47 +613,52 @@ export default function CustomerHome() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          {locationAddress ? (
-            <View style={styles.locationChip}>
-              <MapPin size={12} color="#f97316" style={{ flexShrink: 0 }} />
-              <Text style={styles.locationText}>{locationAddress}</Text>
+      <LinearGradient colors={['#1c1917', '#292524']} style={styles.headerGradient}>
+        <View style={styles.headerTopRow}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.greeting}>
+              {profile?.full_name ? `Hey, ${profile.full_name.split(' ')[0]}` : 'Welcome back'}
+            </Text>
+            <View style={styles.locationRow}>
+              <MapPin size={13} color="#f97316" />
+              <Text style={styles.locationText} numberOfLines={2}>
+                {locationAddress || 'Location unavailable'}
+              </Text>
             </View>
-          ) : locationPermissionDenied ? (
-            <Text style={styles.subGreeting}>Track your deliveries</Text>
-          ) : (
-            <Text style={styles.subGreeting}>Track your deliveries</Text>
-          )}
-          <Text style={styles.greeting}>{profile?.full_name}</Text>
+          </View>
+          <View style={styles.headerButtons}>
+            <TouchableOpacity style={styles.bulkButton} onPress={() => setBulkModalVisible(true)}>
+              <Layers size={18} color="#f97316" />
+              <Text style={styles.bulkButtonText}>Bulk</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
+              <Plus size={22} color="#ffffff" />
+            </TouchableOpacity>
+          </View>
         </View>
-        <View style={styles.headerButtons}>
-          <TouchableOpacity style={styles.bulkButton} onPress={() => setBulkModalVisible(true)}>
-            <Layers size={20} color="#f97316" />
-            <Text style={styles.bulkButtonText}>Bulk</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
-            <Plus size={24} color="#ffffff" />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <ScrollView
-        style={styles.content}
-        showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadOrders(); }} />}>
 
         <View style={styles.statsContainer}>
-          <View  style={styles.statCard}>
+          <View style={styles.statCard}>
+            <View style={styles.statIconWrap}>
+              <Truck size={16} color="#f97316" />
+            </View>
             <Text style={styles.statNumber}>{orders.filter(o => o.status === 'out_for_delivery').length}</Text>
             <Text style={styles.statLabel}>In Transit</Text>
           </View>
-          <View  style={styles.statCard}>
-            <Text style={styles.statNumber}>{orders.filter(o => o.status === 'delivered').length}</Text>
+          <View style={styles.statDivider} />
+          <View style={styles.statCard}>
+            <View style={styles.statIconWrap}>
+              <CheckCircle2 size={16} color="#22c55e" />
+            </View>
+            <Text style={[styles.statNumber, { color: '#22c55e' }]}>{orders.filter(o => o.status === 'delivered').length}</Text>
             <Text style={styles.statLabel}>Delivered</Text>
           </View>
-          <View  style={styles.statCard}>
-            <Text style={styles.statNumber}>{orders.filter(o => o.status === 'pending').length}</Text>
+          <View style={styles.statDivider} />
+          <View style={styles.statCard}>
+            <View style={[styles.statIconWrap, { backgroundColor: 'rgba(234,179,8,0.15)' }]}>
+              <CircleDot size={16} color="#eab308" />
+            </View>
+            <Text style={[styles.statNumber, { color: '#eab308' }]}>{orders.filter(o => o.status === 'pending').length}</Text>
             <Text style={styles.statLabel}>Pending</Text>
           </View>
         </View>
@@ -680,6 +685,12 @@ export default function CustomerHome() {
             </Text>
           </TouchableOpacity>
         </View>
+      </LinearGradient>
+
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadOrders(); }} />}>
 
         {activeTab === 'active' && (
           <>
@@ -1213,51 +1224,51 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f9fafb',
   },
-  header: {
+  headerGradient: {
+    paddingTop: 16,
+    paddingHorizontal: 20,
+    paddingBottom: 0,
+  },
+  headerTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 24,
-    paddingTop: 60,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  greeting: {
-    fontSize: 24,
-    fontFamily: Fonts.poppinsBold,
-    color: '#111827',
-    letterSpacing: 0.3,
-  },
-  subGreeting: {
-    fontSize: 14,
-    fontFamily: Fonts.poppinsRegular,
-    color: '#6b7280',
-    marginTop: 4,
+    alignItems: 'flex-start',
+    marginBottom: 24,
   },
   headerLeft: {
     flex: 1,
-    gap: 4,
+    gap: 6,
   },
-  locationChip: {
+  greeting: {
+    fontSize: 26,
+    fontFamily: Fonts.poppinsBold,
+    color: '#ffffff',
+    letterSpacing: 0.2,
+  },
+  locationRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 4,
+    gap: 5,
   },
   locationText: {
-    fontSize: 13,
+    fontSize: 12,
     fontFamily: Fonts.poppinsRegular,
-    color: '#f97316',
+    color: '#a8a29e',
     flex: 1,
-    flexWrap: 'wrap',
+    lineHeight: 18,
   },
   addButton: {
     backgroundColor: '#f97316',
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#f97316',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 6,
   },
   content: {
     flex: 1,
@@ -1265,32 +1276,44 @@ const styles = StyleSheet.create({
   },
   statsContainer: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 24,
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    borderRadius: 16,
+    marginBottom: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#ffffff',
-    padding: 20,
-    borderRadius: 16,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    gap: 6,
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  statIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: 'rgba(249,115,22,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   statNumber: {
-    fontSize: 28,
+    fontSize: 22,
     fontFamily: Fonts.poppinsBold,
     color: '#f97316',
-    marginBottom: 4,
+    lineHeight: 26,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: Fonts.poppinsSemiBold,
-    color: '#6b7280',
-    letterSpacing: 0.5,
+    color: '#a8a29e',
+    letterSpacing: 0.4,
   },
   sectionTitle: {
     fontSize: 18,
@@ -1655,22 +1678,23 @@ const styles = StyleSheet.create({
   },
   headerButtons: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
     alignItems: 'center',
+    paddingTop: 4,
   },
   bulkButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#ffedd5',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+    gap: 5,
+    backgroundColor: 'rgba(249,115,22,0.15)',
+    paddingVertical: 9,
+    paddingHorizontal: 13,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#f97316',
+    borderColor: 'rgba(249,115,22,0.35)',
   },
   bulkButtonText: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: Fonts.poppinsSemiBold,
     color: '#f97316',
   },
@@ -1773,27 +1797,28 @@ const styles = StyleSheet.create({
   },
   tabContainer: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 20,
+    gap: 0,
+    marginBottom: 0,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.08)',
   },
   tab: {
     flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    backgroundColor: '#f3f4f6',
+    paddingVertical: 14,
     alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
   },
   tabActive: {
-    backgroundColor: '#f97316',
+    borderBottomColor: '#f97316',
   },
   tabText: {
     fontSize: 14,
     fontFamily: Fonts.poppinsSemiBold,
-    color: '#6b7280',
+    color: '#78716c',
   },
   tabTextActive: {
-    color: '#ffffff',
+    color: '#f97316',
   },
   historyHeaderRow: {
     flexDirection: 'row',
