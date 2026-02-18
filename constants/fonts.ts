@@ -1,8 +1,8 @@
 export const Fonts = {
-  regular: 'Inter-Regular',
-  medium: 'Inter-Medium',
-  semiBold: 'Inter-SemiBold',
-  bold: 'Inter-Bold',
+  regular: 'SpaceGrotesk-Regular',
+  medium: 'SpaceGrotesk-Medium',
+  semiBold: 'SpaceGrotesk-SemiBold',
+  bold: 'SpaceGrotesk-Bold',
   poppinsRegular: 'Poppins-Regular',
   poppinsMedium: 'Poppins-Medium',
   poppinsSemiBold: 'Poppins-SemiBold',
