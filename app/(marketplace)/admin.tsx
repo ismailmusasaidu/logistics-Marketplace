@@ -20,6 +20,7 @@ import {
   Megaphone,
   Layers,
   Star,
+  Scale,
   ChevronRight,
   BarChart3,
   Shield,
@@ -36,6 +37,7 @@ import BankAccountManagement from '@/components/marketplace/admin/BankAccountMan
 import AdvertManagement from '@/components/marketplace/admin/AdvertManagement';
 import CategoryManagement from '@/components/marketplace/admin/CategoryManagement';
 import ReviewModeration from '@/components/marketplace/admin/ReviewModeration';
+import WeightChargesManagement from '@/components/marketplace/admin/WeightChargesManagement';
 import { useLocalSearchParams } from 'expo-router';
 
 interface Stats {
@@ -57,6 +59,7 @@ const MENU_ITEMS = [
   { key: 'bank', icon: Building2, label: 'Bank Accounts', desc: 'Payment account settings', color: '#64748b' },
   { key: 'adverts', icon: Megaphone, label: 'Advert Management', desc: 'Manage promotional adverts', color: '#ec4899' },
   { key: 'reviews', icon: Star, label: 'Review Moderation', desc: 'Moderate customer reviews', color: '#f59e0b' },
+  { key: 'weight_charges', icon: Scale, label: 'Weight Charges', desc: 'Set surcharges by cart weight', color: '#0ea5e9' },
 ];
 
 export default function AdminScreen() {
@@ -132,6 +135,7 @@ export default function AdminScreen() {
     adverts: { title: 'Advert Management', component: <AdvertManagement /> },
     categories: { title: 'Category Management', component: <CategoryManagement /> },
     reviews: { title: 'Review Moderation', component: <ReviewModeration /> },
+    weight_charges: { title: 'Weight Charges', component: <WeightChargesManagement /> },
   };
 
   if (activeScreen && subScreens[activeScreen]) {

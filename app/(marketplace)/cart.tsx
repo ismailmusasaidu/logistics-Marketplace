@@ -33,6 +33,14 @@ interface CartItemWithProduct {
   };
 }
 
+interface WeightSurchargeTier {
+  id: string;
+  min_weight_kg: number;
+  max_weight_kg: number | null;
+  charge_amount: number;
+  label: string;
+}
+
 export default function CartScreen() {
   const { profile } = useAuth();
   const insets = useSafeAreaInsets();
@@ -41,11 +49,13 @@ export default function CartScreen() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showProductDetail, setShowProductDetail] = useState(false);
   const suppressRealtimeRef = useRef(false);
+  const [weightSurchargeTiers, setWeightSurchargeTiers] = useState<WeightSurchargeTier[]>([]);
 
   useFocusEffect(
     useCallback(() => {
       if (profile) {
         fetchCartItems();
+        fetchWeightSurchargeTiers();
       }
     }, [profile])
   );
@@ -180,6 +190,32 @@ export default function CartScreen() {
       if (item.product.weight_kg == null) return sum;
       return sum + item.product.weight_kg * item.quantity;
     }, 0);
+  };
+
+  const fetchWeightSurchargeTiers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('weight_surcharge_tiers')
+        .select('id, min_weight_kg, max_weight_kg, charge_amount, label')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+      if (error) throw error;
+      setWeightSurchargeTiers(data || []);
+    } catch (err) {
+      console.error('Error fetching weight surcharge tiers:', err);
+    }
+  };
+
+  const getApplicableWeightSurcharge = (): WeightSurchargeTier | null => {
+    const totalWeight = calculateTotalWeight();
+    if (totalWeight === 0 || !hasAnyWeight) return null;
+    return (
+      weightSurchargeTiers.find(
+        (tier) =>
+          totalWeight >= tier.min_weight_kg &&
+          (tier.max_weight_kg == null || totalWeight < tier.max_weight_kg)
+      ) ?? null
+    );
   };
 
   const hasAnyWeight = cartItems.some((item) => item.product.weight_kg != null);
@@ -317,9 +353,29 @@ export default function CartScreen() {
             </Text>
           </View>
         )}
+        {(() => {
+          const surcharge = getApplicableWeightSurcharge();
+          if (!surcharge) return null;
+          return (
+            <View style={styles.surchargeContainer}>
+              <View style={styles.surchargeLeft}>
+                <Scale size={13} color="#b45309" strokeWidth={2} />
+                <View>
+                  <Text style={styles.surchargeLabel}>{surcharge.label}</Text>
+                  <Text style={styles.surchargeHint}>Weight-based additional charge</Text>
+                </View>
+              </View>
+              <Text style={styles.surchargeAmount}>
+                +₦{surcharge.charge_amount.toFixed(2)}
+              </Text>
+            </View>
+          );
+        })()}
         <View style={styles.totalContainer}>
           <Text style={styles.totalLabel}>Total</Text>
-          <Text style={styles.totalAmount}>₦{calculateTotal().toFixed(2)}</Text>
+          <Text style={styles.totalAmount}>
+            ₦{(calculateTotal() + (getApplicableWeightSurcharge()?.charge_amount ?? 0)).toFixed(2)}
+          </Text>
         </View>
         <TouchableOpacity style={styles.checkoutButton} onPress={handleCheckout}>
           <Text style={styles.checkoutButtonText}>Proceed to Checkout</Text>
@@ -458,6 +514,42 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderWidth: 1,
     borderColor: '#ffedd5',
+  },
+  surchargeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#fffbeb',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#fde68a',
+  },
+  surchargeLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  surchargeLabel: {
+    fontSize: 13,
+    fontFamily: Fonts.spaceSemiBold,
+    color: '#92400e',
+    letterSpacing: -0.1,
+  },
+  surchargeHint: {
+    fontSize: 11,
+    fontFamily: Fonts.spaceRegular,
+    color: '#a16207',
+    marginTop: 1,
+  },
+  surchargeAmount: {
+    fontSize: 14,
+    fontFamily: Fonts.spaceBold,
+    color: '#b45309',
+    letterSpacing: -0.3,
   },
   weightIconWrap: {
     width: 24,
