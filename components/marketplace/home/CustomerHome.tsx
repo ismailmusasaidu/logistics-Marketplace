@@ -214,7 +214,10 @@ export default function CustomerHome() {
         if (error) throw error;
       } else {
         const { error } = await supabase.from('carts')
-          .insert({ user_id: profile.id, product_id: productId, quantity: 1 });
+          .upsert(
+            { user_id: profile.id, product_id: productId, quantity: 1 },
+            { onConflict: 'user_id,product_id', ignoreDuplicates: false }
+          );
         if (error) throw error;
       }
       cartEvents.emit();
