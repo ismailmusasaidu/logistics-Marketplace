@@ -711,15 +711,19 @@ Order ID: ${order.id}
                     )}
                   </View>
 
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Recipient:</Text>
-                    <Text style={styles.infoValue}>{order.recipient_name}</Text>
-                  </View>
+                  {order.recipient_name ? (
+                    <View style={styles.infoRow}>
+                      <Text style={styles.infoLabel}>Recipient:</Text>
+                      <Text style={styles.infoValue}>{order.recipient_name}</Text>
+                    </View>
+                  ) : null}
 
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Phone:</Text>
-                    <Text style={styles.infoValue}>{order.recipient_phone}</Text>
-                  </View>
+                  {order.recipient_phone ? (
+                    <View style={styles.infoRow}>
+                      <Text style={styles.infoLabel}>Phone:</Text>
+                      <Text style={styles.infoValue}>{order.recipient_phone}</Text>
+                    </View>
+                  ) : null}
 
 
                   {order.scheduled_delivery_time && (
@@ -733,10 +737,14 @@ Order ID: ${order.id}
 
                   <Text style={styles.sectionTitle}>PACKAGE INFO</Text>
 
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Description:</Text>
-                  </View>
-                  <Text style={styles.packageDesc}>{order.package_description}</Text>
+                  {order.package_description ? (
+                    <>
+                      <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>Description:</Text>
+                      </View>
+                      <Text style={styles.packageDesc}>{order.package_description}</Text>
+                    </>
+                  ) : null}
 
                   {order.order_size && (
                     <View style={styles.infoRow}>
@@ -853,7 +861,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '700',
     fontFamily: Fonts.bold,
     color: '#111827',
   },
@@ -889,7 +896,6 @@ const styles = StyleSheet.create({
   },
   businessName: {
     fontSize: 18,
-    fontWeight: '700',
     fontFamily: Fonts.poppinsBold,
     textAlign: 'center',
     color: '#111827',
@@ -910,7 +916,6 @@ const styles = StyleSheet.create({
   },
   receiptTitle: {
     fontSize: 14,
-    fontWeight: '700',
     fontFamily: Fonts.poppinsBold,
     textAlign: 'center',
     color: '#111827',
@@ -918,7 +923,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 11,
-    fontWeight: '700',
     fontFamily: Fonts.poppinsBold,
     color: '#111827',
     marginBottom: 6,
@@ -951,7 +955,6 @@ const styles = StyleSheet.create({
   },
   addressLabel: {
     fontSize: 10,
-    fontWeight: '700',
     fontFamily: Fonts.poppinsBold,
     color: '#6b7280',
     marginBottom: 3,
@@ -1000,14 +1003,12 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: 13,
-    fontWeight: '700',
     fontFamily: Fonts.poppinsBold,
     color: '#111827',
     letterSpacing: 0.5,
   },
   totalValue: {
     fontSize: 16,
-    fontWeight: '700',
     fontFamily: Fonts.poppinsBold,
     color: '#f97316',
   },
@@ -1051,7 +1052,6 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: 15,
-    fontWeight: '600',
     fontFamily: Fonts.semiBold,
     color: '#ffffff',
   },
