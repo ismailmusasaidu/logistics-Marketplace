@@ -210,11 +210,13 @@ export default function CartScreen() {
     const totalWeight = calculateTotalWeight();
     if (totalWeight === 0 || !hasAnyWeight) return null;
     return (
-      weightSurchargeTiers.find(
-        (tier) =>
-          totalWeight >= tier.min_weight_kg &&
-          (tier.max_weight_kg == null || totalWeight < tier.max_weight_kg)
-      ) ?? null
+      weightSurchargeTiers.find((tier) => {
+        const min = Number(tier.min_weight_kg);
+        const max = tier.max_weight_kg != null ? Number(tier.max_weight_kg) : null;
+        const charge = Number(tier.charge_amount);
+        if (isNaN(min) || isNaN(charge)) return false;
+        return totalWeight >= min && (max == null || totalWeight < max);
+      }) ?? null
     );
   };
 
@@ -366,7 +368,7 @@ export default function CartScreen() {
                 </View>
               </View>
               <Text style={styles.surchargeAmount}>
-                +₦{surcharge.charge_amount.toFixed(2)}
+                +₦{Number(surcharge.charge_amount).toFixed(2)}
               </Text>
             </View>
           );
@@ -374,7 +376,7 @@ export default function CartScreen() {
         <View style={styles.totalContainer}>
           <Text style={styles.totalLabel}>Total</Text>
           <Text style={styles.totalAmount}>
-            ₦{(calculateTotal() + (getApplicableWeightSurcharge()?.charge_amount ?? 0)).toFixed(2)}
+            ₦{(calculateTotal() + Number(getApplicableWeightSurcharge()?.charge_amount ?? 0)).toFixed(2)}
           </Text>
         </View>
         <TouchableOpacity style={styles.checkoutButton} onPress={handleCheckout}>
