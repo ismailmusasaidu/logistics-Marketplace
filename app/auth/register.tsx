@@ -152,7 +152,7 @@ export default function RegisterScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#ff9a1f', '#ff8c00', '#e67a00']}
+        colors={['#1a1a1a', '#2d1a00', '#3d2200']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.headerGradient, { paddingTop: insets.top + 20 }]}
@@ -170,7 +170,7 @@ export default function RegisterScreen() {
           ]}
         >
           <View style={styles.logoIcon}>
-            <Layers size={28} color="#ff8c00" strokeWidth={2.5} />
+            <Layers size={28} color="#f97316" strokeWidth={2.5} />
           </View>
           <Text style={styles.brandName}>Join Danhausa</Text>
           <Text style={styles.brandTagline}>Create your account</Text>
@@ -219,7 +219,7 @@ export default function RegisterScreen() {
                 >
                   <User
                     size={20}
-                    color={accountType === 'customer' ? '#ffffff' : '#ff8c00'}
+                    color={accountType === 'customer' ? '#ffffff' : '#f97316'}
                     strokeWidth={2}
                   />
                 </View>
@@ -257,7 +257,7 @@ export default function RegisterScreen() {
                 >
                   <Store
                     size={20}
-                    color={accountType === 'vendor' ? '#ffffff' : '#ff8c00'}
+                    color={accountType === 'vendor' ? '#ffffff' : '#f97316'}
                     strokeWidth={2}
                   />
                 </View>
@@ -295,7 +295,7 @@ export default function RegisterScreen() {
                 >
                   <Bike
                     size={20}
-                    color={accountType === 'rider' ? '#ffffff' : '#ff8c00'}
+                    color={accountType === 'rider' ? '#ffffff' : '#f97316'}
                     strokeWidth={2}
                   />
                 </View>
@@ -319,7 +319,7 @@ export default function RegisterScreen() {
             </View>
 
             <View style={styles.sectionHeader}>
-              <User size={16} color="#ff8c00" strokeWidth={2.5} />
+              <User size={16} color="#f97316" strokeWidth={2.5} />
               <Text style={styles.sectionTitle}>Personal Information</Text>
             </View>
 
@@ -412,7 +412,7 @@ export default function RegisterScreen() {
                 <View style={styles.sectionDivider} />
 
                 <View style={styles.sectionHeader}>
-                  <Briefcase size={16} color="#ff8c00" strokeWidth={2.5} />
+                  <Briefcase size={16} color="#f97316" strokeWidth={2.5} />
                   <Text style={styles.sectionTitle}>Business Information</Text>
                 </View>
 
@@ -497,7 +497,7 @@ export default function RegisterScreen() {
               activeOpacity={0.85}
             >
               <LinearGradient
-                colors={loading ? ['#ccc', '#bbb'] : ['#ff9a1f', '#ff7b00']}
+                colors={loading ? ['#ccc', '#bbb'] : ['#f97316', '#e85d04']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.submitGradient}
@@ -549,7 +549,7 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'rgba(249, 115, 22, 0.12)',
     top: -60,
     right: -40,
   },
@@ -558,7 +558,7 @@ const styles = StyleSheet.create({
     width: 140,
     height: 140,
     borderRadius: 70,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: 'rgba(249, 115, 22, 0.08)',
     bottom: -30,
     left: -30,
   },
@@ -652,7 +652,7 @@ const styles = StyleSheet.create({
   },
   accountTypeActive: {
     backgroundColor: '#fff7ed',
-    borderColor: '#ff8c00',
+    borderColor: '#f97316',
   },
   accountTypeIcon: {
     width: 40,
@@ -664,7 +664,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   accountTypeIconActive: {
-    backgroundColor: '#ff8c00',
+    backgroundColor: '#f97316',
   },
   accountTypeText: {
     fontSize: 16,
@@ -763,7 +763,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     overflow: 'hidden',
     marginTop: 8,
-    shadowColor: '#ff8c00',
+    shadowColor: '#f97316',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
@@ -810,7 +810,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
   },
   footerLink: {
-    color: '#ff8c00',
+    color: '#f97316',
     fontSize: 14,
     fontFamily: Fonts.bold,
   },

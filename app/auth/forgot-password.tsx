@@ -84,7 +84,7 @@ export default function ForgotPasswordScreen() {
     return (
       <View style={styles.container}>
         <LinearGradient
-          colors={['#ff9a1f', '#ff8c00', '#e67a00']}
+          colors={['#1a1a1a', '#2d1a00', '#3d2200']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[styles.headerGradient, { paddingTop: insets.top + 24 }]}
@@ -99,7 +99,7 @@ export default function ForgotPasswordScreen() {
             ]}
           >
             <View style={styles.successIconCircle}>
-              <Mail size={40} color="#ff8c00" strokeWidth={2} />
+              <Mail size={40} color="#f97316" strokeWidth={2} />
             </View>
           </Animated.View>
 
@@ -122,7 +122,7 @@ export default function ForgotPasswordScreen() {
         >
           <View style={styles.successCard}>
             <View style={styles.emailSentBadge}>
-              <Mail size={18} color="#ff8c00" strokeWidth={2} />
+              <Mail size={18} color="#f97316" strokeWidth={2} />
               <Text style={styles.emailSentText}>{email}</Text>
             </View>
 
@@ -140,7 +140,7 @@ export default function ForgotPasswordScreen() {
               activeOpacity={0.85}
             >
               <LinearGradient
-                colors={['#ff9a1f', '#ff7b00']}
+                colors={['#f97316', '#e85d04']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.primaryButtonGradient}
@@ -164,7 +164,7 @@ export default function ForgotPasswordScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#ff9a1f', '#ff8c00', '#e67a00']}
+        colors={['#1a1a1a', '#2d1a00', '#3d2200']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.headerGradient}
@@ -187,7 +187,7 @@ export default function ForgotPasswordScreen() {
             ]}
           >
             <View style={styles.headerIconCircle}>
-              <KeyRound size={32} color="#ff8c00" strokeWidth={2} />
+              <KeyRound size={32} color="#f97316" strokeWidth={2} />
             </View>
           </Animated.View>
 
@@ -243,7 +243,7 @@ export default function ForgotPasswordScreen() {
               activeOpacity={0.85}
             >
               <LinearGradient
-                colors={loading ? ['#ccc', '#bbb'] : ['#ff9a1f', '#ff7b00']}
+                colors={loading ? ['#ccc', '#bbb'] : ['#f97316', '#e85d04']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.submitGradient}
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'rgba(249, 115, 22, 0.12)',
     top: -60,
     right: -40,
   },
@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
     width: 140,
     height: 140,
     borderRadius: 70,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: 'rgba(249, 115, 22, 0.08)',
     bottom: -30,
     left: -30,
   },
@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
   submitButton: {
     borderRadius: 14,
     overflow: 'hidden',
-    shadowColor: '#ff8c00',
+    shadowColor: '#f97316',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
@@ -456,7 +456,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
   },
   footerLink: {
-    color: '#ff8c00',
+    color: '#f97316',
     fontSize: 14,
     fontFamily: Fonts.bold,
   },
@@ -529,7 +529,7 @@ const styles = StyleSheet.create({
     width: '100%',
     borderRadius: 14,
     overflow: 'hidden',
-    shadowColor: '#ff8c00',
+    shadowColor: '#f97316',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 8,
