@@ -617,8 +617,8 @@ export default function CustomerHome() {
         <View style={styles.headerLeft}>
           {locationAddress ? (
             <View style={styles.locationChip}>
-              <MapPin size={12} color="#f97316" />
-              <Text style={styles.locationText} numberOfLines={1}>{locationAddress}</Text>
+              <MapPin size={12} color="#f97316" style={{ flexShrink: 0 }} />
+              <Text style={styles.locationText}>{locationAddress}</Text>
             </View>
           ) : locationPermissionDenied ? (
             <Text style={styles.subGreeting}>Track your deliveries</Text>
@@ -1241,15 +1241,15 @@ const styles = StyleSheet.create({
   },
   locationChip: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 4,
-    maxWidth: 200,
   },
   locationText: {
     fontSize: 13,
     fontFamily: Fonts.poppinsRegular,
     color: '#f97316',
     flex: 1,
+    flexWrap: 'wrap',
   },
   addButton: {
     backgroundColor: '#f97316',
