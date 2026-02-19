@@ -7,9 +7,11 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
+  Modal,
+  ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Trash2, Plus, Minus, ShoppingBag, Scale } from 'lucide-react-native';
+import { Trash2, Plus, Minus, ShoppingBag, Scale, RotateCcw, X, ShieldCheck, Clock, AlertCircle } from 'lucide-react-native';
 import { supabase } from '@/lib/marketplace/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { cartEvents } from '@/lib/marketplace/cartEvents';
@@ -30,6 +32,7 @@ interface CartItemWithProduct {
     image_url: string;
     vendor_id: string;
     weight_kg: number | null;
+    return_policy: string | null;
   };
 }
 
@@ -50,6 +53,7 @@ export default function CartScreen() {
   const [showProductDetail, setShowProductDetail] = useState(false);
   const suppressRealtimeRef = useRef(false);
   const [weightSurchargeTiers, setWeightSurchargeTiers] = useState<WeightSurchargeTier[]>([]);
+  const [returnPolicyProduct, setReturnPolicyProduct] = useState<{ name: string; policy: string } | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -107,7 +111,8 @@ export default function CartScreen() {
             unit,
             image_url,
             vendor_id,
-            weight_kg
+            weight_kg,
+            return_policy
           )
         `
         )
@@ -305,26 +310,40 @@ export default function CartScreen() {
                     </Text>
                   </View>
                 )}
-                <View style={styles.quantityContainer}>
-                  <TouchableOpacity
-                    style={styles.quantityButton}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      updateQuantity(item.id, item.quantity - 1);
-                    }}
-                  >
-                    <Minus size={16} color="#6b7280" />
-                  </TouchableOpacity>
-                  <Text style={styles.quantity}>{item.quantity}</Text>
-                  <TouchableOpacity
-                    style={styles.quantityButton}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      updateQuantity(item.id, item.quantity + 1);
-                    }}
-                  >
-                    <Plus size={16} color="#6b7280" />
-                  </TouchableOpacity>
+                <View style={styles.itemBottomRow}>
+                  <View style={styles.quantityContainer}>
+                    <TouchableOpacity
+                      style={styles.quantityButton}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        updateQuantity(item.id, item.quantity - 1);
+                      }}
+                    >
+                      <Minus size={16} color="#6b7280" />
+                    </TouchableOpacity>
+                    <Text style={styles.quantity}>{item.quantity}</Text>
+                    <TouchableOpacity
+                      style={styles.quantityButton}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        updateQuantity(item.id, item.quantity + 1);
+                      }}
+                    >
+                      <Plus size={16} color="#6b7280" />
+                    </TouchableOpacity>
+                  </View>
+                  {item.product.return_policy ? (
+                    <TouchableOpacity
+                      style={styles.returnPolicyBtn}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        setReturnPolicyProduct({ name: item.product.name, policy: item.product.return_policy! });
+                      }}
+                    >
+                      <RotateCcw size={11} color="#059669" strokeWidth={2.2} />
+                      <Text style={styles.returnPolicyBtnText}>Return Policy</Text>
+                    </TouchableOpacity>
+                  ) : null}
                 </View>
               </View>
               <TouchableOpacity
@@ -392,6 +411,57 @@ export default function CartScreen() {
           setSelectedProduct(null);
         }}
       />
+
+      <Modal
+        visible={!!returnPolicyProduct}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setReturnPolicyProduct(null)}
+      >
+        <View style={styles.rpOverlay}>
+          <TouchableOpacity style={styles.rpBackdrop} onPress={() => setReturnPolicyProduct(null)} />
+          <View style={[styles.rpSheet, { paddingBottom: insets.bottom + 24 }]}>
+            <View style={styles.rpHandle} />
+
+            <View style={styles.rpHeader}>
+              <View style={styles.rpHeaderLeft}>
+                <View style={styles.rpIconWrap}>
+                  <ShieldCheck size={22} color="#059669" strokeWidth={2} />
+                </View>
+                <View>
+                  <Text style={styles.rpTitle}>Return Policy</Text>
+                  <Text style={styles.rpProductName} numberOfLines={1}>{returnPolicyProduct?.name}</Text>
+                </View>
+              </View>
+              <TouchableOpacity style={styles.rpCloseBtn} onPress={() => setReturnPolicyProduct(null)}>
+                <X size={18} color="#64748b" strokeWidth={2} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.rpBody} showsVerticalScrollIndicator={false}>
+              <View style={styles.rpNotice}>
+                <AlertCircle size={14} color="#0369a1" strokeWidth={2} />
+                <Text style={styles.rpNoticeText}>
+                  Please read this policy carefully before making a purchase.
+                </Text>
+              </View>
+
+              <Text style={styles.rpPolicyText}>{returnPolicyProduct?.policy}</Text>
+
+              <View style={styles.rpFooterNote}>
+                <Clock size={13} color="#94a3b8" strokeWidth={2} />
+                <Text style={styles.rpFooterNoteText}>
+                  Contact the vendor or support team to initiate a return.
+                </Text>
+              </View>
+            </ScrollView>
+
+            <TouchableOpacity style={styles.rpDoneBtn} onPress={() => setReturnPolicyProduct(null)}>
+              <Text style={styles.rpDoneBtnText}>Got it</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -666,5 +736,158 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: Fonts.spaceBold,
     letterSpacing: 0.3,
+  },
+  itemBottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+    gap: 8,
+  },
+  returnPolicyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#f0fdf4',
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  returnPolicyBtnText: {
+    fontSize: 10,
+    fontFamily: Fonts.spaceSemiBold,
+    color: '#059669',
+    letterSpacing: 0.1,
+  },
+  rpOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  rpBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  rpSheet: {
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 20,
+    paddingTop: 0,
+    maxHeight: '75%',
+  },
+  rpHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#e2e8f0',
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 16,
+  },
+  rpHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  rpHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+    marginRight: 8,
+  },
+  rpIconWrap: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: '#f0fdf4',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+  },
+  rpTitle: {
+    fontSize: 17,
+    fontFamily: Fonts.spaceBold,
+    color: '#1e293b',
+    letterSpacing: -0.3,
+  },
+  rpProductName: {
+    fontSize: 12,
+    fontFamily: Fonts.spaceMedium,
+    color: '#64748b',
+    marginTop: 1,
+  },
+  rpCloseBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: '#f8f9fb',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rpBody: {
+    marginBottom: 16,
+  },
+  rpNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#eff6ff',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+  },
+  rpNoticeText: {
+    flex: 1,
+    fontSize: 12,
+    fontFamily: Fonts.spaceMedium,
+    color: '#1d4ed8',
+    lineHeight: 18,
+  },
+  rpPolicyText: {
+    fontSize: 14,
+    fontFamily: Fonts.spaceRegular,
+    color: '#334155',
+    lineHeight: 24,
+    letterSpacing: 0.1,
+  },
+  rpFooterNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 20,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+    marginBottom: 4,
+  },
+  rpFooterNoteText: {
+    fontSize: 12,
+    fontFamily: Fonts.spaceMedium,
+    color: '#94a3b8',
+    flex: 1,
+    lineHeight: 17,
+  },
+  rpDoneBtn: {
+    backgroundColor: '#ff8c00',
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    shadowColor: '#ff8c00',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  rpDoneBtnText: {
+    fontSize: 15,
+    fontFamily: Fonts.spaceBold,
+    color: '#ffffff',
+    letterSpacing: 0.2,
   },
 });
