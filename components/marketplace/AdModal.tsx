@@ -11,6 +11,7 @@ import {
   Animated,
   Platform,
   Clipboard,
+  ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -21,7 +22,7 @@ import { Fonts } from '@/constants/fonts';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Advert, AdvertType } from '@/types/database';
 
-const { height } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 interface AdModalProps {
   visible: boolean;
@@ -33,7 +34,7 @@ const TYPE_CONFIG: Record<AdvertType, { icon: any; label: string; gradientColors
   promo:          { icon: Tag,        label: 'Promo',         gradientColors: ['#f97316', '#ea580c'], accentColor: '#f97316' },
   flash_sale:     { icon: Zap,        label: 'Flash Sale',    gradientColors: ['#ef4444', '#dc2626'], accentColor: '#ef4444' },
   announcement:   { icon: Megaphone,  label: 'Announcement',  gradientColors: ['#3b82f6', '#2563eb'], accentColor: '#3b82f6' },
-  coupon:         { icon: Percent,    label: 'Coupon',        gradientColors: ['#8b5cf6', '#7c3aed'], accentColor: '#8b5cf6' },
+  coupon:         { icon: Percent,    label: 'Coupon',        gradientColors: ['#f59e0b', '#d97706'], accentColor: '#f59e0b' },
   new_arrival:    { icon: PackagePlus,label: 'New Arrival',   gradientColors: ['#10b981', '#059669'], accentColor: '#10b981' },
   featured_brand: { icon: Star,       label: 'Featured',      gradientColors: ['#f59e0b', '#d97706'], accentColor: '#f59e0b' },
 };
@@ -53,8 +54,7 @@ function formatCountdown(endDate: string): { text: string; urgent: boolean } {
 
 export default function AdModal({ visible, advert, onClose }: AdModalProps) {
   const insets = useSafeAreaInsets();
-  const scaleAnim = useRef(new Animated.Value(0.88)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
+  const slideAnim = useRef(new Animated.Value(height)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const shimmerAnim = useRef(new Animated.Value(0)).current;
@@ -64,12 +64,10 @@ export default function AdModal({ visible, advert, onClose }: AdModalProps) {
   useEffect(() => {
     if (visible) {
       opacityAnim.setValue(0);
-      scaleAnim.setValue(0.88);
-      slideAnim.setValue(30);
+      slideAnim.setValue(height);
       Animated.parallel([
-        Animated.timing(opacityAnim, { toValue: 1, duration: 220, useNativeDriver: true }),
-        Animated.spring(scaleAnim, { toValue: 1, tension: 55, friction: 7, useNativeDriver: true }),
-        Animated.spring(slideAnim, { toValue: 0, tension: 55, friction: 7, useNativeDriver: true }),
+        Animated.timing(opacityAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+        Animated.spring(slideAnim, { toValue: 0, tension: 50, friction: 9, useNativeDriver: true }),
       ]).start();
       Animated.loop(
         Animated.sequence([
@@ -134,125 +132,132 @@ export default function AdModal({ visible, advert, onClose }: AdModalProps) {
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
       <Animated.View style={[styles.overlay, { opacity: opacityAnim }]}>
-        <Animated.View
-          style={[
-            styles.sheet,
-            { paddingBottom: insets.bottom + 16 },
-            { transform: [{ scale: scaleAnim }, { translateY: slideAnim }] },
-          ]}
-        >
+        <Animated.View style={[styles.fullScreen, { transform: [{ translateY: slideAnim }] }]}>
+
           <LinearGradient
             colors={[bgStart, bgEnd]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={styles.heroGradient}
+            style={StyleSheet.absoluteFillObject}
+          />
+
+          {advert.image_url && (
+            <Image source={{ uri: advert.image_url }} style={styles.bgImage} resizeMode="cover" />
+          )}
+
+          <LinearGradient
+            colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0)', 'rgba(0,0,0,0.75)']}
+            style={StyleSheet.absoluteFillObject}
+          />
+
+          <TouchableOpacity
+            style={[styles.closeBtn, { top: insets.top + 12 }]}
+            onPress={onClose}
+            hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
           >
-            {advert.image_url ? (
-              <>
-                <Image source={{ uri: advert.image_url }} style={styles.heroImage} resizeMode="cover" />
-                <LinearGradient
-                  colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.5)']}
-                  style={StyleSheet.absoluteFillObject}
-                />
-              </>
-            ) : (
-              <View style={styles.heroIconWrap}>
-                <Animated.View style={{ opacity: shimmerOpacity }}>
-                  <TypeIcon size={64} color="rgba(255,255,255,0.9)" strokeWidth={1.5} />
-                </Animated.View>
+            <View style={styles.closeBtnInner}>
+              <X size={20} color="#fff" strokeWidth={2.5} />
+            </View>
+          </TouchableOpacity>
+
+          <View style={[styles.topBadgeRow, { top: insets.top + 12 }]}>
+            <View style={styles.typeBadge}>
+              <TypeIcon size={12} color="#fff" />
+              <Text style={styles.typeBadgeText}>{cfg.label}</Text>
+            </View>
+            {advert.discount_percent != null && advert.discount_percent > 0 && (
+              <View style={styles.discountBadge}>
+                <Text style={styles.discountBadgeText}>-{advert.discount_percent}%</Text>
               </View>
             )}
+          </View>
 
-            <View style={styles.heroBadgeRow}>
-              <View style={[styles.typeBadge, { backgroundColor: 'rgba(0,0,0,0.35)' }]}>
-                <TypeIcon size={12} color="#fff" />
-                <Text style={styles.typeBadgeText}>{cfg.label}</Text>
-              </View>
-              {advert.discount_percent != null && advert.discount_percent > 0 && (
-                <View style={styles.discountBadge}>
-                  <Text style={styles.discountBadgeText}>-{advert.discount_percent}%</Text>
+          {!advert.image_url && (
+            <View style={styles.centerIconWrap}>
+              <Animated.View style={{ opacity: shimmerOpacity }}>
+                <TypeIcon size={96} color="rgba(255,255,255,0.85)" strokeWidth={1.2} />
+              </Animated.View>
+            </View>
+          )}
+
+          <View style={[styles.bottomSheet, { paddingBottom: insets.bottom + 24 }]}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              bounces={false}
+              contentContainerStyle={styles.scrollContent}
+            >
+              <Text style={styles.title}>{advert.title}</Text>
+              {advert.description ? (
+                <Text style={styles.description}>{advert.description}</Text>
+              ) : null}
+
+              {advert.countdown_end && countdown && (
+                <View style={[styles.countdownRow, countdown.urgent && styles.countdownUrgent]}>
+                  <Clock size={15} color={countdown.urgent ? '#ef4444' : '#f97316'} />
+                  <Text style={[styles.countdownText, countdown.urgent && styles.countdownTextUrgent]}>
+                    {countdown.text}
+                  </Text>
+                  <Animated.View style={{ opacity: shimmerOpacity }}>
+                    <Sparkles size={13} color={countdown.urgent ? '#ef4444' : '#f97316'} />
+                  </Animated.View>
                 </View>
               )}
-            </View>
 
-            <TouchableOpacity style={styles.closeBtn} onPress={onClose} hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}>
-              <View style={styles.closeBtnInner}>
-                <X size={18} color="#fff" strokeWidth={2.5} />
-              </View>
-            </TouchableOpacity>
-          </LinearGradient>
-
-          <View style={styles.body}>
-            <Text style={styles.title} numberOfLines={2}>{advert.title}</Text>
-            {advert.description ? (
-              <Text style={styles.description} numberOfLines={3}>{advert.description}</Text>
-            ) : null}
-
-            {advert.countdown_end && countdown && (
-              <View style={[styles.countdownRow, countdown.urgent && styles.countdownUrgent]}>
-                <Clock size={14} color={countdown.urgent ? '#ef4444' : '#f97316'} />
-                <Text style={[styles.countdownText, countdown.urgent && styles.countdownTextUrgent]}>
-                  {countdown.text}
-                </Text>
-                <Animated.View style={{ opacity: shimmerOpacity }}>
-                  <Sparkles size={12} color={countdown.urgent ? '#ef4444' : '#f97316'} />
-                </Animated.View>
-              </View>
-            )}
-
-            {advert.original_price != null && advert.promo_price != null && (
-              <View style={styles.priceRow}>
-                <Text style={styles.promoPrice}>₦{advert.promo_price.toLocaleString()}</Text>
-                <Text style={styles.originalPrice}>₦{advert.original_price.toLocaleString()}</Text>
-                {advert.discount_percent != null && advert.discount_percent > 0 && (
-                  <View style={styles.saveBadge}>
-                    <Text style={styles.saveBadgeText}>Save {advert.discount_percent}%</Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {advert.coupon_code && (
-              <TouchableOpacity style={styles.couponRow} onPress={handleCopyCode} activeOpacity={0.8}>
-                <View style={styles.couponLeft}>
-                  <Text style={styles.couponLabel}>
-                    {advert.coupon_discount ? `${advert.coupon_discount} off` : 'Coupon Code'}
-                  </Text>
-                  <Text style={styles.couponCode}>{advert.coupon_code}</Text>
+              {advert.original_price != null && advert.promo_price != null && (
+                <View style={styles.priceRow}>
+                  <Text style={styles.promoPrice}>₦{advert.promo_price.toLocaleString()}</Text>
+                  <Text style={styles.originalPrice}>₦{advert.original_price.toLocaleString()}</Text>
+                  {advert.discount_percent != null && advert.discount_percent > 0 && (
+                    <View style={styles.saveBadge}>
+                      <Text style={styles.saveBadgeText}>Save {advert.discount_percent}%</Text>
+                    </View>
+                  )}
                 </View>
-                <View style={[styles.copyBtn, copiedCode && styles.copyBtnDone]}>
-                  {copiedCode
-                    ? <Check size={15} color="#fff" strokeWidth={2.5} />
-                    : <Copy size={15} color="#fff" strokeWidth={2} />}
-                  <Text style={styles.copyBtnText}>{copiedCode ? 'Copied!' : 'Copy'}</Text>
-                </View>
-              </TouchableOpacity>
-            )}
+              )}
 
-            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-              <TouchableOpacity onPress={handleAction} activeOpacity={0.85}>
-                <LinearGradient
-                  colors={[bgStart, bgEnd]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.ctaBtn}
-                >
-                  <Text style={styles.ctaBtnText}>{advert.action_text || 'Shop Now'}</Text>
-                  <View style={styles.ctaArrow}>
-                    <ArrowRight size={16} color={bgStart} strokeWidth={2.5} />
+              {advert.coupon_code && (
+                <TouchableOpacity style={styles.couponRow} onPress={handleCopyCode} activeOpacity={0.8}>
+                  <View style={styles.couponLeft}>
+                    <Text style={styles.couponLabel}>
+                      {advert.coupon_discount ? `${advert.coupon_discount} off` : 'Coupon Code'}
+                    </Text>
+                    <Text style={styles.couponCode}>{advert.coupon_code}</Text>
                   </View>
-                </LinearGradient>
+                  <View style={[styles.copyBtn, copiedCode && styles.copyBtnDone]}>
+                    {copiedCode
+                      ? <Check size={15} color="#fff" strokeWidth={2.5} />
+                      : <Copy size={15} color="#fff" strokeWidth={2} />}
+                    <Text style={styles.copyBtnText}>{copiedCode ? 'Copied!' : 'Copy'}</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+
+              <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+                <TouchableOpacity onPress={handleAction} activeOpacity={0.85}>
+                  <LinearGradient
+                    colors={[bgStart, bgEnd]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.ctaBtn}
+                  >
+                    <Text style={styles.ctaBtnText}>{advert.action_text || 'Shop Now'}</Text>
+                    <View style={styles.ctaArrow}>
+                      <ArrowRight size={17} color={bgStart} strokeWidth={2.5} />
+                    </View>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </Animated.View>
+
+              <TouchableOpacity style={styles.dismissBtn} onPress={onClose}>
+                <Text style={styles.dismissText}>Maybe Later</Text>
               </TouchableOpacity>
-            </Animated.View>
 
-            <TouchableOpacity style={styles.dismissBtn} onPress={onClose}>
-              <Text style={styles.dismissText}>Maybe Later</Text>
-            </TouchableOpacity>
-
-            {advert.terms_text ? (
-              <Text style={styles.termsText}>{advert.terms_text}</Text>
-            ) : null}
+              {advert.terms_text ? (
+                <Text style={styles.termsText}>{advert.terms_text}</Text>
+              ) : null}
+            </ScrollView>
           </View>
+
         </Animated.View>
       </Animated.View>
     </Modal>
@@ -262,48 +267,46 @@ export default function AdModal({ visible, advert, onClose }: AdModalProps) {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.62)',
-    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.7)',
   },
-  sheet: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    overflow: 'hidden',
-    ...(Platform.OS === 'web'
-      ? { boxShadow: '0 -8px 40px rgba(0,0,0,0.22)' } as any
-      : { shadowColor: '#000', shadowOffset: { width: 0, height: -6 }, shadowOpacity: 0.18, shadowRadius: 24, elevation: 20 }),
+  fullScreen: {
+    flex: 1,
+    width,
+    height,
   },
-  heroGradient: {
-    height: height * 0.28,
-    justifyContent: 'space-between',
-    padding: 16,
-  },
-  heroImage: {
+  bgImage: {
     ...StyleSheet.absoluteFillObject,
     width: '100%',
     height: '100%',
   },
-  heroIconWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+  closeBtn: {
+    position: 'absolute',
+    right: 16,
+    zIndex: 20,
   },
-  heroBadgeRow: {
+  closeBtnInner: {
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderRadius: 22,
+    padding: 9,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  topBadgeRow: {
+    position: 'absolute',
+    left: 16,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    position: 'absolute',
-    bottom: 14,
-    left: 16,
+    zIndex: 20,
   },
   typeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.38)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.25)',
   },
@@ -311,13 +314,13 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: Fonts.bold,
     color: '#fff',
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
     textTransform: 'uppercase',
   },
   discountBadge: {
     backgroundColor: '#ef4444',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
     borderRadius: 20,
   },
   discountBadgeText: {
@@ -326,43 +329,50 @@ const styles = StyleSheet.create({
     color: '#fff',
     letterSpacing: 0.3,
   },
-  closeBtn: {
+  centerIconWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 220,
+  },
+  bottomSheet: {
     position: 'absolute',
-    top: 14,
-    right: 14,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    maxHeight: height * 0.52,
+    ...(Platform.OS === 'web'
+      ? { boxShadow: '0 -8px 40px rgba(0,0,0,0.25)' } as any
+      : { shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.2, shadowRadius: 20, elevation: 24 }),
   },
-  closeBtnInner: {
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    borderRadius: 20,
-    padding: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  body: {
-    padding: 20,
-    gap: 12,
+  scrollContent: {
+    padding: 24,
+    gap: 14,
   },
   title: {
-    fontSize: 22,
+    fontSize: 24,
     fontFamily: Fonts.bold,
     color: '#111827',
-    letterSpacing: -0.3,
-    lineHeight: 28,
+    letterSpacing: -0.4,
+    lineHeight: 30,
   },
   description: {
     fontSize: 14,
     fontFamily: Fonts.regular,
     color: '#6b7280',
-    lineHeight: 21,
+    lineHeight: 22,
   },
   countdownRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
+    gap: 8,
     backgroundColor: '#fff7ed',
     paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 12,
+    paddingVertical: 10,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: '#fed7aa',
   },
@@ -383,9 +393,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+    flexWrap: 'wrap',
   },
   promoPrice: {
-    fontSize: 24,
+    fontSize: 26,
     fontFamily: Fonts.bold,
     color: '#ef4444',
     letterSpacing: -0.5,
@@ -398,8 +409,8 @@ const styles = StyleSheet.create({
   },
   saveBadge: {
     backgroundColor: '#fef3c7',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
     borderRadius: 8,
   },
   saveBadgeText: {
@@ -430,7 +441,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   couponCode: {
-    fontSize: 18,
+    fontSize: 19,
     fontFamily: Fonts.bold,
     color: '#111827',
     letterSpacing: 1.5,
@@ -441,7 +452,7 @@ const styles = StyleSheet.create({
     gap: 5,
     backgroundColor: '#374151',
     paddingHorizontal: 14,
-    paddingVertical: 9,
+    paddingVertical: 10,
     borderRadius: 10,
   },
   copyBtnDone: {
@@ -456,20 +467,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: 16,
+    paddingVertical: 17,
+    borderRadius: 18,
     gap: 10,
   },
   ctaBtnText: {
-    fontSize: 16,
+    fontSize: 17,
     fontFamily: Fonts.bold,
     color: '#fff',
     letterSpacing: 0.3,
   },
   ctaArrow: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: 'rgba(255,255,255,0.9)',
     alignItems: 'center',
     justifyContent: 'center',
