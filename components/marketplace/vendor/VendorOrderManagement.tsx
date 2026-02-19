@@ -89,6 +89,8 @@ export default function VendorOrderManagement({ onBack }: VendorOrderManagementP
   const [showReceipt, setShowReceipt] = useState(false);
   const [receiptOrder, setReceiptOrder] = useState<Order | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItemWithProduct[]>([]);
+  const [selectedOrderItems, setSelectedOrderItems] = useState<OrderItemWithProduct[]>([]);
+  const [loadingItems, setLoadingItems] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -201,6 +203,21 @@ export default function VendorOrderManagement({ onBack }: VendorOrderManagementP
     }
   };
 
+  const fetchSelectedOrderItems = async (orderId: string) => {
+    try {
+      setLoadingItems(true);
+      const { data, error } = await supabase
+        .from('order_items')
+        .select('*, products(*)')
+        .eq('order_id', orderId);
+      if (!error) setSelectedOrderItems((data as OrderItemWithProduct[]) || []);
+    } catch {
+      setSelectedOrderItems([]);
+    } finally {
+      setLoadingItems(false);
+    }
+  };
+
   const handleViewReceipt = async (order: Order) => {
     try {
       const { data, error } = await supabase
@@ -257,7 +274,11 @@ export default function VendorOrderManagement({ onBack }: VendorOrderManagementP
     return (
       <Pressable
         style={({ pressed }) => [styles.orderCard, pressed && styles.orderCardPressed]}
-        onPress={() => setSelectedOrder(item)}
+        onPress={() => {
+          setSelectedOrder(item);
+          setSelectedOrderItems([]);
+          fetchSelectedOrderItems(item.id);
+        }}
       >
         <View style={styles.orderCardTop}>
           <View style={styles.orderIdRow}>
@@ -442,9 +463,9 @@ export default function VendorOrderManagement({ onBack }: VendorOrderManagementP
         visible={!!selectedOrder && !showStatusModal}
         transparent
         animationType="slide"
-        onRequestClose={() => setSelectedOrder(null)}
+        onRequestClose={() => { setSelectedOrder(null); setSelectedOrderItems([]); }}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setSelectedOrder(null)}>
+        <Pressable style={styles.modalOverlay} onPress={() => { setSelectedOrder(null); setSelectedOrderItems([]); }}>
           <Pressable style={styles.detailsModalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHandle} />
             <View style={styles.detailsHeader}>
@@ -459,7 +480,7 @@ export default function VendorOrderManagement({ onBack }: VendorOrderManagementP
                 >
                   <Receipt size={18} color="#1a1a1a" />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => setSelectedOrder(null)}>
+                <TouchableOpacity onPress={() => { setSelectedOrder(null); setSelectedOrderItems([]); }}>
                   <X size={22} color="#78716c" />
                 </TouchableOpacity>
               </View>
@@ -534,6 +555,38 @@ export default function VendorOrderManagement({ onBack }: VendorOrderManagementP
                         <Text style={styles.detailLabel}>Address</Text>
                         <Text style={[styles.detailValue, { maxWidth: '60%', textAlign: 'right' }]}>{selectedOrder.delivery_address}</Text>
                       </View>
+                    )}
+                  </View>
+                </View>
+
+                <View style={styles.detailSection}>
+                  <View style={styles.detailSectionHeader}>
+                    <Package size={16} color="#78716c" />
+                    <Text style={styles.detailSectionTitle}>Order Items</Text>
+                  </View>
+                  <View style={styles.detailCard}>
+                    {loadingItems ? (
+                      <ActivityIndicator size="small" color="#ff8c00" style={{ paddingVertical: 10 }} />
+                    ) : selectedOrderItems.length === 0 ? (
+                      <Text style={styles.noItemsText}>No items found</Text>
+                    ) : (
+                      selectedOrderItems.map((item, index) => (
+                        <View
+                          key={item.id}
+                          style={[
+                            styles.itemRow,
+                            index < selectedOrderItems.length - 1 && styles.itemRowBorder,
+                          ]}
+                        >
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.itemName}>{item.products?.name || 'Product'}</Text>
+                            <Text style={styles.itemQty}>Qty: {item.quantity} × ₦{Number(item.unit_price).toLocaleString()}</Text>
+                          </View>
+                          <Text style={styles.itemTotal}>
+                            ₦{(Number(item.unit_price) * item.quantity).toLocaleString()}
+                          </Text>
+                        </View>
+                      ))
                     )}
                   </View>
                 </View>
@@ -1014,5 +1067,39 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontFamily: Fonts.groteskBold,
     color: '#1a1a1a',
+  },
+  itemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingVertical: 10,
+    gap: 8,
+  },
+  itemRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#ede8e0',
+  },
+  itemName: {
+    fontSize: 14,
+    fontFamily: Fonts.groteskSemiBold,
+    color: '#1a1a1a',
+    marginBottom: 2,
+  },
+  itemQty: {
+    fontSize: 12,
+    fontFamily: Fonts.grotesk,
+    color: '#a8a29e',
+  },
+  itemTotal: {
+    fontSize: 14,
+    fontFamily: Fonts.groteskBold,
+    color: '#ff8c00',
+  },
+  noItemsText: {
+    fontSize: 13,
+    fontFamily: Fonts.grotesk,
+    color: '#a8a29e',
+    textAlign: 'center',
+    paddingVertical: 12,
   },
 });
