@@ -282,81 +282,71 @@ export default function CartScreen() {
         data={cartItems}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        renderItem={({ item, index }) => (
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => handleViewProduct(item.product_id)}
-          >
-            <View style={styles.cartItem}>
+        renderItem={({ item }) => (
+          <View style={styles.cartItem}>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => handleViewProduct(item.product_id)}
+            >
               <Image
                 source={{
                   uri: item.product.image_url || 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg',
                 }}
                 style={styles.itemImage}
               />
-              <View style={styles.itemInfo}>
+            </TouchableOpacity>
+            <View style={styles.itemInfo}>
+              <TouchableOpacity activeOpacity={0.7} onPress={() => handleViewProduct(item.product_id)}>
                 <Text style={styles.itemName}>{item.product.name}</Text>
                 <Text style={styles.itemPrice}>
                   ₦{item.product.price.toFixed(2)} / {item.product.unit}
                 </Text>
-                {item.product.weight_kg != null && (
-                  <View style={styles.itemWeightRow}>
-                    <Scale size={11} color="#9ca3af" strokeWidth={2} />
-                    <Text style={styles.itemWeightText}>
-                      {(item.product.weight_kg * item.quantity).toFixed(3)} kg
-                      {item.quantity > 1 && (
-                        <Text style={styles.itemWeightUnit}> ({item.product.weight_kg} kg each)</Text>
-                      )}
-                    </Text>
-                  </View>
-                )}
-                <View style={styles.itemBottomRow}>
-                  <View style={styles.quantityContainer}>
-                    <TouchableOpacity
-                      style={styles.quantityButton}
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        updateQuantity(item.id, item.quantity - 1);
-                      }}
-                    >
-                      <Minus size={16} color="#6b7280" />
-                    </TouchableOpacity>
-                    <Text style={styles.quantity}>{item.quantity}</Text>
-                    <TouchableOpacity
-                      style={styles.quantityButton}
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        updateQuantity(item.id, item.quantity + 1);
-                      }}
-                    >
-                      <Plus size={16} color="#6b7280" />
-                    </TouchableOpacity>
-                  </View>
-                  {item.product.return_policy ? (
-                    <TouchableOpacity
-                      style={styles.returnPolicyBtn}
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        setReturnPolicyProduct({ name: item.product.name, policy: item.product.return_policy! });
-                      }}
-                    >
-                      <RotateCcw size={11} color="#059669" strokeWidth={2.2} />
-                      <Text style={styles.returnPolicyBtnText}>Return Policy</Text>
-                    </TouchableOpacity>
-                  ) : null}
-                </View>
-              </View>
-              <TouchableOpacity
-                style={styles.deleteButton}
-                onPress={(e) => {
-                  e.stopPropagation();
-                  removeItem(item.id);
-                }}
-              >
-                <Trash2 size={20} color="#ef4444" />
               </TouchableOpacity>
+              {item.product.weight_kg != null && (
+                <View style={styles.itemWeightRow}>
+                  <Scale size={11} color="#9ca3af" strokeWidth={2} />
+                  <Text style={styles.itemWeightText}>
+                    {(item.product.weight_kg * item.quantity).toFixed(3)} kg
+                    {item.quantity > 1 && (
+                      <Text style={styles.itemWeightUnit}> ({item.product.weight_kg} kg each)</Text>
+                    )}
+                  </Text>
+                </View>
+              )}
+              <View style={styles.itemBottomRow}>
+                <View style={styles.quantityContainer}>
+                  <TouchableOpacity
+                    style={styles.quantityButton}
+                    onPress={() => updateQuantity(item.id, item.quantity - 1)}
+                  >
+                    <Minus size={16} color="#6b7280" />
+                  </TouchableOpacity>
+                  <Text style={styles.quantity}>{item.quantity}</Text>
+                  <TouchableOpacity
+                    style={styles.quantityButton}
+                    onPress={() => updateQuantity(item.id, item.quantity + 1)}
+                  >
+                    <Plus size={16} color="#6b7280" />
+                  </TouchableOpacity>
+                </View>
+                {item.product.return_policy ? (
+                  <TouchableOpacity
+                    style={styles.returnPolicyBtn}
+                    onPress={() => setReturnPolicyProduct({ name: item.product.name, policy: item.product.return_policy! })}
+                  >
+                    <RotateCcw size={11} color="#059669" strokeWidth={2.2} />
+                    <Text style={styles.returnPolicyBtnText}>Return Policy</Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
             </View>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={() => removeItem(item.id)}
+            >
+              <Trash2 size={20} color="#ef4444" />
+            </TouchableOpacity>
+          </View>
         )}
       />
 
