@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Modal,
   View,
@@ -10,28 +10,18 @@ import {
   Dimensions,
   Animated,
   Platform,
-  Alert,
-  ScrollView,
+  Clipboard,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { X, Sparkles, Star, TrendingUp, Gift, Zap } from 'lucide-react-native';
+import {
+  X, Zap, Tag, Megaphone, PackagePlus, Star, Sparkles,
+  Clock, Copy, Check, ArrowRight, Percent,
+} from 'lucide-react-native';
 import { Fonts } from '@/constants/fonts';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Advert, AdvertType } from '@/types/database';
 
-const { width, height } = Dimensions.get('window');
-
-interface Advert {
-  id: string;
-  title: string;
-  description: string;
-  image_url?: string;
-  action_text?: string;
-  action_url?: string;
-  hot_deal_text?: string;
-  featured_text?: string;
-  trending_text?: string;
-  limited_offer_text?: string;
-}
+const { height } = Dimensions.get('window');
 
 interface AdModalProps {
   visible: boolean;
@@ -39,258 +29,229 @@ interface AdModalProps {
   onClose: () => void;
 }
 
+const TYPE_CONFIG: Record<AdvertType, { icon: any; label: string; gradientColors: [string, string]; accentColor: string }> = {
+  promo:          { icon: Tag,        label: 'Promo',         gradientColors: ['#f97316', '#ea580c'], accentColor: '#f97316' },
+  flash_sale:     { icon: Zap,        label: 'Flash Sale',    gradientColors: ['#ef4444', '#dc2626'], accentColor: '#ef4444' },
+  announcement:   { icon: Megaphone,  label: 'Announcement',  gradientColors: ['#3b82f6', '#2563eb'], accentColor: '#3b82f6' },
+  coupon:         { icon: Percent,    label: 'Coupon',        gradientColors: ['#8b5cf6', '#7c3aed'], accentColor: '#8b5cf6' },
+  new_arrival:    { icon: PackagePlus,label: 'New Arrival',   gradientColors: ['#10b981', '#059669'], accentColor: '#10b981' },
+  featured_brand: { icon: Star,       label: 'Featured',      gradientColors: ['#f59e0b', '#d97706'], accentColor: '#f59e0b' },
+};
+
+function formatCountdown(endDate: string): { text: string; urgent: boolean } {
+  const diff = new Date(endDate).getTime() - Date.now();
+  if (diff <= 0) return { text: 'Ended', urgent: false };
+  const h = Math.floor(diff / 3_600_000);
+  const m = Math.floor((diff % 3_600_000) / 60_000);
+  const s = Math.floor((diff % 60_000) / 1_000);
+  if (h > 24) {
+    const d = Math.floor(h / 24);
+    return { text: `${d}d ${h % 24}h left`, urgent: false };
+  }
+  return { text: h > 0 ? `${h}h ${m}m left` : `${m}m ${s}s left`, urgent: h < 1 };
+}
+
 export default function AdModal({ visible, advert, onClose }: AdModalProps) {
   const insets = useSafeAreaInsets();
-  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  const scaleAnim = useRef(new Animated.Value(0.88)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
-  const sparkleAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
-
-  console.log('🎭 AdModal render - visible:', visible, 'advert:', advert?.title);
+  const shimmerAnim = useRef(new Animated.Value(0)).current;
+  const [copiedCode, setCopiedCode] = useState(false);
+  const [countdown, setCountdown] = useState<{ text: string; urgent: boolean } | null>(null);
 
   useEffect(() => {
     if (visible) {
-      console.log('🎬 AdModal animations starting...');
-
-      // Set initial visible state immediately for Android
-      opacityAnim.setValue(1);
-
-      // Then animate scale
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        tension: 50,
-        friction: 7,
-        useNativeDriver: true,
-      }).start(() => {
-        console.log('✅ Scale animation completed');
-      });
-
+      opacityAnim.setValue(0);
+      scaleAnim.setValue(0.88);
+      slideAnim.setValue(30);
+      Animated.parallel([
+        Animated.timing(opacityAnim, { toValue: 1, duration: 220, useNativeDriver: true }),
+        Animated.spring(scaleAnim, { toValue: 1, tension: 55, friction: 7, useNativeDriver: true }),
+        Animated.spring(slideAnim, { toValue: 0, tension: 55, friction: 7, useNativeDriver: true }),
+      ]).start();
       Animated.loop(
         Animated.sequence([
-          Animated.timing(sparkleAnim, {
-            toValue: 1,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(sparkleAnim, {
-            toValue: 0,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
+          Animated.timing(pulseAnim, { toValue: 1.04, duration: 1400, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 1400, useNativeDriver: true }),
         ])
       ).start();
-
       Animated.loop(
         Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.05,
-            duration: 1500,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 1500,
-            useNativeDriver: true,
-          }),
+          Animated.timing(shimmerAnim, { toValue: 1, duration: 1600, useNativeDriver: true }),
+          Animated.timing(shimmerAnim, { toValue: 0, duration: 1600, useNativeDriver: true }),
         ])
       ).start();
     } else {
-      scaleAnim.setValue(0.8);
-      opacityAnim.setValue(0);
-      sparkleAnim.setValue(0);
-      pulseAnim.setValue(1);
+      pulseAnim.stopAnimation();
+      shimmerAnim.stopAnimation();
+      setCopiedCode(false);
     }
   }, [visible]);
 
-  if (!advert) {
-    console.log('⚠️ AdModal: No advert provided, returning null');
-    return null;
-  }
+  useEffect(() => {
+    if (!visible || !advert?.countdown_end) return;
+    setCountdown(formatCountdown(advert.countdown_end));
+    const interval = setInterval(() => {
+      setCountdown(formatCountdown(advert.countdown_end!));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [visible, advert?.countdown_end]);
 
-  console.log('✅ AdModal: Rendering modal with advert:', advert.title);
-  console.log('📱 Platform:', Platform.OS);
-  console.log('🎨 Opacity animation value:', opacityAnim);
-  console.log('📏 Scale animation value:', scaleAnim);
+  if (!advert) return null;
+
+  const typeKey = (advert.advert_type ?? 'promo') as AdvertType;
+  const cfg = TYPE_CONFIG[typeKey] ?? TYPE_CONFIG.promo;
+  const TypeIcon = cfg.icon;
+
+  const bgStart = advert.bg_color_start || cfg.gradientColors[0];
+  const bgEnd = advert.bg_color_end || cfg.gradientColors[1];
 
   const handleAction = async () => {
     if (advert.action_url) {
-      try {
-        let url = advert.action_url.trim();
+      let url = advert.action_url.trim();
+      if (!url.startsWith('http://') && !url.startsWith('https://')) url = `https://${url}`;
+      Linking.openURL(url).catch(() => {});
+    }
+    onClose();
+  };
 
-        if (!url) {
-          Alert.alert('Error', 'No URL provided');
-          return;
-        }
-
-        if (!url.startsWith('http://') && !url.startsWith('https://')) {
-          url = `https://${url}`;
-        }
-
-        const canOpen = await Linking.canOpenURL(url);
-        if (!canOpen) {
-          Alert.alert('Invalid Link', 'This link cannot be opened. Please check the URL.');
-          return;
-        }
-
-        await Linking.openURL(url);
-        onClose();
-      } catch (error: any) {
-        console.error('Error opening URL:', error);
-        Alert.alert(
-          'Failed to Open Link',
-          error?.message || 'Unable to open this link. Please try again later.'
-        );
+  const handleCopyCode = () => {
+    if (advert.coupon_code) {
+      if (Platform.OS === 'web') {
+        navigator.clipboard?.writeText(advert.coupon_code).catch(() => {});
+      } else {
+        Clipboard.setString(advert.coupon_code);
       }
-    } else {
-      onClose();
+      setCopiedCode(true);
+      setTimeout(() => setCopiedCode(false), 2500);
     }
   };
 
-  const sparkleRotation = sparkleAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
-  });
-
-  const sparkleOpacity = sparkleAnim.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [0.3, 1, 0.3],
-  });
+  const shimmerOpacity = shimmerAnim.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] });
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="none"
-      onRequestClose={onClose}
-      statusBarTranslucent
-    >
+    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
       <Animated.View style={[styles.overlay, { opacity: opacityAnim }]}>
         <Animated.View
           style={[
-            styles.modalContainer,
-            {
-              transform: [{ scale: scaleAnim }],
-            },
+            styles.sheet,
+            { paddingBottom: insets.bottom + 16 },
+            { transform: [{ scale: scaleAnim }, { translateY: slideAnim }] },
           ]}
         >
-          <TouchableOpacity style={[styles.closeButton, { top: insets.top + 16 }]} onPress={onClose}>
-            <View style={styles.closeButtonInner}>
-              <X size={20} color="#ffffff" />
-            </View>
-          </TouchableOpacity>
+          <LinearGradient
+            colors={[bgStart, bgEnd]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.heroGradient}
+          >
+            {advert.image_url ? (
+              <>
+                <Image source={{ uri: advert.image_url }} style={styles.heroImage} resizeMode="cover" />
+                <LinearGradient
+                  colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.5)']}
+                  style={StyleSheet.absoluteFillObject}
+                />
+              </>
+            ) : (
+              <View style={styles.heroIconWrap}>
+                <Animated.View style={{ opacity: shimmerOpacity }}>
+                  <TypeIcon size={64} color="rgba(255,255,255,0.9)" strokeWidth={1.5} />
+                </Animated.View>
+              </View>
+            )}
 
-          <View style={[styles.hotBadge, { top: insets.top + 16 }]}>
-            <LinearGradient
-              colors={['#ff4757', '#ff6348']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.hotBadgeGradient}
-            >
-              <Zap size={14} color="#ffffff" fill="#ffffff" />
-              <Text style={styles.hotBadgeText}>
-                {advert.hot_deal_text || 'HOT DEAL'}
-              </Text>
-            </LinearGradient>
-          </View>
-
-          <View style={styles.scrollWrapper}>
-            <ScrollView
-              style={styles.scrollView}
-              contentContainerStyle={styles.scrollContent}
-              showsVerticalScrollIndicator={false}
-              bounces={true}
-            >
-              {advert.image_url && (
-                <View style={styles.imageContainer}>
-                  <Image
-                    source={{ uri: advert.image_url }}
-                    style={styles.image}
-                    resizeMode="cover"
-                    onError={(error) => {
-                      console.log('❌ Image failed to load:', error.nativeEvent.error);
-                    }}
-                    onLoad={() => {
-                      console.log('✅ Image loaded successfully');
-                    }}
-                  />
-                  <LinearGradient
-                    colors={['transparent', 'rgba(0,0,0,0.6)']}
-                    style={styles.imageGradient}
-                  />
-                  <View style={styles.imageBadgeContainer}>
-                    <View style={styles.imageBadge}>
-                      <Star size={14} color="#fbbf24" fill="#fbbf24" />
-                      <Text style={styles.imageBadgeText}>
-                        {advert.featured_text || 'Featured'}
-                      </Text>
-                    </View>
-                  </View>
+            <View style={styles.heroBadgeRow}>
+              <View style={[styles.typeBadge, { backgroundColor: 'rgba(0,0,0,0.35)' }]}>
+                <TypeIcon size={12} color="#fff" />
+                <Text style={styles.typeBadgeText}>{cfg.label}</Text>
+              </View>
+              {advert.discount_percent != null && advert.discount_percent > 0 && (
+                <View style={styles.discountBadge}>
+                  <Text style={styles.discountBadgeText}>-{advert.discount_percent}%</Text>
                 </View>
               )}
+            </View>
 
-              <View style={styles.content}>
-                <Animated.View
-                  style={[
-                    styles.sparkleContainer,
-                    {
-                      transform: [{ rotate: sparkleRotation }],
-                      opacity: sparkleOpacity,
-                    },
-                  ]}
-                >
-                  <Sparkles size={32} color="#ff8c00" />
-                </Animated.View>
-
-                <View style={styles.trendingBadge}>
-                  <TrendingUp size={16} color="#10b981" />
-                  <Text style={styles.trendingText}>
-                    {advert.trending_text || 'Trending Now'}
-                  </Text>
-                </View>
-
-                <Text style={styles.title}>{advert.title}</Text>
-                <Text style={styles.description}>{advert.description}</Text>
-
-                <View style={styles.offerHighlight}>
-                  <Gift size={24} color="#ff8c00" />
-                  <Text style={styles.offerText}>
-                    {advert.limited_offer_text || 'Limited Time Offer'}
-                  </Text>
-                </View>
-
-                {advert.action_url && (
-                  <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-                    <TouchableOpacity
-                      style={styles.actionButton}
-                      onPress={handleAction}
-                      activeOpacity={0.8}
-                    >
-                      <LinearGradient
-                        colors={['#ff8c00', '#ff6b00', '#ff5500']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.actionButtonGradient}
-                      >
-                        <Text style={styles.actionButtonText}>
-                          {advert.action_text || 'Shop Now'}
-                        </Text>
-                        <View style={styles.actionButtonArrow}>
-                          <Text style={styles.actionButtonArrowText}>→</Text>
-                        </View>
-                      </LinearGradient>
-                    </TouchableOpacity>
-                  </Animated.View>
-                )}
-
-                <TouchableOpacity
-                  style={styles.dismissButton}
-                  onPress={onClose}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.dismissButtonText}>Maybe Later</Text>
-                </TouchableOpacity>
+            <TouchableOpacity style={styles.closeBtn} onPress={onClose} hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}>
+              <View style={styles.closeBtnInner}>
+                <X size={18} color="#fff" strokeWidth={2.5} />
               </View>
-            </ScrollView>
+            </TouchableOpacity>
+          </LinearGradient>
+
+          <View style={styles.body}>
+            <Text style={styles.title} numberOfLines={2}>{advert.title}</Text>
+            {advert.description ? (
+              <Text style={styles.description} numberOfLines={3}>{advert.description}</Text>
+            ) : null}
+
+            {advert.countdown_end && countdown && (
+              <View style={[styles.countdownRow, countdown.urgent && styles.countdownUrgent]}>
+                <Clock size={14} color={countdown.urgent ? '#ef4444' : '#f97316'} />
+                <Text style={[styles.countdownText, countdown.urgent && styles.countdownTextUrgent]}>
+                  {countdown.text}
+                </Text>
+                <Animated.View style={{ opacity: shimmerOpacity }}>
+                  <Sparkles size={12} color={countdown.urgent ? '#ef4444' : '#f97316'} />
+                </Animated.View>
+              </View>
+            )}
+
+            {advert.original_price != null && advert.promo_price != null && (
+              <View style={styles.priceRow}>
+                <Text style={styles.promoPrice}>₦{advert.promo_price.toLocaleString()}</Text>
+                <Text style={styles.originalPrice}>₦{advert.original_price.toLocaleString()}</Text>
+                {advert.discount_percent != null && advert.discount_percent > 0 && (
+                  <View style={styles.saveBadge}>
+                    <Text style={styles.saveBadgeText}>Save {advert.discount_percent}%</Text>
+                  </View>
+                )}
+              </View>
+            )}
+
+            {advert.coupon_code && (
+              <TouchableOpacity style={styles.couponRow} onPress={handleCopyCode} activeOpacity={0.8}>
+                <View style={styles.couponLeft}>
+                  <Text style={styles.couponLabel}>
+                    {advert.coupon_discount ? `${advert.coupon_discount} off` : 'Coupon Code'}
+                  </Text>
+                  <Text style={styles.couponCode}>{advert.coupon_code}</Text>
+                </View>
+                <View style={[styles.copyBtn, copiedCode && styles.copyBtnDone]}>
+                  {copiedCode
+                    ? <Check size={15} color="#fff" strokeWidth={2.5} />
+                    : <Copy size={15} color="#fff" strokeWidth={2} />}
+                  <Text style={styles.copyBtnText}>{copiedCode ? 'Copied!' : 'Copy'}</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+
+            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+              <TouchableOpacity onPress={handleAction} activeOpacity={0.85}>
+                <LinearGradient
+                  colors={[bgStart, bgEnd]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.ctaBtn}
+                >
+                  <Text style={styles.ctaBtnText}>{advert.action_text || 'Shop Now'}</Text>
+                  <View style={styles.ctaArrow}>
+                    <ArrowRight size={16} color={bgStart} strokeWidth={2.5} />
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+            </Animated.View>
+
+            <TouchableOpacity style={styles.dismissBtn} onPress={onClose}>
+              <Text style={styles.dismissText}>Maybe Later</Text>
+            </TouchableOpacity>
+
+            {advert.terms_text ? (
+              <Text style={styles.termsText}>{advert.terms_text}</Text>
+            ) : null}
           </View>
         </Animated.View>
       </Animated.View>
@@ -301,331 +262,232 @@ export default function AdModal({ visible, advert, onClose }: AdModalProps) {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: '#000000',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.62)',
+    justifyContent: 'flex-end',
   },
-  modalContainer: {
-    backgroundColor: '#ffffff',
+  sheet: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    overflow: 'hidden',
+    ...(Platform.OS === 'web'
+      ? { boxShadow: '0 -8px 40px rgba(0,0,0,0.22)' } as any
+      : { shadowColor: '#000', shadowOffset: { width: 0, height: -6 }, shadowOpacity: 0.18, shadowRadius: 24, elevation: 20 }),
+  },
+  heroGradient: {
+    height: height * 0.28,
+    justifyContent: 'space-between',
+    padding: 16,
+  },
+  heroImage: {
+    ...StyleSheet.absoluteFillObject,
     width: '100%',
     height: '100%',
-    overflow: 'hidden',
   },
-  scrollWrapper: {
+  heroIconWrap: {
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 40,
-  },
-  decorativeCornerTopLeft: {
-    position: 'absolute',
-    top: -2,
-    left: -2,
-    width: 60,
-    height: 60,
-    borderTopLeftRadius: 32,
-    borderLeftWidth: 4,
-    borderTopWidth: 4,
-    borderColor: '#ff8c00',
-    zIndex: 1,
-  },
-  decorativeCornerTopRight: {
-    position: 'absolute',
-    top: -2,
-    right: -2,
-    width: 60,
-    height: 60,
-    borderTopRightRadius: 32,
-    borderRightWidth: 4,
-    borderTopWidth: 4,
-    borderColor: '#ff8c00',
-    zIndex: 1,
-  },
-  decorativeCornerBottomLeft: {
-    position: 'absolute',
-    bottom: -2,
-    left: -2,
-    width: 60,
-    height: 60,
-    borderBottomLeftRadius: 32,
-    borderLeftWidth: 4,
-    borderBottomWidth: 4,
-    borderColor: '#ff8c00',
-    zIndex: 1,
-  },
-  decorativeCornerBottomRight: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    width: 60,
-    height: 60,
-    borderBottomRightRadius: 32,
-    borderRightWidth: 4,
-    borderBottomWidth: 4,
-    borderColor: '#ff8c00',
-    zIndex: 1,
-  },
-  closeButton: {
-    position: 'absolute',
-    right: 20,
-    zIndex: 10,
-  },
-  closeButtonInner: {
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    borderRadius: 28,
-    padding: 12,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.4,
-        shadowRadius: 10,
-      },
-      android: {
-        elevation: 10,
-      },
-      web: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.4,
-        shadowRadius: 10,
-      },
-    }),
-  },
-  hotBadge: {
-    position: 'absolute',
-    left: 20,
-    zIndex: 10,
-    borderRadius: 20,
-    overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#ff4757',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.4,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 8,
-      },
-      web: {
-        shadowColor: '#ff4757',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.4,
-        shadowRadius: 8,
-      },
-    }),
-  },
-  hotBadgeGradient: {
+  heroBadgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    gap: 6,
-  },
-  hotBadgeText: {
-    fontSize: 11,
-    fontFamily: Fonts.bold,
-    color: '#ffffff',
-    letterSpacing: 0.8,
-  },
-  imageContainer: {
-    position: 'relative',
-    width: '100%',
-    height: height * 0.45,
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-  },
-  imageGradient: {
+    gap: 8,
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 120,
-  },
-  imageBadgeContainer: {
-    position: 'absolute',
-    bottom: 16,
+    bottom: 14,
     left: 16,
   },
-  imageBadge: {
+  typeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: 20,
-    gap: 6,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 6,
-      },
-      android: {
-        elevation: 6,
-      },
-      web: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 6,
-      },
-    }),
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
   },
-  imageBadgeText: {
-    fontSize: 12,
+  typeBadgeText: {
+    fontSize: 11,
     fontFamily: Fonts.bold,
-    color: '#111827',
-  },
-  content: {
-    padding: 24,
-    paddingTop: 30,
-    backgroundColor: '#ffffff',
-  },
-  sparkleContainer: {
-    alignSelf: 'center',
-    backgroundColor: '#fff7ed',
-    borderRadius: 60,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 3,
-    borderColor: '#ffedd5',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#ff8c00',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 12,
-      },
-      android: {
-        elevation: 6,
-      },
-      web: {
-        shadowColor: '#ff8c00',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 12,
-      },
-    }),
-  },
-  trendingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'center',
-    backgroundColor: '#d1fae5',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 6,
-    marginBottom: 16,
-  },
-  trendingText: {
-    fontSize: 12,
-    fontFamily: Fonts.bold,
-    color: '#059669',
-  },
-  title: {
-    fontSize: 28,
-    fontFamily: Fonts.headingBold,
-    color: '#111827',
-    marginBottom: 14,
-    textAlign: 'center',
-    letterSpacing: -0.5,
-    lineHeight: 34,
-  },
-  description: {
-    fontSize: 16,
-    fontFamily: Fonts.regular,
-    color: '#6b7280',
-    lineHeight: 24,
-    marginBottom: 24,
-    textAlign: 'center',
-  },
-  offerHighlight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff7ed',
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: 16,
-    gap: 12,
-    marginBottom: 28,
-    borderWidth: 2,
-    borderColor: '#fed7aa',
-  },
-  offerText: {
-    fontSize: 16,
-    fontFamily: Fonts.bold,
-    color: '#c2410c',
-    letterSpacing: 0.3,
-  },
-  actionButton: {
-    marginBottom: 12,
-    borderRadius: 18,
-    overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#ff8c00',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.4,
-        shadowRadius: 20,
-      },
-      android: {
-        elevation: 10,
-      },
-      web: {
-        shadowColor: '#ff8c00',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.4,
-        shadowRadius: 20,
-      },
-    }),
-  },
-  actionButtonGradient: {
-    flexDirection: 'row',
-    paddingVertical: 18,
-    paddingHorizontal: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-  },
-  actionButtonText: {
-    fontSize: 18,
-    fontFamily: Fonts.bold,
-    color: '#ffffff',
+    color: '#fff',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
-  actionButtonArrow: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  discountBadge: {
+    backgroundColor: '#ef4444',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: 20,
-    width: 32,
-    height: 32,
+  },
+  discountBadgeText: {
+    fontSize: 12,
+    fontFamily: Fonts.bold,
+    color: '#fff',
+    letterSpacing: 0.3,
+  },
+  closeBtn: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+  },
+  closeBtnInner: {
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    borderRadius: 20,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  body: {
+    padding: 20,
+    gap: 12,
+  },
+  title: {
+    fontSize: 22,
+    fontFamily: Fonts.bold,
+    color: '#111827',
+    letterSpacing: -0.3,
+    lineHeight: 28,
+  },
+  description: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: '#6b7280',
+    lineHeight: 21,
+  },
+  countdownRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: '#fff7ed',
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+  },
+  countdownUrgent: {
+    backgroundColor: '#fef2f2',
+    borderColor: '#fecaca',
+  },
+  countdownText: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: Fonts.bold,
+    color: '#f97316',
+  },
+  countdownTextUrgent: {
+    color: '#ef4444',
+  },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  promoPrice: {
+    fontSize: 24,
+    fontFamily: Fonts.bold,
+    color: '#ef4444',
+    letterSpacing: -0.5,
+  },
+  originalPrice: {
+    fontSize: 15,
+    fontFamily: Fonts.regular,
+    color: '#9ca3af',
+    textDecorationLine: 'line-through',
+  },
+  saveBadge: {
+    backgroundColor: '#fef3c7',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  saveBadgeText: {
+    fontSize: 11,
+    fontFamily: Fonts.bold,
+    color: '#d97706',
+  },
+  couponRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#e5e7eb',
+    borderStyle: 'dashed',
+    borderRadius: 14,
+    padding: 12,
+    gap: 12,
+    backgroundColor: '#fafafa',
+  },
+  couponLeft: {
+    flex: 1,
+    gap: 2,
+  },
+  couponLabel: {
+    fontSize: 11,
+    fontFamily: Fonts.regular,
+    color: '#9ca3af',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  couponCode: {
+    fontSize: 18,
+    fontFamily: Fonts.bold,
+    color: '#111827',
+    letterSpacing: 1.5,
+  },
+  copyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#374151',
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 10,
+  },
+  copyBtnDone: {
+    backgroundColor: '#10b981',
+  },
+  copyBtnText: {
+    fontSize: 12,
+    fontFamily: Fonts.bold,
+    color: '#fff',
+  },
+  ctaBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 16,
+    gap: 10,
+  },
+  ctaBtnText: {
+    fontSize: 16,
+    fontFamily: Fonts.bold,
+    color: '#fff',
+    letterSpacing: 0.3,
+  },
+  ctaArrow: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.9)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  actionButtonArrowText: {
-    fontSize: 18,
-    fontFamily: Fonts.bold,
-    color: '#ffffff',
-  },
-  dismissButton: {
-    paddingVertical: 16,
+  dismissBtn: {
     alignItems: 'center',
+    paddingVertical: 4,
   },
-  dismissButtonText: {
-    fontSize: 16,
+  dismissText: {
+    fontSize: 14,
     fontFamily: Fonts.semiBold,
     color: '#9ca3af',
+  },
+  termsText: {
+    fontSize: 11,
+    fontFamily: Fonts.regular,
+    color: '#d1d5db',
+    textAlign: 'center',
+    lineHeight: 16,
   },
 });

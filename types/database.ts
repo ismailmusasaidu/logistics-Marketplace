@@ -286,6 +286,8 @@ export interface BankAccount {
 }
 
 export type AdvertDisplayFrequency = 'once' | 'daily' | 'always';
+export type AdvertType = 'promo' | 'flash_sale' | 'announcement' | 'coupon' | 'new_arrival' | 'featured_brand';
+export type AdvertDisplayPosition = 'banner' | 'modal' | 'both';
 
 export interface Advert {
   id: string;
@@ -303,6 +305,17 @@ export interface Advert {
   featured_text?: string;
   trending_text?: string;
   limited_offer_text?: string;
+  advert_type?: AdvertType;
+  countdown_end?: string;
+  discount_percent?: number;
+  original_price?: number;
+  promo_price?: number;
+  coupon_code?: string;
+  coupon_discount?: string;
+  display_position?: AdvertDisplayPosition;
+  bg_color_start?: string;
+  bg_color_end?: string;
+  terms_text?: string;
   created_at: string;
   updated_at: string;
 }
