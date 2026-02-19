@@ -14,7 +14,7 @@ import {
   NativeScrollEvent,
   Platform,
 } from 'react-native';
-import { X, Star, ShoppingCart, Plus, Minus, MapPin, ZoomIn, ChevronLeft, ChevronRight, Percent, Ruler, Palette, RotateCcw, Truck, Package, Award } from 'lucide-react-native';
+import { X, Star, ShoppingCart, Plus, Minus, MapPin, ZoomIn, ChevronLeft, ChevronRight, Percent, Ruler, Palette, RotateCcw, Truck, Package, Award, ShieldCheck, AlertCircle, Clock } from 'lucide-react-native';
 import { Product, Review } from '@/types/database';
 import { supabase } from '@/lib/marketplace/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -67,6 +67,7 @@ export default function ProductDetailModal({
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [showReturnPolicy, setShowReturnPolicy] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const fullScreenFlatListRef = useRef<FlatList>(null);
   const autoPlayTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -534,13 +535,17 @@ export default function ProductDetailModal({
                       </View>
                     )}
                     {currentProduct.return_policy && (
-                      <View style={[styles.infoCard, styles.infoCardReturn]}>
+                      <TouchableOpacity
+                        style={[styles.infoCard, styles.infoCardReturn]}
+                        onPress={() => setShowReturnPolicy(true)}
+                        activeOpacity={0.75}
+                      >
                         <View style={styles.infoCardIcon}>
                           <RotateCcw size={18} color="#16a34a" strokeWidth={2} />
                         </View>
                         <Text style={[styles.infoCardValue, { color: '#166534' }]}>Returns</Text>
                         <Text style={[styles.infoCardLabel, { color: '#166534' }]} numberOfLines={2}>{currentProduct.return_policy}</Text>
-                      </View>
+                      </TouchableOpacity>
                     )}
                   </View>
                 )}
@@ -733,6 +738,53 @@ export default function ProductDetailModal({
                 setEditingReview(null);
               }}
             />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Return policy sheet */}
+      <Modal
+        visible={showReturnPolicy}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowReturnPolicy(false)}
+      >
+        <View style={styles.rpOverlay}>
+          <TouchableOpacity style={styles.rpBackdrop} onPress={() => setShowReturnPolicy(false)} />
+          <View style={[styles.rpSheet, { paddingBottom: insets.bottom + 24 }]}>
+            <View style={styles.rpHandle} />
+            <View style={styles.rpHeader}>
+              <View style={styles.rpHeaderLeft}>
+                <View style={styles.rpIconWrap}>
+                  <ShieldCheck size={22} color="#059669" strokeWidth={2} />
+                </View>
+                <View>
+                  <Text style={styles.rpTitle}>Return Policy</Text>
+                  <Text style={styles.rpProductName} numberOfLines={1}>{currentProduct?.name}</Text>
+                </View>
+              </View>
+              <TouchableOpacity style={styles.rpCloseBtn} onPress={() => setShowReturnPolicy(false)}>
+                <X size={18} color="#64748b" strokeWidth={2} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.rpBody} showsVerticalScrollIndicator={false}>
+              <View style={styles.rpNotice}>
+                <AlertCircle size={14} color="#0369a1" strokeWidth={2} />
+                <Text style={styles.rpNoticeText}>
+                  Please read this policy carefully before making a purchase.
+                </Text>
+              </View>
+              <Text style={styles.rpPolicyText}>{currentProduct?.return_policy}</Text>
+              <View style={styles.rpFooterNote}>
+                <Clock size={13} color="#94a3b8" strokeWidth={2} />
+                <Text style={styles.rpFooterNoteText}>
+                  Contact the vendor or support team to initiate a return.
+                </Text>
+              </View>
+            </ScrollView>
+            <TouchableOpacity style={styles.rpDoneBtn} onPress={() => setShowReturnPolicy(false)}>
+              <Text style={styles.rpDoneBtnText}>Got it</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -1423,5 +1475,122 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 16,
     overflow: 'hidden',
+  },
+
+  rpOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  rpBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  rpSheet: {
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingTop: 12,
+    paddingHorizontal: 20,
+    maxHeight: '75%',
+  },
+  rpHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#e2e8f0',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  rpHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  rpHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  rpIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#f0fdf4',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rpTitle: {
+    fontSize: 16,
+    fontFamily: Fonts.displayBold,
+    color: '#1a1a1a',
+  },
+  rpProductName: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: '#64748b',
+    marginTop: 1,
+  },
+  rpCloseBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#f1f5f9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rpBody: {
+    marginBottom: 16,
+  },
+  rpNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#eff6ff',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 16,
+  },
+  rpNoticeText: {
+    flex: 1,
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: '#1e40af',
+    lineHeight: 18,
+  },
+  rpPolicyText: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: '#374151',
+    lineHeight: 22,
+    marginBottom: 16,
+  },
+  rpFooterNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+    marginBottom: 8,
+  },
+  rpFooterNoteText: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: '#94a3b8',
+    flex: 1,
+  },
+  rpDoneBtn: {
+    backgroundColor: '#059669',
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  rpDoneBtnText: {
+    fontSize: 15,
+    fontFamily: Fonts.semiBold,
+    color: '#ffffff',
+    letterSpacing: 0.3,
   },
 });
