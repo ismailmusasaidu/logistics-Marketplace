@@ -120,6 +120,8 @@ export default function OrderManagement({ onBack }: OrderManagementProps) {
   const [showReceipt, setShowReceipt] = useState(false);
   const [receiptOrder, setReceiptOrder] = useState<Order | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItemWithProduct[]>([]);
+  const [selectedOrderItems, setSelectedOrderItems] = useState<OrderItemWithProduct[]>([]);
+  const [loadingItems, setLoadingItems] = useState(false);
 
   useEffect(() => {
     fetchOrders();
@@ -181,10 +183,20 @@ export default function OrderManagement({ onBack }: OrderManagementProps) {
 
       if (error) throw new Error(error.message);
 
+      const vendorUserIds = [...new Set((data || []).map((o: any) => o.vendor_user_id).filter(Boolean))];
+      let vendorMap: Record<string, string> = {};
+      if (vendorUserIds.length > 0) {
+        const { data: vendors } = await supabase
+          .from('vendors')
+          .select('user_id, business_name')
+          .in('user_id', vendorUserIds);
+        (vendors || []).forEach((v: any) => { vendorMap[v.user_id] = v.business_name; });
+      }
+
       const formattedOrders: OrderWithCustomer[] = (data || []).map((order: any) => ({
         ...order,
         customer: order.customer || { full_name: 'Unknown', email: 'N/A', phone: null },
-        vendor: { business_name: order.vendor_name || 'Unknown' },
+        vendor: { business_name: vendorMap[order.vendor_user_id] || 'Unknown' },
       }));
 
       setOrders(formattedOrders);
@@ -223,6 +235,21 @@ export default function OrderManagement({ onBack }: OrderManagementProps) {
   const confirmDelete = (order: OrderWithCustomer) => {
     setOrderToDelete(order);
     setShowDeleteConfirmation(true);
+  };
+
+  const fetchSelectedOrderItems = async (orderId: string) => {
+    try {
+      setLoadingItems(true);
+      const { data, error } = await supabase
+        .from('order_items')
+        .select('*, products(*)')
+        .eq('order_id', orderId);
+      if (!error) setSelectedOrderItems((data as OrderItemWithProduct[]) || []);
+    } catch {
+      setSelectedOrderItems([]);
+    } finally {
+      setLoadingItems(false);
+    }
   };
 
   const handleViewReceipt = async (order: Order) => {
@@ -408,6 +435,8 @@ export default function OrderManagement({ onBack }: OrderManagementProps) {
               style={styles.orderCard}
               onPress={() => {
                 setSelectedOrder(item);
+                setSelectedOrderItems([]);
+                fetchSelectedOrderItems(item.id);
                 setShowStatusModal(true);
               }}
               activeOpacity={0.7}
@@ -532,7 +561,7 @@ export default function OrderManagement({ onBack }: OrderManagementProps) {
                   <Receipt size={18} color="#ff8c00" />
                 </TouchableOpacity>
                 <TouchableOpacity
-                  onPress={() => setShowStatusModal(false)}
+                  onPress={() => { setShowStatusModal(false); setSelectedOrderItems([]); }}
                   style={styles.closeButton}
                 >
                   <X size={22} color="#8b909a" />
@@ -554,6 +583,49 @@ export default function OrderManagement({ onBack }: OrderManagementProps) {
                     <Text style={styles.modalTotal}>
                       {'\u20A6'}{Number(selectedOrder.total).toLocaleString('en-NG', { minimumFractionDigits: 2 })}
                     </Text>
+                  </View>
+
+                  <View style={styles.modalDetailSection}>
+                    <View style={styles.modalDetailRow}>
+                      <Store size={14} color="#f59e0b" />
+                      <Text style={styles.modalDetailLabel}>Vendor</Text>
+                      <Text style={styles.modalDetailValue}>{selectedOrder.vendor.business_name}</Text>
+                    </View>
+                    <View style={styles.modalDetailRow}>
+                      <User size={14} color="#6b7280" />
+                      <Text style={styles.modalDetailLabel}>Phone</Text>
+                      <Text style={styles.modalDetailValue}>{selectedOrder.customer.phone || 'N/A'}</Text>
+                    </View>
+                    <View style={styles.modalDetailRow}>
+                      <MapPin size={14} color="#10b981" />
+                      <Text style={styles.modalDetailLabel}>Address</Text>
+                      <Text style={[styles.modalDetailValue, { flex: 1, flexWrap: 'wrap' }]}>
+                        {selectedOrder.delivery_type === 'pickup'
+                          ? (selectedOrder as any).pickup_address || 'Pickup'
+                          : selectedOrder.delivery_address || 'N/A'}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <Text style={styles.modalSectionLabel}>Order Items</Text>
+                  <View style={styles.modalItemsContainer}>
+                    {loadingItems ? (
+                      <ActivityIndicator size="small" color="#ff8c00" style={{ paddingVertical: 12 }} />
+                    ) : selectedOrderItems.length === 0 ? (
+                      <Text style={styles.modalNoItems}>No items found</Text>
+                    ) : (
+                      selectedOrderItems.map((item) => (
+                        <View key={item.id} style={styles.modalItemRow}>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.modalItemName}>{item.products?.name || 'Product'}</Text>
+                            <Text style={styles.modalItemQty}>Qty: {item.quantity}</Text>
+                          </View>
+                          <Text style={styles.modalItemPrice}>
+                            {'\u20A6'}{(Number(item.unit_price) * item.quantity).toLocaleString('en-NG', { minimumFractionDigits: 2 })}
+                          </Text>
+                        </View>
+                      ))
+                    )}
                   </View>
 
                   <Text style={styles.modalSectionLabel}>Set Status</Text>
@@ -1094,6 +1166,71 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Fonts.semiBold,
     color: '#ef4444',
+  },
+
+  modalDetailSection: {
+    backgroundColor: '#f8f9fb',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 20,
+    gap: 10,
+  },
+  modalDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  modalDetailLabel: {
+    fontSize: 12,
+    fontFamily: Fonts.medium,
+    color: '#8b909a',
+    width: 56,
+    paddingTop: 1,
+  },
+  modalDetailValue: {
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
+    color: '#1a1d23',
+  },
+  modalItemsContainer: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#f0f1f3',
+    overflow: 'hidden',
+    marginBottom: 20,
+  },
+  modalItemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f1f3',
+    gap: 8,
+  },
+  modalItemName: {
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
+    color: '#1a1d23',
+    marginBottom: 2,
+  },
+  modalItemQty: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: '#8b909a',
+  },
+  modalItemPrice: {
+    fontSize: 13,
+    fontFamily: Fonts.groteskBold,
+    color: '#ff8c00',
+  },
+  modalNoItems: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: '#8b909a',
+    textAlign: 'center',
+    padding: 16,
   },
 
   // Delete Confirmation Modal
