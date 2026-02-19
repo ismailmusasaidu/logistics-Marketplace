@@ -10,6 +10,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Image,
+  Platform,
 } from 'react-native';
 import {
   Plus,
@@ -24,18 +25,13 @@ import {
   ToggleRight,
   AlertTriangle,
   Eye,
-  EyeOff,
   Clock,
   Zap,
   Hash,
-  Type,
-  Link,
-  Tag,
-  Flame,
-  Star,
-  TrendingUp,
-  Timer,
+  Upload,
+  Link as LinkIcon,
 } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/marketplace/supabase';
 import { useToast } from '@/contexts/ToastContext';
@@ -92,6 +88,8 @@ export default function AdvertManagement() {
     trending_text: '',
     limited_offer_text: '',
   });
+  const [localImageUri, setLocalImageUri] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     fetchAdverts();
@@ -115,6 +113,7 @@ export default function AdvertManagement() {
 
   const openAddModal = () => {
     setEditingAdvert(null);
+    setLocalImageUri(null);
     setFormData({
       title: '',
       description: '',
@@ -136,6 +135,7 @@ export default function AdvertManagement() {
 
   const openEditModal = (advert: Advert) => {
     setEditingAdvert(advert);
+    setLocalImageUri(null);
     setFormData({
       title: advert.title,
       description: advert.description,
@@ -155,16 +155,86 @@ export default function AdvertManagement() {
     setShowModal(true);
   };
 
+  const pickImageFromLibrary = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      showToast('Permission to access photos is required', 'error');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.85,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setLocalImageUri(result.assets[0].uri);
+      setFormData((prev) => ({ ...prev, image_url: '' }));
+    }
+  };
+
+  const uploadAdvertImage = async (uri: string): Promise<string | null> => {
+    try {
+      setUploadingImage(true);
+      let fileData: ArrayBuffer | Blob;
+      let contentType = 'image/jpeg';
+      let fileExt = 'jpg';
+
+      if (Platform.OS === 'web') {
+        const response = await fetch(uri);
+        fileData = await response.blob();
+        const blobType = (fileData as Blob).type;
+        if (blobType) {
+          contentType = blobType;
+          fileExt = blobType.split('/')[1] || 'jpg';
+        }
+      } else {
+        const response = await fetch(uri);
+        fileData = await response.arrayBuffer();
+        if (uri.toLowerCase().includes('.png')) { contentType = 'image/png'; fileExt = 'png'; }
+        else if (uri.toLowerCase().includes('.webp')) { contentType = 'image/webp'; fileExt = 'webp'; }
+        else if (uri.toLowerCase().includes('.gif')) { contentType = 'image/gif'; fileExt = 'gif'; }
+      }
+
+      const fileName = `advert_${Date.now()}.${fileExt}`;
+      const filePath = `adverts/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('advert-images')
+        .upload(filePath, fileData, { contentType, upsert: false });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('advert-images')
+        .getPublicUrl(filePath);
+
+      return urlData.publicUrl;
+    } catch (error: any) {
+      showToast(error.message || 'Failed to upload image', 'error');
+      return null;
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!formData.title.trim() || !formData.description.trim()) {
       showToast('Please fill in title and description', 'error');
       return;
     }
     try {
+      let finalImageUrl = formData.image_url || null;
+
+      if (localImageUri) {
+        const uploadedUrl = await uploadAdvertImage(localImageUri);
+        if (!uploadedUrl) return;
+        finalImageUrl = uploadedUrl;
+      }
+
       const advertData = {
         title: formData.title,
         description: formData.description,
-        image_url: formData.image_url || null,
+        image_url: finalImageUrl,
         action_text: formData.action_text || null,
         action_url: formData.action_url || null,
         is_active: formData.is_active,
@@ -347,7 +417,51 @@ export default function AdvertManagement() {
 
               <FormField label="Title" placeholder="Enter advert title" value={formData.title} onChangeText={(t) => setFormData({ ...formData, title: t })} />
               <FormField label="Description" placeholder="Enter advert description" value={formData.description} onChangeText={(t) => setFormData({ ...formData, description: t })} multiline />
-              <FormField label="Image URL" placeholder="https://example.com/image.jpg" value={formData.image_url} onChangeText={(t) => setFormData({ ...formData, image_url: t })} />
+
+              <Text style={styles.fieldLabel}>Advert Image</Text>
+              {(localImageUri || formData.image_url) ? (
+                <View style={styles.imagePreviewWrap}>
+                  <Image
+                    source={{ uri: localImageUri || formData.image_url }}
+                    style={styles.imagePreview}
+                    resizeMode="cover"
+                  />
+                  <TouchableOpacity
+                    style={styles.imageRemoveBtn}
+                    onPress={() => { setLocalImageUri(null); setFormData((p) => ({ ...p, image_url: '' })); }}
+                  >
+                    <X size={14} color="#ffffff" strokeWidth={2.5} />
+                  </TouchableOpacity>
+                  {localImageUri && (
+                    <View style={styles.imageLocalBadge}>
+                      <Text style={styles.imageLocalBadgeText}>Local</Text>
+                    </View>
+                  )}
+                </View>
+              ) : null}
+
+              <View style={styles.imageSourceRow}>
+                <TouchableOpacity style={styles.imageSourceBtn} onPress={pickImageFromLibrary}>
+                  <Upload size={15} color="#ff8c00" strokeWidth={2} />
+                  <Text style={styles.imageSourceBtnText}>Upload from Device</Text>
+                </TouchableOpacity>
+                <Text style={styles.imageSourceOr}>or</Text>
+                <View style={styles.imageUrlInputWrap}>
+                  <LinkIcon size={14} color="#94a3b8" strokeWidth={2} />
+                  <TextInput
+                    style={styles.imageUrlInput}
+                    placeholder="Paste image URL"
+                    placeholderTextColor="#b0b5bf"
+                    value={formData.image_url}
+                    onChangeText={(t) => {
+                      setFormData((p) => ({ ...p, image_url: t }));
+                      if (t) setLocalImageUri(null);
+                    }}
+                    autoCapitalize="none"
+                    keyboardType="url"
+                  />
+                </View>
+              </View>
 
               <View style={styles.fieldRow}>
                 <View style={styles.fieldHalf}>
@@ -407,9 +521,13 @@ export default function AdvertManagement() {
                 <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowModal(false)}>
                   <Text style={styles.cancelBtnText}>Cancel</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-                  <Check size={18} color="#ffffff" />
-                  <Text style={styles.saveBtnText}>Save</Text>
+                <TouchableOpacity style={[styles.saveBtn, uploadingImage && { opacity: 0.7 }]} onPress={handleSave} disabled={uploadingImage}>
+                  {uploadingImage ? (
+                    <ActivityIndicator size="small" color="#ffffff" />
+                  ) : (
+                    <Check size={18} color="#ffffff" />
+                  )}
+                  <Text style={styles.saveBtnText}>{uploadingImage ? 'Uploading...' : 'Save'}</Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -868,4 +986,94 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.semiBold,
     color: '#ffffff',
   },
+  fieldLabel: {
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
+    color: '#1e293b',
+    marginBottom: 8,
+  },
+  imagePreviewWrap: {
+    position: 'relative',
+    marginBottom: 10,
+    borderRadius: 14,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#e8ecf1',
+  },
+  imagePreview: {
+    width: '100%',
+    height: 160,
+    backgroundColor: '#f1f5f9',
+  },
+  imageRemoveBtn: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  imageLocalBadge: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    backgroundColor: '#ff8c00',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  imageLocalBadgeText: {
+    fontSize: 11,
+    fontFamily: Fonts.semiBold,
+    color: '#ffffff',
+  },
+  imageSourceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 14,
+  },
+  imageSourceBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#fff7ed',
+    borderWidth: 1.5,
+    borderColor: '#fed7aa',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  imageSourceBtnText: {
+    fontSize: 12,
+    fontFamily: Fonts.semiBold,
+    color: '#ff8c00',
+  },
+  imageSourceOr: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: '#94a3b8',
+  },
+  imageUrlInputWrap: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#f8f9fb',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e8ecf1',
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+  },
+  imageUrlInput: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: '#1e293b',
+    outlineStyle: 'none',
+  } as any,
 });
