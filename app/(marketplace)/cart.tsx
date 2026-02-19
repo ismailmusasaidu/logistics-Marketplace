@@ -296,7 +296,7 @@ export default function CartScreen() {
               />
             </TouchableOpacity>
             <View style={styles.itemInfo}>
-              <TouchableOpacity activeOpacity={0.7} onPress={() => handleViewProduct(item.product_id)}>
+              <TouchableOpacity activeOpacity={0.7} onPress={() => handleViewProduct(item.product_id)} style={styles.itemNamePressable}>
                 <Text style={styles.itemName}>{item.product.name}</Text>
                 <Text style={styles.itemPrice}>
                   ₦{item.product.price.toFixed(2)} / {item.product.unit}
@@ -519,6 +519,9 @@ const styles = StyleSheet.create({
   itemInfo: {
     flex: 1,
     marginLeft: 10,
+  },
+  itemNamePressable: {
+    alignSelf: 'flex-start',
   },
   itemName: {
     fontSize: 14,
@@ -743,6 +746,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
+    zIndex: 10,
   },
   returnPolicyBtnText: {
     fontSize: 10,
