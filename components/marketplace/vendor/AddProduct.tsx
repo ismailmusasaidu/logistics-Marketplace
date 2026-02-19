@@ -104,7 +104,7 @@ export default function AddProduct({ onBack, onSuccess }: AddProductProps) {
   const pickImages = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaType.Images,
+        mediaTypes: ['images'] as any,
         allowsMultipleSelection: true,
         quality: 0.8,
         aspect: [4, 3],
