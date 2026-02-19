@@ -14,7 +14,7 @@ import {
   NativeScrollEvent,
   Platform,
 } from 'react-native';
-import { X, Star, ShoppingCart, Plus, Minus, MapPin, ZoomIn, ChevronLeft, ChevronRight, Percent, Ruler, Palette, RotateCcw, Truck } from 'lucide-react-native';
+import { X, Star, ShoppingCart, Plus, Minus, MapPin, ZoomIn, ChevronLeft, ChevronRight, Percent, Ruler, Palette, RotateCcw, Truck, Package, Award } from 'lucide-react-native';
 import { Product, Review } from '@/types/database';
 import { supabase } from '@/lib/marketplace/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -191,7 +191,6 @@ export default function ProductDetailModal({
     try {
       setLoading(true);
 
-      // Check if item already exists in cart
       const { data: existingItem } = await supabase
         .from('carts')
         .select('id, quantity')
@@ -200,7 +199,6 @@ export default function ProductDetailModal({
         .maybeSingle();
 
       if (existingItem) {
-        // Update existing item by adding to the quantity
         const { error } = await supabase
           .from('carts')
           .update({ quantity: existingItem.quantity + quantity })
@@ -208,7 +206,6 @@ export default function ProductDetailModal({
 
         if (error) throw error;
       } else {
-        // Insert new item
         const { error } = await supabase
           .from('carts')
           .insert({
@@ -220,7 +217,6 @@ export default function ProductDetailModal({
         if (error) throw error;
       }
 
-      // Emit cart event to update badge
       cartEvents.emit();
       onClose();
     } catch (error) {
@@ -237,7 +233,6 @@ export default function ProductDetailModal({
       fetchVendorInfo();
       fetchProductImages();
 
-      // Subscribe to real-time product updates for rating changes
       const subscription = supabase
         .channel(`product_${product.id}`)
         .on(
@@ -297,6 +292,12 @@ export default function ProductDetailModal({
 
   if (!currentProduct) return null;
 
+  const hasDiscount = currentProduct.discount_active && currentProduct.discount_percentage > 0;
+  const salePrice = hasDiscount
+    ? currentProduct.price * (1 - currentProduct.discount_percentage / 100)
+    : currentProduct.price;
+  const subtotal = salePrice * quantity;
+
   return (
     <>
       <Modal
@@ -305,209 +306,250 @@ export default function ProductDetailModal({
         transparent={true}
         onRequestClose={onClose}
       >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            bounces={false}
-            contentContainerStyle={styles.scrollContent}
-          >
-            <View style={styles.imageContainer}>
-              <FlatList
-                ref={flatListRef}
-                data={images}
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                onScroll={handleScroll}
-                scrollEventThrottle={16}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item, index }) => (
-                  <TouchableOpacity
-                    activeOpacity={0.9}
-                    onPress={() => openFullScreenImage(index)}
-                  >
-                    <Image
-                      source={{ uri: item.image_url }}
-                      style={styles.productImage}
-                      resizeMode="cover"
-                      defaultSource={{ uri: currentProduct?.image_url || 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg' }}
-                    />
-                    <View style={styles.zoomIndicator}>
-                      <ZoomIn size={20} color="#ffffff" />
-                    </View>
-                  </TouchableOpacity>
-                )}
-              />
-              {images.length > 1 && (
-                <View style={styles.pagination}>
-                  {images.map((_, index) => (
-                    <View
-                      key={index}
-                      style={[
-                        styles.paginationDot,
-                        index === currentImageIndex && styles.paginationDotActive,
-                      ]}
-                    />
-                  ))}
-                </View>
-              )}
-              <View style={styles.imageOverlay}>
-                <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                  <X size={20} color="#ffffff" strokeWidth={2.5} />
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              bounces={false}
+              contentContainerStyle={styles.scrollContent}
+            >
+              {/* Image Gallery */}
+              <View style={styles.imageContainer}>
+                <FlatList
+                  ref={flatListRef}
+                  data={images}
+                  horizontal
+                  pagingEnabled
+                  showsHorizontalScrollIndicator={false}
+                  onScroll={handleScroll}
+                  scrollEventThrottle={16}
+                  keyExtractor={(item) => item.id}
+                  renderItem={({ item, index }) => (
+                    <TouchableOpacity
+                      activeOpacity={0.9}
+                      onPress={() => openFullScreenImage(index)}
+                    >
+                      <Image
+                        source={{ uri: item.image_url }}
+                        style={styles.productImage}
+                        resizeMode="cover"
+                        defaultSource={{ uri: currentProduct?.image_url || 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg' }}
+                      />
+                    </TouchableOpacity>
+                  )}
+                />
+
+                {/* Gradient overlay at bottom of image */}
+                <View style={styles.imageGradient} />
+
+                {/* Close button */}
+                <TouchableOpacity style={styles.closeButton} onPress={onClose} activeOpacity={0.85}>
+                  <X size={18} color="#1a1a1a" strokeWidth={2.5} />
                 </TouchableOpacity>
-              </View>
-              {currentProduct.discount_active && currentProduct.discount_percentage > 0 && (
-                <View style={styles.imageDiscountBadge}>
-                  <Text style={styles.imageDiscountBadgeText}>-{currentProduct.discount_percentage}%</Text>
-                </View>
-              )}
-            </View>
 
-            <View style={styles.contentContainer}>
-              <View style={styles.productHeader}>
-                <View style={styles.productTitleRow}>
+                {/* Zoom hint */}
+                <View style={styles.zoomIndicator}>
+                  <ZoomIn size={14} color="#fff" />
+                  <Text style={styles.zoomText}>Tap to zoom</Text>
+                </View>
+
+                {/* Discount badge on image */}
+                {hasDiscount && (
+                  <View style={styles.imageDiscountBadge}>
+                    <Text style={styles.imageDiscountBadgeText}>-{currentProduct.discount_percentage}%</Text>
+                  </View>
+                )}
+
+                {/* Pagination dots */}
+                {images.length > 1 && (
+                  <View style={styles.pagination}>
+                    {images.map((_, index) => (
+                      <View
+                        key={index}
+                        style={[
+                          styles.paginationDot,
+                          index === currentImageIndex && styles.paginationDotActive,
+                        ]}
+                      />
+                    ))}
+                  </View>
+                )}
+              </View>
+
+              {/* Content panel — floats up over image */}
+              <View style={styles.contentContainer}>
+                {/* Handle bar */}
+                <View style={styles.handleBar} />
+
+                {/* Header: name + stock */}
+                <View style={styles.productHeader}>
+                  <View style={styles.categoryPill}>
+                    <Package size={11} color="#ff8c00" strokeWidth={2.2} />
+                    <Text style={styles.categoryPillText}>{currentProduct.unit} unit</Text>
+                  </View>
+
                   <Text style={styles.productName}>{currentProduct.name}</Text>
-                  <View style={styles.stockBadge}>
-                    <View style={styles.stockDot} />
-                    <Text style={styles.stockText}>{currentProduct.stock_quantity} left</Text>
+
+                  <View style={styles.metaRow}>
+                    <View style={styles.ratingPill}>
+                      <Star size={13} color="#f59e0b" fill="#f59e0b" />
+                      <Text style={styles.ratingValue}>{currentProduct.rating.toFixed(1)}</Text>
+                      <Text style={styles.ratingDivider}>·</Text>
+                      <Text style={styles.reviewCountText}>{currentProduct.total_reviews} reviews</Text>
+                    </View>
+
+                    <View style={styles.stockPill}>
+                      <View style={styles.stockPulse} />
+                      <Text style={styles.stockText}>{currentProduct.stock_quantity} in stock</Text>
+                    </View>
                   </View>
                 </View>
 
-                <View style={styles.ratingRow}>
-                  <View style={styles.ratingContainer}>
-                    <Star size={16} color="#fbbf24" fill="#fbbf24" />
-                    <Text style={styles.rating}>{currentProduct.rating.toFixed(1)}</Text>
-                  </View>
-                  <Text style={styles.reviewCount}>{currentProduct.total_reviews} reviews</Text>
-                </View>
-              </View>
-
-              <View style={styles.priceSection}>
-                <View style={styles.priceContainer}>
-                  <Text style={styles.priceLabel}>
-                    {currentProduct.discount_active && currentProduct.discount_percentage > 0 ? 'Sale Price' : 'Price'}
-                  </Text>
-                  <View style={styles.priceRow}>
-                    {currentProduct.discount_active && currentProduct.discount_percentage > 0 ? (
+                {/* Price card */}
+                <View style={styles.priceCard}>
+                  <View style={styles.priceLeft}>
+                    {hasDiscount ? (
                       <>
-                        <Text style={styles.price}>
-                          ₦{(currentProduct.price * (1 - currentProduct.discount_percentage / 100)).toFixed(2)}
-                        </Text>
-                        <Text style={styles.unit}>/ {currentProduct.unit}</Text>
+                        <View style={styles.saleLabelRow}>
+                          <View style={styles.saveBadge}>
+                            <Percent size={10} color="#fff" strokeWidth={2.5} />
+                            <Text style={styles.saveBadgeText}>SAVE {currentProduct.discount_percentage}%</Text>
+                          </View>
+                        </View>
+                        <View style={styles.priceRow}>
+                          <Text style={styles.priceMain}>₦{salePrice.toFixed(2)}</Text>
+                          <Text style={styles.priceUnit}>/ {currentProduct.unit}</Text>
+                        </View>
+                        <Text style={styles.originalPrice}>was ₦{currentProduct.price.toFixed(2)}</Text>
                       </>
                     ) : (
                       <>
-                        <Text style={styles.price}>₦{currentProduct.price.toFixed(2)}</Text>
-                        <Text style={styles.unit}>/ {currentProduct.unit}</Text>
+                        <Text style={styles.priceLabelText}>Price</Text>
+                        <View style={styles.priceRow}>
+                          <Text style={styles.priceMain}>₦{currentProduct.price.toFixed(2)}</Text>
+                          <Text style={styles.priceUnit}>/ {currentProduct.unit}</Text>
+                        </View>
                       </>
                     )}
                   </View>
-                  {currentProduct.discount_active && currentProduct.discount_percentage > 0 && (
-                    <View style={styles.discountRow}>
-                      <View style={styles.discountBadgeInline}>
-                        <Percent size={12} color="#ffffff" />
-                        <Text style={styles.discountBadgeInlineText}>-{currentProduct.discount_percentage}% OFF</Text>
+
+                  {/* Quantity selector embedded in price card */}
+                  <View style={styles.qtyBlock}>
+                    <Text style={styles.qtyLabel}>Qty</Text>
+                    <View style={styles.qtyControls}>
+                      <TouchableOpacity
+                        style={[styles.qtyBtn, quantity === 1 && styles.qtyBtnDisabled]}
+                        onPress={() => setQuantity(Math.max(1, quantity - 1))}
+                        disabled={quantity === 1}
+                        activeOpacity={0.7}
+                      >
+                        <Minus size={14} color={quantity === 1 ? '#d1d5db' : '#1a1a1a'} strokeWidth={2.5} />
+                      </TouchableOpacity>
+                      <Text style={styles.qtyValue}>{quantity}</Text>
+                      <TouchableOpacity
+                        style={[styles.qtyBtn, quantity >= currentProduct.stock_quantity && styles.qtyBtnDisabled]}
+                        onPress={() => setQuantity(Math.min(currentProduct.stock_quantity, quantity + 1))}
+                        disabled={quantity >= currentProduct.stock_quantity}
+                        activeOpacity={0.7}
+                      >
+                        <Plus size={14} color={quantity >= currentProduct.stock_quantity ? '#d1d5db' : '#1a1a1a'} strokeWidth={2.5} />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Subtotal strip */}
+                <View style={styles.subtotalStrip}>
+                  <Text style={styles.subtotalStripLabel}>Total</Text>
+                  <Text style={styles.subtotalStripAmount}>₦{subtotal.toFixed(2)}</Text>
+                </View>
+
+                {/* Description */}
+                {currentProduct.description && (
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>About this product</Text>
+                    <Text style={styles.description}>{currentProduct.description}</Text>
+                  </View>
+                )}
+
+                {/* Sizes */}
+                {currentProduct.sizes && currentProduct.sizes.length > 0 && (
+                  <View style={styles.section}>
+                    <View style={styles.sectionTitleRow}>
+                      <Ruler size={15} color="#ff8c00" strokeWidth={2.2} />
+                      <Text style={styles.sectionTitle}>Size</Text>
+                      {selectedSize && <View style={styles.selectedPill}><Text style={styles.selectedPillText}>{selectedSize}</Text></View>}
+                    </View>
+                    <View style={styles.chipGrid}>
+                      {currentProduct.sizes.map((s) => (
+                        <TouchableOpacity
+                          key={s}
+                          style={[styles.chip, selectedSize === s && styles.chipActive]}
+                          onPress={() => setSelectedSize(selectedSize === s ? null : s)}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={[styles.chipText, selectedSize === s && styles.chipTextActive]}>{s}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                )}
+
+                {/* Colors */}
+                {currentProduct.colors && currentProduct.colors.length > 0 && (
+                  <View style={styles.section}>
+                    <View style={styles.sectionTitleRow}>
+                      <Palette size={15} color="#ff8c00" strokeWidth={2.2} />
+                      <Text style={styles.sectionTitle}>Color</Text>
+                      {selectedColor && <View style={styles.selectedPill}><Text style={styles.selectedPillText}>{selectedColor}</Text></View>}
+                    </View>
+                    <View style={styles.chipGrid}>
+                      {currentProduct.colors.map((c) => (
+                        <TouchableOpacity
+                          key={c}
+                          style={[styles.chip, selectedColor === c && styles.chipActive]}
+                          onPress={() => setSelectedColor(selectedColor === c ? null : c)}
+                          activeOpacity={0.7}
+                        >
+                          <View style={[styles.colorSwatch, { backgroundColor: c.toLowerCase() }]} />
+                          <Text style={[styles.chipText, selectedColor === c && styles.chipTextActive]}>{c}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                )}
+
+                {/* Info cards row: delivery + return policy */}
+                {(currentProduct.expected_delivery_days != null || currentProduct.return_policy) && (
+                  <View style={styles.infoCardsRow}>
+                    {currentProduct.expected_delivery_days != null && (
+                      <View style={[styles.infoCard, styles.infoCardDelivery]}>
+                        <View style={styles.infoCardIcon}>
+                          <Truck size={18} color="#ff8c00" strokeWidth={2} />
+                        </View>
+                        <Text style={styles.infoCardValue}>
+                          {currentProduct.expected_delivery_days} {currentProduct.expected_delivery_days === 1 ? 'day' : 'days'}
+                        </Text>
+                        <Text style={styles.infoCardLabel}>Delivery</Text>
                       </View>
-                      <Text style={styles.originalPriceText}>₦{currentProduct.price.toFixed(2)}</Text>
-                    </View>
-                  )}
-                </View>
-              </View>
+                    )}
+                    {currentProduct.return_policy && (
+                      <View style={[styles.infoCard, styles.infoCardReturn]}>
+                        <View style={styles.infoCardIcon}>
+                          <RotateCcw size={18} color="#16a34a" strokeWidth={2} />
+                        </View>
+                        <Text style={[styles.infoCardValue, { color: '#166534' }]}>Returns</Text>
+                        <Text style={[styles.infoCardLabel, { color: '#166534' }]} numberOfLines={2}>{currentProduct.return_policy}</Text>
+                      </View>
+                    )}
+                  </View>
+                )}
 
-              {currentProduct.description && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>About this product</Text>
-                  <Text style={styles.description}>{currentProduct.description}</Text>
-                </View>
-              )}
-
-              {currentProduct.sizes && currentProduct.sizes.length > 0 && (
-                <View style={styles.section}>
-                  <View style={styles.optionHeader}>
-                    <Ruler size={16} color="#ff8c00" strokeWidth={2.2} />
-                    <Text style={styles.sectionTitle}>Size</Text>
-                    {selectedSize && <Text style={styles.selectedLabel}>{selectedSize}</Text>}
-                  </View>
-                  <View style={styles.optionGrid}>
-                    {currentProduct.sizes.map((s) => (
-                      <TouchableOpacity
-                        key={s}
-                        style={[styles.optionChip, selectedSize === s && styles.optionChipActive]}
-                        onPress={() => setSelectedSize(selectedSize === s ? null : s)}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={[styles.optionChipText, selectedSize === s && styles.optionChipTextActive]}>
-                          {s}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-              )}
-
-              {currentProduct.colors && currentProduct.colors.length > 0 && (
-                <View style={styles.section}>
-                  <View style={styles.optionHeader}>
-                    <Palette size={16} color="#ff8c00" strokeWidth={2.2} />
-                    <Text style={styles.sectionTitle}>Color</Text>
-                    {selectedColor && <Text style={styles.selectedLabel}>{selectedColor}</Text>}
-                  </View>
-                  <View style={styles.optionGrid}>
-                    {currentProduct.colors.map((c) => (
-                      <TouchableOpacity
-                        key={c}
-                        style={[styles.optionChip, selectedColor === c && styles.optionChipActive]}
-                        onPress={() => setSelectedColor(selectedColor === c ? null : c)}
-                        activeOpacity={0.7}
-                      >
-                        <View style={[styles.colorDot, { backgroundColor: c.toLowerCase() }]} />
-                        <Text style={[styles.optionChipText, selectedColor === c && styles.optionChipTextActive]}>
-                          {c}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-              )}
-
-              {currentProduct.return_policy && (
-                <View style={styles.section}>
-                  <View style={styles.optionHeader}>
-                    <RotateCcw size={16} color="#ff8c00" strokeWidth={2.2} />
-                    <Text style={styles.sectionTitle}>Return Policy</Text>
-                  </View>
-                  <View style={styles.returnPolicyCard}>
-                    <Text style={styles.returnPolicyText}>{currentProduct.return_policy}</Text>
-                  </View>
-                </View>
-              )}
-
-              {currentProduct.expected_delivery_days != null && (
-                <View style={styles.section}>
-                  <View style={styles.optionHeader}>
-                    <Truck size={16} color="#ff8c00" strokeWidth={2.2} />
-                    <Text style={styles.sectionTitle}>Expected Delivery</Text>
-                  </View>
-                  <View style={styles.deliveryCard}>
-                    <View style={styles.deliveryIconWrap}>
-                      <Truck size={22} color="#ff8c00" strokeWidth={2} />
-                    </View>
-                    <View style={styles.deliveryInfo}>
-                      <Text style={styles.deliveryDays}>
-                        {currentProduct.expected_delivery_days} {currentProduct.expected_delivery_days === 1 ? 'day' : 'days'}
-                      </Text>
-                      <Text style={styles.deliverySubtext}>estimated after order placement</Text>
-                    </View>
-                  </View>
-                </View>
-              )}
-
-              {vendorInfo && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Sold by</Text>
-                  <View style={styles.vendorCard}>
-                    <View style={styles.vendorHeader}>
+                {/* Vendor card */}
+                {vendorInfo && (
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Sold by</Text>
+                    <View style={styles.vendorCard}>
                       <View style={styles.vendorAvatar}>
                         <Text style={styles.vendorAvatarText}>
                           {vendorInfo.business_name.charAt(0).toUpperCase()}
@@ -516,92 +558,63 @@ export default function ProductDetailModal({
                       <View style={styles.vendorDetails}>
                         <Text style={styles.vendorName}>{vendorInfo.business_name}</Text>
                         <View style={styles.locationRow}>
-                          <MapPin size={12} color="#6b7280" />
-                          <Text style={styles.location}>
-                            {vendorInfo.city}, {vendorInfo.state}
-                          </Text>
+                          <MapPin size={11} color="#9ca3af" />
+                          <Text style={styles.locationText}>{vendorInfo.city}, {vendorInfo.state}</Text>
                         </View>
                       </View>
-                      <View style={styles.vendorRatingBadge}>
-                        <Star size={12} color="#fbbf24" fill="#fbbf24" />
-                        <Text style={styles.vendorRatingText}>
-                          {vendorInfo.rating.toFixed(1)}
-                        </Text>
+                      <View style={styles.vendorRatingPill}>
+                        <Award size={11} color="#f59e0b" fill="#f59e0b" />
+                        <Text style={styles.vendorRatingText}>{vendorInfo.rating.toFixed(1)}</Text>
                       </View>
                     </View>
                   </View>
+                )}
+
+                {/* Reviews */}
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Customer Reviews</Text>
+                  <ProductReviews
+                    productId={currentProduct.id}
+                    vendorId={currentProduct.vendor_id}
+                    averageRating={currentProduct.rating}
+                    totalReviews={currentProduct.total_reviews}
+                    onEditReview={handleEditReview}
+                  />
                 </View>
-              )}
 
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Customer Reviews</Text>
-                <ProductReviews
-                  productId={currentProduct.id}
-                  vendorId={currentProduct.vendor_id}
-                  averageRating={currentProduct.rating}
-                  totalReviews={currentProduct.total_reviews}
-                  onEditReview={handleEditReview}
-                />
+                <View style={styles.bottomSpacing} />
               </View>
+            </ScrollView>
 
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Quantity</Text>
-                <View style={styles.quantityRow}>
-                  <View style={styles.quantityControls}>
-                    <TouchableOpacity
-                      style={[styles.quantityButton, quantity === 1 && styles.quantityButtonDisabled]}
-                      onPress={() => setQuantity(Math.max(1, quantity - 1))}
-                      disabled={quantity === 1}
-                    >
-                      <Minus size={18} color={quantity === 1 ? '#d1d5db' : '#6b7280'} strokeWidth={2.5} />
-                    </TouchableOpacity>
-                    <View style={styles.quantityDisplay}>
-                      <Text style={styles.quantity}>{quantity}</Text>
-                    </View>
-                    <TouchableOpacity
-                      style={[styles.quantityButton, quantity >= currentProduct.stock_quantity && styles.quantityButtonDisabled]}
-                      onPress={() => setQuantity(Math.min(currentProduct.stock_quantity, quantity + 1))}
-                      disabled={quantity >= currentProduct.stock_quantity}
-                    >
-                      <Plus size={18} color={quantity >= currentProduct.stock_quantity ? '#d1d5db' : '#6b7280'} strokeWidth={2.5} />
-                    </TouchableOpacity>
-                  </View>
-                  <View style={styles.subtotalContainer}>
-                    <Text style={styles.subtotalLabel}>Subtotal</Text>
-                    <Text style={styles.subtotalAmount}>
-                      ₦{((currentProduct.discount_active && currentProduct.discount_percentage > 0
-                        ? currentProduct.price * (1 - currentProduct.discount_percentage / 100)
-                        : currentProduct.price) * quantity).toFixed(2)}
-                    </Text>
-                  </View>
+            {/* Footer CTA */}
+            <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+              <View style={styles.footerInner}>
+                <View style={styles.footerPriceBlock}>
+                  <Text style={styles.footerPriceLabel}>Total</Text>
+                  <Text style={styles.footerPrice}>₦{subtotal.toFixed(2)}</Text>
                 </View>
+                <TouchableOpacity
+                  style={[styles.addButton, loading && styles.addButtonDisabled]}
+                  onPress={addToCart}
+                  disabled={loading}
+                  activeOpacity={0.85}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#ffffff" size="small" />
+                  ) : (
+                    <>
+                      <ShoppingCart size={19} color="#ffffff" strokeWidth={2.5} />
+                      <Text style={styles.addButtonText}>Add to Cart</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
               </View>
-
-              <View style={styles.bottomSpacing} />
             </View>
-          </ScrollView>
-
-          <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
-            <TouchableOpacity
-              style={[styles.addButton, loading && styles.addButtonDisabled]}
-              onPress={addToCart}
-              disabled={loading}
-              activeOpacity={0.8}
-            >
-              {loading ? (
-                <ActivityIndicator color="#ffffff" />
-              ) : (
-                <>
-                  <ShoppingCart size={20} color="#ffffff" strokeWidth={2.5} />
-                  <Text style={styles.addButtonText}>Add to Cart</Text>
-                </>
-              )}
-            </TouchableOpacity>
           </View>
         </View>
-      </View>
-    </Modal>
+      </Modal>
 
+      {/* Full screen image viewer */}
       <Modal
         visible={showFullScreenImage}
         animationType="fade"
@@ -702,6 +715,7 @@ export default function ProductDetailModal({
         </View>
       </Modal>
 
+      {/* Review form */}
       <Modal
         visible={showReviewForm}
         animationType="slide"
@@ -729,101 +743,206 @@ export default function ProductDetailModal({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(0,0,0,0.55)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#ffffff',
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    maxHeight: '92%',
+    backgroundColor: '#f9f7f4',
+    borderTopLeftRadius: 36,
+    borderTopRightRadius: 36,
+    maxHeight: '94%',
     overflow: 'hidden',
   },
   scrollContent: {
     flexGrow: 1,
   },
+
+  /* ── Image gallery ─────────────────────────────────────────────── */
   imageContainer: {
     position: 'relative',
     width: '100%',
-    height: 380,
-    backgroundColor: '#f3f4f6',
+    height: 360,
+    backgroundColor: '#ede8e0',
   },
   productImage: {
     width: SCREEN_WIDTH,
-    height: 380,
+    height: 360,
+  },
+  imageGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 100,
+    backgroundColor: 'transparent',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.14,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  zoomIndicator: {
+    position: 'absolute',
+    bottom: 56,
+    right: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  zoomText: {
+    fontSize: 11,
+    fontFamily: Fonts.medium,
+    color: '#fff',
+  },
+  imageDiscountBadge: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    backgroundColor: '#ef4444',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    shadowColor: '#ef4444',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.45,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  imageDiscountBadgeText: {
+    fontSize: 13,
+    fontFamily: Fonts.bold,
+    color: '#fff',
+    letterSpacing: 0.4,
   },
   pagination: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 18,
     left: 0,
     right: 0,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   paginationDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.45)',
   },
   paginationDotActive: {
-    width: 24,
+    width: 20,
     backgroundColor: '#ffffff',
+    borderRadius: 3,
   },
-  imageOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    paddingTop: 48,
-    paddingHorizontal: 20,
-  },
-  closeButton: {
-    alignSelf: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRadius: 24,
-    padding: 10,
-  },
+
+  /* ── Content panel ────────────────────────────────────────────── */
   contentContainer: {
     backgroundColor: '#ffffff',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    marginTop: -28,
-    paddingTop: 24,
-    paddingHorizontal: 24,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    marginTop: -32,
+    paddingTop: 16,
+    paddingHorizontal: 22,
   },
-  productHeader: {
+  handleBar: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#e5e0d8',
+    alignSelf: 'center',
     marginBottom: 20,
   },
-  productTitleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-    gap: 12,
+
+  /* ── Product header ───────────────────────────────────────────── */
+  productHeader: {
+    marginBottom: 20,
+    gap: 10,
   },
-  productName: {
-    flex: 1,
-    fontSize: 26,
-    fontFamily: Fonts.displayBold,
-    color: '#1a1a1a',
-    lineHeight: 34,
-    letterSpacing: 0.2,
-  },
-  stockBadge: {
+  categoryPill: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 5,
+    alignSelf: 'flex-start',
+    backgroundColor: '#fff7ed',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+  },
+  categoryPillText: {
+    fontSize: 11,
+    fontFamily: Fonts.semiBold,
+    color: '#c2410c',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  productName: {
+    fontSize: 28,
+    fontFamily: Fonts.displayBold,
+    color: '#1a1a1a',
+    lineHeight: 36,
+    letterSpacing: -0.2,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flexWrap: 'wrap',
+  },
+  ratingPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#fefce8',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#fef08a',
+  },
+  ratingValue: {
+    fontSize: 13,
+    fontFamily: Fonts.bold,
+    color: '#854d0e',
+  },
+  ratingDivider: {
+    fontSize: 13,
+    color: '#ca8a04',
+  },
+  reviewCountText: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: '#92400e',
+  },
+  stockPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     backgroundColor: '#f0fdf4',
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 5,
     borderRadius: 20,
-    gap: 5,
     borderWidth: 1,
     borderColor: '#bbf7d0',
   },
-  stockDot: {
+  stockPulse: {
     width: 7,
     height: 7,
     borderRadius: 4,
@@ -832,100 +951,274 @@ const styles = StyleSheet.create({
   stockText: {
     fontSize: 12,
     fontFamily: Fonts.semiBold,
-    color: '#16a34a',
+    color: '#166534',
   },
-  ratingRow: {
+
+  /* ── Price card ───────────────────────────────────────────────── */
+  priceCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
+    backgroundColor: '#1a1a1a',
+    borderRadius: 22,
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+    marginBottom: 10,
+    gap: 16,
   },
-  ratingContainer: {
+  priceLeft: {
+    flex: 1,
+    gap: 2,
+  },
+  saleLabelRow: {
+    flexDirection: 'row',
+    marginBottom: 4,
+  },
+  saveBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fef9f0',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 10,
     gap: 4,
-    borderWidth: 1,
-    borderColor: '#fde68a',
+    backgroundColor: '#ef4444',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
   },
-  rating: {
-    fontSize: 14,
+  saveBadgeText: {
+    fontSize: 10,
     fontFamily: Fonts.bold,
-    color: '#92400e',
+    color: '#fff',
+    letterSpacing: 0.5,
   },
-  reviewCount: {
-    fontSize: 14,
-    fontFamily: Fonts.regular,
-    color: '#6b7280',
-  },
-  priceSection: {
-    backgroundColor: '#fff7ed',
-    borderRadius: 18,
-    padding: 18,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#fed7aa',
-  },
-  priceContainer: {
-    gap: 4,
-  },
-  priceLabel: {
-    fontSize: 12,
+  priceLabelText: {
+    fontSize: 11,
     fontFamily: Fonts.semiBold,
-    color: '#92400e',
+    color: 'rgba(255,255,255,0.5)',
     textTransform: 'uppercase',
     letterSpacing: 1,
+    marginBottom: 4,
   },
   priceRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    gap: 6,
+    gap: 5,
   },
-  price: {
-    fontSize: 34,
+  priceMain: {
+    fontSize: 32,
     fontFamily: Fonts.displayBold,
-    color: '#c2410c',
+    color: '#ffffff',
     letterSpacing: -0.5,
   },
-  unit: {
-    fontSize: 16,
+  priceUnit: {
+    fontSize: 14,
     fontFamily: Fonts.medium,
-    color: '#92400e',
+    color: 'rgba(255,255,255,0.55)',
   },
-  section: {
+  originalPrice: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: 'rgba(255,255,255,0.4)',
+    textDecorationLine: 'line-through',
+    marginTop: 2,
+  },
+
+  /* Quantity in price card */
+  qtyBlock: {
+    alignItems: 'center',
+    gap: 6,
+  },
+  qtyLabel: {
+    fontSize: 11,
+    fontFamily: Fonts.semiBold,
+    color: 'rgba(255,255,255,0.45)',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  qtyControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+    overflow: 'hidden',
+  },
+  qtyBtn: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  qtyBtnDisabled: {
+    opacity: 0.3,
+  },
+  qtyValue: {
+    minWidth: 32,
+    textAlign: 'center',
+    fontSize: 18,
+    fontFamily: Fonts.displayBold,
+    color: '#ffffff',
+  },
+
+  /* ── Subtotal strip ───────────────────────────────────────────── */
+  subtotalStrip: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#fff7ed',
+    borderRadius: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
     marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+  },
+  subtotalStripLabel: {
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
+    color: '#92400e',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  subtotalStripAmount: {
+    fontSize: 22,
+    fontFamily: Fonts.displayBold,
+    color: '#c2410c',
+    letterSpacing: -0.3,
+  },
+
+  /* ── Section ─────────────────────────────────────────────────── */
+  section: {
+    marginBottom: 26,
   },
   sectionTitle: {
     fontSize: 17,
     fontFamily: Fonts.display,
     color: '#1a1a1a',
+    letterSpacing: 0.2,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
     marginBottom: 12,
-    letterSpacing: 0.3,
+  },
+  selectedPill: {
+    backgroundColor: '#ff8c00',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    marginLeft: 4,
+  },
+  selectedPillText: {
+    fontSize: 11,
+    fontFamily: Fonts.bold,
+    color: '#fff',
   },
   description: {
     fontSize: 15,
     fontFamily: Fonts.regular,
-    color: '#555',
+    color: '#6b7280',
     lineHeight: 24,
+    marginTop: 10,
   },
+
+  /* ── Chips ───────────────────────────────────────────────────── */
+  chipGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 24,
+    backgroundColor: '#f5f5f5',
+    borderWidth: 1.5,
+    borderColor: '#e8e8e8',
+    gap: 6,
+  },
+  chipActive: {
+    backgroundColor: '#fff7ed',
+    borderColor: '#ff8c00',
+  },
+  chipText: {
+    fontSize: 14,
+    fontFamily: Fonts.medium,
+    color: '#555',
+  },
+  chipTextActive: {
+    color: '#c2410c',
+    fontFamily: Fonts.semiBold,
+  },
+  colorSwatch: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.12)',
+  },
+
+  /* ── Info cards row ──────────────────────────────────────────── */
+  infoCardsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 26,
+  },
+  infoCard: {
+    flex: 1,
+    borderRadius: 18,
+    padding: 16,
+    alignItems: 'flex-start',
+    gap: 4,
+    borderWidth: 1,
+  },
+  infoCardDelivery: {
+    backgroundColor: '#fff7ed',
+    borderColor: '#fed7aa',
+  },
+  infoCardReturn: {
+    backgroundColor: '#f0fdf4',
+    borderColor: '#bbf7d0',
+  },
+  infoCardIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  infoCardValue: {
+    fontSize: 16,
+    fontFamily: Fonts.bold,
+    color: '#c2410c',
+  },
+  infoCardLabel: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: '#92400e',
+    lineHeight: 17,
+  },
+
+  /* ── Vendor card ─────────────────────────────────────────────── */
   vendorCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
     backgroundColor: '#fafaf8',
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 16,
     borderWidth: 1,
     borderColor: '#f0ebe4',
-  },
-  vendorHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+    marginTop: 10,
   },
   vendorAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: '#ff8c00',
     justifyContent: 'center',
     alignItems: 'center',
@@ -933,14 +1226,14 @@ const styles = StyleSheet.create({
   vendorAvatarText: {
     fontSize: 20,
     fontFamily: Fonts.bold,
-    color: '#ffffff',
+    color: '#fff',
   },
   vendorDetails: {
     flex: 1,
     gap: 4,
   },
   vendorName: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: Fonts.display,
     color: '#1a1a1a',
   },
@@ -949,137 +1242,96 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
   },
-  location: {
-    fontSize: 13,
+  locationText: {
+    fontSize: 12,
     fontFamily: Fonts.regular,
-    color: '#6b7280',
+    color: '#9ca3af',
   },
-  vendorRatingBadge: {
+  vendorRatingPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fef9f0',
+    gap: 4,
+    backgroundColor: '#fefce8',
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 10,
-    gap: 4,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#fde68a',
+    borderColor: '#fef08a',
   },
   vendorRatingText: {
     fontSize: 13,
     fontFamily: Fonts.bold,
-    color: '#92400e',
+    color: '#854d0e',
   },
-  quantityRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 16,
-  },
-  quantityControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f8f5f0',
-    borderRadius: 16,
-    padding: 4,
-    gap: 4,
-    borderWidth: 1,
-    borderColor: '#f0ebe4',
-  },
-  quantityButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: '#ffffff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  quantityButtonDisabled: {
-    opacity: 0.4,
-  },
-  quantityDisplay: {
-    minWidth: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 8,
-  },
-  quantity: {
-    fontSize: 20,
-    fontFamily: Fonts.displayBold,
-    color: '#1a1a1a',
-  },
-  subtotalContainer: {
-    alignItems: 'flex-end',
-    gap: 4,
-  },
-  subtotalLabel: {
-    fontSize: 12,
-    fontFamily: Fonts.semiBold,
-    color: '#999',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  subtotalAmount: {
-    fontSize: 24,
-    fontFamily: Fonts.displayBold,
-    color: '#c2410c',
-    letterSpacing: -0.5,
-  },
+
   bottomSpacing: {
-    height: 24,
+    height: 28,
   },
+
+  /* ── Footer CTA ──────────────────────────────────────────────── */
   footer: {
-    padding: 20,
     backgroundColor: '#ffffff',
+    paddingHorizontal: 20,
+    paddingTop: 14,
     borderTopWidth: 1,
     borderTopColor: '#f0ebe4',
   },
+  footerInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  footerPriceBlock: {
+    gap: 1,
+  },
+  footerPriceLabel: {
+    fontSize: 11,
+    fontFamily: Fonts.semiBold,
+    color: '#9ca3af',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  footerPrice: {
+    fontSize: 22,
+    fontFamily: Fonts.displayBold,
+    color: '#1a1a1a',
+    letterSpacing: -0.4,
+  },
   addButton: {
+    flex: 1,
     backgroundColor: '#ff8c00',
-    borderRadius: 16,
-    paddingVertical: 18,
-    paddingHorizontal: 24,
+    borderRadius: 18,
+    paddingVertical: 17,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 10,
+    gap: 9,
     shadowColor: '#ff8c00',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.45,
+    shadowRadius: 14,
+    elevation: 7,
   },
   addButtonDisabled: {
     opacity: 0.6,
   },
   addButtonText: {
     color: '#ffffff',
-    fontSize: 17,
+    fontSize: 16,
     fontFamily: Fonts.headingBold,
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
-  zoomIndicator: {
-    position: 'absolute',
-    bottom: 16,
-    right: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    borderRadius: 24,
-    padding: 10,
-  },
+
+  /* ── Full-screen viewer ──────────────────────────────────────── */
   fullScreenOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.98)',
+    backgroundColor: 'rgba(0,0,0,0.98)',
   },
   fullScreenContainer: {
     flex: 1,
     width: '100%',
     height: '100%',
-    backgroundColor: '#000000',
+    backgroundColor: '#000',
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
@@ -1090,11 +1342,11 @@ const styles = StyleSheet.create({
     zIndex: 999,
   },
   closeButtonCircle: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: 28,
     padding: 12,
     borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: 'rgba(255,255,255,0.3)',
   },
   webImageContainer: {
     flex: 1,
@@ -1124,30 +1376,18 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   navButtonCircle: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(255,255,255,0.15)',
     borderRadius: 40,
     padding: 14,
     borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: 'rgba(255,255,255,0.3)',
   },
   fullScreenImageContainer: {
     width: SCREEN_WIDTH,
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#000000',
-  },
-  zoomableContainer: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  fullScreenImage: {
-    width: '100%',
-    height: '100%',
-    maxWidth: SCREEN_WIDTH,
-    backgroundColor: '#000000',
+    backgroundColor: '#000',
   },
   fullScreenPagination: {
     position: 'absolute',
@@ -1158,19 +1398,21 @@ const styles = StyleSheet.create({
     zIndex: 998,
   },
   fullScreenPaginationText: {
-    color: '#ffffff',
-    fontSize: 16,
+    color: '#fff',
+    fontSize: 15,
     fontFamily: Fonts.bold,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0,0,0,0.7)',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(255,255,255,0.2)',
   },
+
+  /* ── Review form modal ───────────────────────────────────────── */
   reviewFormOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -1178,151 +1420,8 @@ const styles = StyleSheet.create({
   reviewFormContent: {
     width: '100%',
     maxWidth: 500,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#fff',
     borderRadius: 16,
     overflow: 'hidden',
-  },
-  imageDiscountBadge: {
-    position: 'absolute',
-    bottom: 40,
-    left: 20,
-    backgroundColor: '#ef4444',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 12,
-    zIndex: 10,
-    shadowColor: '#ef4444',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  imageDiscountBadgeText: {
-    fontSize: 16,
-    fontFamily: Fonts.bold,
-    color: '#ffffff',
-    letterSpacing: 0.5,
-  },
-  discountRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 8,
-  },
-  discountBadgeInline: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#ef4444',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-  },
-  discountBadgeInlineText: {
-    fontSize: 12,
-    fontFamily: Fonts.bold,
-    color: '#ffffff',
-    letterSpacing: 0.3,
-  },
-  originalPriceText: {
-    fontSize: 18,
-    fontFamily: Fonts.medium,
-    color: '#92400e',
-    textDecorationLine: 'line-through',
-    opacity: 0.6,
-  },
-  optionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
-  },
-  selectedLabel: {
-    fontSize: 13,
-    fontFamily: Fonts.semiBold,
-    color: '#ff8c00',
-    marginLeft: 4,
-  },
-  optionGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  optionChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 24,
-    backgroundColor: '#f8f8f8',
-    borderWidth: 1.5,
-    borderColor: '#eee',
-    gap: 6,
-  },
-  optionChipActive: {
-    backgroundColor: '#fff7ed',
-    borderColor: '#ff8c00',
-  },
-  optionChipText: {
-    fontSize: 14,
-    fontFamily: Fonts.medium,
-    color: '#555',
-  },
-  optionChipTextActive: {
-    color: '#c2410c',
-    fontFamily: Fonts.semiBold,
-  },
-  colorDot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.12)',
-  },
-  returnPolicyCard: {
-    backgroundColor: '#f0fdf4',
-    borderRadius: 14,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#bbf7d0',
-  },
-  returnPolicyText: {
-    fontSize: 14,
-    fontFamily: Fonts.regular,
-    color: '#166534',
-    lineHeight: 22,
-  },
-  deliveryCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff7ed',
-    borderRadius: 14,
-    padding: 16,
-    gap: 14,
-    borderWidth: 1,
-    borderColor: '#fed7aa',
-  },
-  deliveryIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#ffedd5',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  deliveryInfo: {
-    flex: 1,
-    gap: 2,
-  },
-  deliveryDays: {
-    fontSize: 20,
-    fontFamily: Fonts.displayBold,
-    color: '#c2410c',
-    letterSpacing: -0.3,
-  },
-  deliverySubtext: {
-    fontSize: 13,
-    fontFamily: Fonts.regular,
-    color: '#92400e',
   },
 });
