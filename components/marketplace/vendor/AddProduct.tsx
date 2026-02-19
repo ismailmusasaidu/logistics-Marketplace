@@ -104,7 +104,7 @@ export default function AddProduct({ onBack, onSuccess }: AddProductProps) {
   const pickImages = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ImagePicker.MediaType.Images,
         allowsMultipleSelection: true,
         quality: 0.8,
         aspect: [4, 3],
@@ -284,11 +284,20 @@ export default function AddProduct({ onBack, onSuccess }: AddProductProps) {
     try {
       setLoading(true);
 
+      const { data: vendorRecord, error: vendorLookupError } = await supabase
+        .from('vendors')
+        .select('id')
+        .eq('user_id', profile.id)
+        .maybeSingle();
+
+      if (vendorLookupError) throw vendorLookupError;
+      if (!vendorRecord) throw new Error('Vendor profile not found. Please complete your store setup first.');
+
       const discountPct = parseInt(formData.discount_percentage) || 0;
       const { data: product, error: productError } = await supabase
         .from('products')
         .insert({
-          vendor_id: profile.id,
+          vendor_id: vendorRecord.id,
           category_id: formData.category_id,
           name: formData.name.trim(),
           description: formData.description.trim() || null,
