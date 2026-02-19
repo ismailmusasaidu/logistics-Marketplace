@@ -65,7 +65,8 @@ export default function TabLayout() {
           elevation: 8,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11,
+          fontFamily: 'SpaceGrotesk-Medium',
           marginBottom: Platform.OS === 'ios' ? 0 : 4,
         },
       }}
