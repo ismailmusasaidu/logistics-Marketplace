@@ -39,7 +39,6 @@ export default function TabLayout() {
           tabBarActiveTintColor: '#f97316',
           tabBarInactiveTintColor: '#6b7280',
           tabBarLabelStyle: {
-            fontFamily: 'SpaceGrotesk-SemiBold',
             fontSize: 11,
             letterSpacing: 0.3,
           },
@@ -112,7 +111,6 @@ export default function TabLayout() {
           tabBarActiveTintColor: '#3b82f6',
           tabBarInactiveTintColor: '#6b7280',
           tabBarLabelStyle: {
-            fontFamily: 'SpaceGrotesk-SemiBold',
             fontSize: 11,
             letterSpacing: 0.3,
           },
@@ -174,11 +172,10 @@ export default function TabLayout() {
       <Tabs
         screenOptions={{
           headerShown: false,
-          tabBarActiveTintColor: '#8b5cf6',
+          tabBarActiveTintColor: '#f97316',
           tabBarInactiveTintColor: '#6b7280',
           tabBarLabelStyle: {
             fontSize: 10,
-            fontFamily: 'SpaceGrotesk-SemiBold',
             marginTop: 2,
             letterSpacing: 0.3,
           },

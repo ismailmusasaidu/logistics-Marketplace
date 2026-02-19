@@ -6,7 +6,6 @@ import { useEffect } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CartIconWithBadge from '@/components/marketplace/CartIconWithBadge';
 import WishlistIconWithBadge from '@/components/marketplace/WishlistIconWithBadge';
-import { Fonts } from '@/constants/fonts';
 
 const hubListener = {
   tabPress: (e: any) => {
@@ -67,7 +66,6 @@ export default function TabLayout() {
         },
         tabBarLabelStyle: {
           fontSize: 12,
-          fontFamily: Fonts.semiBold,
           marginBottom: Platform.OS === 'ios' ? 0 : 4,
         },
       }}
