@@ -53,13 +53,13 @@ export default function RatingModal({
     try {
       const { error: submitError } = await supabase
         .from('ratings')
-        .insert({
+        .upsert({
           order_id: orderId,
           rider_id: riderId,
           customer_id: customerId,
           rating,
           comment: comment.trim() || null,
-        });
+        }, { onConflict: 'order_id' });
 
       if (submitError) throw submitError;
 
