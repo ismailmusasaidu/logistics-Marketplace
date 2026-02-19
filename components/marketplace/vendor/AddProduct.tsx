@@ -297,7 +297,7 @@ export default function AddProduct({ onBack, onSuccess }: AddProductProps) {
       const { data: product, error: productError } = await supabase
         .from('products')
         .insert({
-          vendor_id: vendorRecord.id,
+          vendor_id: profile.id,
           category_id: formData.category_id,
           name: formData.name.trim(),
           description: formData.description.trim() || null,
