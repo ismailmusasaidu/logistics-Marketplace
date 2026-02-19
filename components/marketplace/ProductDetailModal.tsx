@@ -13,8 +13,10 @@ import {
   NativeSyntheticEvent,
   NativeScrollEvent,
   Platform,
+  Share,
 } from 'react-native';
-import { X, Star, ShoppingCart, Plus, Minus, MapPin, ZoomIn, ChevronLeft, ChevronRight, Percent, Ruler, Palette, RotateCcw, Truck, Package, Award, ShieldCheck, AlertCircle, Clock } from 'lucide-react-native';
+import { X, Star, ShoppingCart, Plus, Minus, MapPin, ZoomIn, ChevronLeft, ChevronRight, Percent, Ruler, Palette, RotateCcw, Truck, Package, Award, ShieldCheck, AlertCircle, Clock, Share2 } from 'lucide-react-native';
+import * as ExpoSharing from 'expo-sharing';
 import { Product, Review } from '@/types/database';
 import { supabase } from '@/lib/marketplace/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -183,6 +185,28 @@ export default function ProductDetailModal({
       setFullScreenImageIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1));
     } else {
       setFullScreenImageIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0));
+    }
+  };
+
+  const handleShare = async () => {
+    if (!currentProduct) return;
+    const hasDiscount = currentProduct.discount_active && currentProduct.discount_percentage > 0;
+    const price = hasDiscount
+      ? currentProduct.price * (1 - currentProduct.discount_percentage / 100)
+      : currentProduct.price;
+    const discountText = hasDiscount ? ` (${currentProduct.discount_percentage}% OFF!)` : '';
+    const vendorText = vendorInfo ? ` Sold by ${vendorInfo.business_name}.` : '';
+    const message = `Check out "${currentProduct.name}"${discountText} for just ₦${price.toFixed(2)} on our marketplace!${vendorText}`;
+
+    if (Platform.OS === 'web') {
+      if (navigator.share) {
+        navigator.share({ title: currentProduct.name, text: message }).catch(() => {});
+      } else {
+        navigator.clipboard?.writeText(message).catch(() => {});
+        alert('Product link copied to clipboard!');
+      }
+    } else {
+      Share.share({ message, title: currentProduct.name }).catch(() => {});
     }
   };
 
@@ -360,6 +384,11 @@ export default function ProductDetailModal({
                 {/* Close button */}
                 <TouchableOpacity style={styles.closeButton} onPress={onClose} activeOpacity={0.85}>
                   <X size={18} color="#1a1a1a" strokeWidth={2.5} />
+                </TouchableOpacity>
+
+                {/* Share button */}
+                <TouchableOpacity style={styles.shareButton} onPress={handleShare} activeOpacity={0.85}>
+                  <Share2 size={17} color="#1a1a1a" strokeWidth={2.5} />
                 </TouchableOpacity>
 
                 {/* Zoom hint */}
@@ -613,6 +642,13 @@ export default function ProductDetailModal({
                   <Text style={styles.footerPrice}>₦{subtotal.toFixed(2)}</Text>
                 </View>
                 <TouchableOpacity
+                  style={styles.footerShareBtn}
+                  onPress={handleShare}
+                  activeOpacity={0.8}
+                >
+                  <Share2 size={20} color="#ff8c00" strokeWidth={2.5} />
+                </TouchableOpacity>
+                <TouchableOpacity
                   style={[styles.addButton, loading && styles.addButtonDisabled]}
                   onPress={addToCart}
                   disabled={loading}
@@ -846,6 +882,22 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 20,
     right: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.14,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  shareButton: {
+    position: 'absolute',
+    top: 20,
+    right: 64,
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -1362,6 +1414,16 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.displayBold,
     color: '#1a1a1a',
     letterSpacing: -0.4,
+  },
+  footerShareBtn: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: '#fff7ed',
+    borderWidth: 1.5,
+    borderColor: '#fed7aa',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   addButton: {
     flex: 1,
