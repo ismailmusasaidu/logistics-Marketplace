@@ -14,7 +14,7 @@ import {
   NativeScrollEvent,
   Platform,
 } from 'react-native';
-import { X, Star, ShoppingCart, Plus, Minus, MapPin, ZoomIn, ChevronLeft, ChevronRight, Percent } from 'lucide-react-native';
+import { X, Star, ShoppingCart, Plus, Minus, MapPin, ZoomIn, ChevronLeft, ChevronRight, Percent, Ruler, Palette, RotateCcw } from 'lucide-react-native';
 import { Product, Review } from '@/types/database';
 import { supabase } from '@/lib/marketplace/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -65,6 +65,8 @@ export default function ProductDetailModal({
   const [isImageZoomed, setIsImageZoomed] = useState(false);
   const [editingReview, setEditingReview] = useState<Review | null>(null);
   const [showReviewForm, setShowReviewForm] = useState(false);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
   const fullScreenFlatListRef = useRef<FlatList>(null);
   const autoPlayTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -260,6 +262,8 @@ export default function ProductDetailModal({
       setImages([]);
       setQuantity(1);
       setCurrentProduct(null);
+      setSelectedSize(null);
+      setSelectedColor(null);
     }
   }, [visible, product]);
 
@@ -415,6 +419,67 @@ export default function ProductDetailModal({
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>About this product</Text>
                   <Text style={styles.description}>{currentProduct.description}</Text>
+                </View>
+              )}
+
+              {currentProduct.sizes && currentProduct.sizes.length > 0 && (
+                <View style={styles.section}>
+                  <View style={styles.optionHeader}>
+                    <Ruler size={16} color="#ff8c00" strokeWidth={2.2} />
+                    <Text style={styles.sectionTitle}>Size</Text>
+                    {selectedSize && <Text style={styles.selectedLabel}>{selectedSize}</Text>}
+                  </View>
+                  <View style={styles.optionGrid}>
+                    {currentProduct.sizes.map((s) => (
+                      <TouchableOpacity
+                        key={s}
+                        style={[styles.optionChip, selectedSize === s && styles.optionChipActive]}
+                        onPress={() => setSelectedSize(selectedSize === s ? null : s)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[styles.optionChipText, selectedSize === s && styles.optionChipTextActive]}>
+                          {s}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {currentProduct.colors && currentProduct.colors.length > 0 && (
+                <View style={styles.section}>
+                  <View style={styles.optionHeader}>
+                    <Palette size={16} color="#ff8c00" strokeWidth={2.2} />
+                    <Text style={styles.sectionTitle}>Color</Text>
+                    {selectedColor && <Text style={styles.selectedLabel}>{selectedColor}</Text>}
+                  </View>
+                  <View style={styles.optionGrid}>
+                    {currentProduct.colors.map((c) => (
+                      <TouchableOpacity
+                        key={c}
+                        style={[styles.optionChip, selectedColor === c && styles.optionChipActive]}
+                        onPress={() => setSelectedColor(selectedColor === c ? null : c)}
+                        activeOpacity={0.7}
+                      >
+                        <View style={[styles.colorDot, { backgroundColor: c.toLowerCase() }]} />
+                        <Text style={[styles.optionChipText, selectedColor === c && styles.optionChipTextActive]}>
+                          {c}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {currentProduct.return_policy && (
+                <View style={styles.section}>
+                  <View style={styles.optionHeader}>
+                    <RotateCcw size={16} color="#ff8c00" strokeWidth={2.2} />
+                    <Text style={styles.sectionTitle}>Return Policy</Text>
+                  </View>
+                  <View style={styles.returnPolicyCard}>
+                    <Text style={styles.returnPolicyText}>{currentProduct.return_policy}</Text>
+                  </View>
                 </View>
               )}
 
@@ -1145,5 +1210,66 @@ const styles = StyleSheet.create({
     color: '#92400e',
     textDecorationLine: 'line-through',
     opacity: 0.6,
+  },
+  optionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  selectedLabel: {
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
+    color: '#ff8c00',
+    marginLeft: 4,
+  },
+  optionGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  optionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 24,
+    backgroundColor: '#f8f8f8',
+    borderWidth: 1.5,
+    borderColor: '#eee',
+    gap: 6,
+  },
+  optionChipActive: {
+    backgroundColor: '#fff7ed',
+    borderColor: '#ff8c00',
+  },
+  optionChipText: {
+    fontSize: 14,
+    fontFamily: Fonts.medium,
+    color: '#555',
+  },
+  optionChipTextActive: {
+    color: '#c2410c',
+    fontFamily: Fonts.semiBold,
+  },
+  colorDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.12)',
+  },
+  returnPolicyCard: {
+    backgroundColor: '#f0fdf4',
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+  },
+  returnPolicyText: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: '#166534',
+    lineHeight: 22,
   },
 });

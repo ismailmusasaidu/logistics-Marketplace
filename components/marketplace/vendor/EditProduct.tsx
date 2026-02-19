@@ -26,6 +26,11 @@ import {
   Pencil,
   Percent,
   Scale,
+  Ruler,
+  Palette,
+  RotateCcw,
+  Plus,
+  X,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/marketplace/supabase';
@@ -60,6 +65,11 @@ export default function EditProduct({ product, onBack, onSuccess }: EditProductP
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [showReviews, setShowReviews] = useState(false);
+  const [sizes, setSizes] = useState<string[]>(product.sizes || []);
+  const [sizeInput, setSizeInput] = useState('');
+  const [colors, setColors] = useState<string[]>(product.colors || []);
+  const [colorInput, setColorInput] = useState('');
+  const [returnPolicy, setReturnPolicy] = useState(product.return_policy || '');
 
   useEffect(() => {
     fetchCategories();
@@ -79,6 +89,24 @@ export default function EditProduct({ product, onBack, onSuccess }: EditProductP
       console.error('Error fetching categories:', error);
     }
   };
+
+  const addSize = () => {
+    const val = sizeInput.trim();
+    if (!val) return;
+    if (!sizes.includes(val)) setSizes([...sizes, val]);
+    setSizeInput('');
+  };
+
+  const removeSize = (s: string) => setSizes(sizes.filter((x) => x !== s));
+
+  const addColor = () => {
+    const val = colorInput.trim();
+    if (!val) return;
+    if (!colors.includes(val)) setColors([...colors, val]);
+    setColorInput('');
+  };
+
+  const removeColor = (c: string) => setColors(colors.filter((x) => x !== c));
 
   const handleUpdate = async () => {
     if (!name.trim() || !price || !stockQuantity) {
@@ -103,6 +131,9 @@ export default function EditProduct({ product, onBack, onSuccess }: EditProductP
           weight_kg: weightKg ? parseFloat(weightKg) : null,
           discount_percentage: Math.min(Math.max(discountPct, 0), 100),
           discount_active: discountActive && discountPct > 0,
+          sizes: sizes.length > 0 ? sizes : null,
+          colors: colors.length > 0 ? colors : null,
+          return_policy: returnPolicy.trim() || null,
         })
         .eq('id', product.id);
 
@@ -326,6 +357,113 @@ export default function EditProduct({ product, onBack, onSuccess }: EditProductP
                     trackColor={{ false: '#e5e7eb', true: '#fed7aa' }}
                     thumbColor={isAvailable ? '#ff8c00' : '#cbd5e1'}
                     ios_backgroundColor="#e5e7eb"
+                  />
+                </View>
+              </View>
+
+              <View style={styles.sectionCard}>
+                <View style={styles.sectionCardHeader}>
+                  <View style={styles.sectionIconWrap}>
+                    <Ruler size={18} color="#ff8c00" strokeWidth={2.2} />
+                  </View>
+                  <Text style={styles.sectionCardTitle}>Sizes & Colors</Text>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <View style={styles.labelRow}>
+                    <Ruler size={14} color="#888" />
+                    <Text style={styles.label}>Sizes</Text>
+                    <Text style={styles.optionalTag}>optional</Text>
+                  </View>
+                  <View style={styles.tagInputRow}>
+                    <TextInput
+                      style={[styles.input, styles.tagInput, Platform.OS === 'web' && { outlineStyle: 'none' } as any]}
+                      placeholder="e.g. S, M, L, XL"
+                      placeholderTextColor="#b0b0b0"
+                      value={sizeInput}
+                      onChangeText={setSizeInput}
+                      onSubmitEditing={addSize}
+                      returnKeyType="done"
+                    />
+                    <TouchableOpacity style={styles.tagAddBtn} onPress={addSize} activeOpacity={0.8}>
+                      <Plus size={18} color="#ffffff" strokeWidth={2.5} />
+                    </TouchableOpacity>
+                  </View>
+                  {sizes.length > 0 && (
+                    <View style={styles.tagsWrap}>
+                      {sizes.map((s) => (
+                        <View key={s} style={styles.tag}>
+                          <Text style={styles.tagText}>{s}</Text>
+                          <TouchableOpacity onPress={() => removeSize(s)} activeOpacity={0.7}>
+                            <X size={12} color="#ff8c00" strokeWidth={2.5} />
+                          </TouchableOpacity>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                  <Text style={styles.helperText}>Add size options customers can choose from</Text>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <View style={styles.labelRow}>
+                    <Palette size={14} color="#888" />
+                    <Text style={styles.label}>Colors</Text>
+                    <Text style={styles.optionalTag}>optional</Text>
+                  </View>
+                  <View style={styles.tagInputRow}>
+                    <TextInput
+                      style={[styles.input, styles.tagInput, Platform.OS === 'web' && { outlineStyle: 'none' } as any]}
+                      placeholder="e.g. Red, Blue, Black"
+                      placeholderTextColor="#b0b0b0"
+                      value={colorInput}
+                      onChangeText={setColorInput}
+                      onSubmitEditing={addColor}
+                      returnKeyType="done"
+                    />
+                    <TouchableOpacity style={styles.tagAddBtn} onPress={addColor} activeOpacity={0.8}>
+                      <Plus size={18} color="#ffffff" strokeWidth={2.5} />
+                    </TouchableOpacity>
+                  </View>
+                  {colors.length > 0 && (
+                    <View style={styles.tagsWrap}>
+                      {colors.map((c) => (
+                        <View key={c} style={styles.tag}>
+                          <View style={[styles.colorDot, { backgroundColor: c.toLowerCase() }]} />
+                          <Text style={styles.tagText}>{c}</Text>
+                          <TouchableOpacity onPress={() => removeColor(c)} activeOpacity={0.7}>
+                            <X size={12} color="#ff8c00" strokeWidth={2.5} />
+                          </TouchableOpacity>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                  <Text style={styles.helperText}>Add color options customers can choose from</Text>
+                </View>
+              </View>
+
+              <View style={styles.sectionCard}>
+                <View style={styles.sectionCardHeader}>
+                  <View style={styles.sectionIconWrap}>
+                    <RotateCcw size={18} color="#ff8c00" strokeWidth={2.2} />
+                  </View>
+                  <Text style={styles.sectionCardTitle}>Return Policy</Text>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <View style={styles.labelRow}>
+                    <RotateCcw size={14} color="#888" />
+                    <Text style={styles.label}>Return Policy</Text>
+                    <Text style={styles.optionalTag}>optional</Text>
+                  </View>
+                  <TextInput
+                    style={[styles.input, styles.textArea, Platform.OS === 'web' && { outlineStyle: 'none' } as any]}
+                    placeholder="e.g. Returns accepted within 7 days of delivery..."
+                    placeholderTextColor="#b0b0b0"
+                    value={returnPolicy}
+                    onChangeText={setReturnPolicy}
+                    multiline
+                    numberOfLines={3}
+                    textAlignVertical="top"
                   />
                 </View>
               </View>
@@ -754,5 +892,56 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: Fonts.headingBold,
     color: '#059669',
+  },
+  optionalTag: {
+    fontSize: 11,
+    fontFamily: Fonts.medium,
+    color: '#aaa',
+    marginLeft: 2,
+  },
+  tagInputRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  tagInput: {
+    flex: 1,
+    marginBottom: 0,
+  },
+  tagAddBtn: {
+    width: 48,
+    height: 48,
+    backgroundColor: '#ff8c00',
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tagsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
+  },
+  tag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff7ed',
+    borderWidth: 1.5,
+    borderColor: '#ffedd5',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    gap: 6,
+  },
+  tagText: {
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
+    color: '#c2410c',
+  },
+  colorDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.1)',
   },
 });

@@ -29,6 +29,9 @@ import {
   ToggleLeft,
   ToggleRight,
   Scale,
+  Ruler,
+  Palette,
+  RotateCcw,
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '@/lib/marketplace/supabase';
@@ -67,7 +70,13 @@ export default function AddProduct({ onBack, onSuccess }: AddProductProps) {
     weight_kg: '',
     discount_percentage: '',
     discount_active: false,
+    return_policy: '',
   });
+
+  const [sizeInput, setSizeInput] = useState('');
+  const [sizes, setSizes] = useState<string[]>([]);
+  const [colorInput, setColorInput] = useState('');
+  const [colors, setColors] = useState<string[]>([]);
 
   useEffect(() => {
     fetchCategories();
@@ -179,6 +188,24 @@ export default function AddProduct({ onBack, onSuccess }: AddProductProps) {
       }))
     );
   };
+
+  const addSize = () => {
+    const val = sizeInput.trim();
+    if (!val) return;
+    if (!sizes.includes(val)) setSizes([...sizes, val]);
+    setSizeInput('');
+  };
+
+  const removeSize = (s: string) => setSizes(sizes.filter((x) => x !== s));
+
+  const addColor = () => {
+    const val = colorInput.trim();
+    if (!val) return;
+    if (!colors.includes(val)) setColors([...colors, val]);
+    setColorInput('');
+  };
+
+  const removeColor = (c: string) => setColors(colors.filter((x) => x !== c));
 
   const validateForm = () => {
     if (!formData.name.trim()) {
@@ -310,6 +337,9 @@ export default function AddProduct({ onBack, onSuccess }: AddProductProps) {
           is_featured: false,
           discount_percentage: Math.min(Math.max(discountPct, 0), 100),
           discount_active: formData.discount_active && discountPct > 0,
+          sizes: sizes.length > 0 ? sizes : null,
+          colors: colors.length > 0 ? colors : null,
+          return_policy: formData.return_policy.trim() || null,
         })
         .select()
         .single();
@@ -633,6 +663,97 @@ export default function AddProduct({ onBack, onSuccess }: AddProductProps) {
                 </View>
                 <Text style={styles.helperText}>Weight per unit</Text>
               </View>
+            </View>
+
+            <View style={styles.discountDivider} />
+
+            <View style={styles.inputGroup}>
+              <View style={styles.labelRow}>
+                <Ruler size={14} color="#888" />
+                <Text style={styles.label}>Sizes</Text>
+                <Text style={styles.optionalTag}>optional</Text>
+              </View>
+              <View style={styles.tagInputRow}>
+                <TextInput
+                  style={[styles.tagInput, Platform.OS === 'web' && { outlineStyle: 'none' } as any]}
+                  placeholder="e.g. S, M, L, XL"
+                  placeholderTextColor="#b0b0b0"
+                  value={sizeInput}
+                  onChangeText={setSizeInput}
+                  onSubmitEditing={addSize}
+                  returnKeyType="done"
+                />
+                <TouchableOpacity style={styles.tagAddBtn} onPress={addSize} activeOpacity={0.8}>
+                  <Plus size={18} color="#ffffff" strokeWidth={2.5} />
+                </TouchableOpacity>
+              </View>
+              {sizes.length > 0 && (
+                <View style={styles.tagsWrap}>
+                  {sizes.map((s) => (
+                    <View key={s} style={styles.tag}>
+                      <Text style={styles.tagText}>{s}</Text>
+                      <TouchableOpacity onPress={() => removeSize(s)} activeOpacity={0.7}>
+                        <X size={12} color="#ff8c00" strokeWidth={2.5} />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
+              <Text style={styles.helperText}>Add size options customers can choose from</Text>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <View style={styles.labelRow}>
+                <Palette size={14} color="#888" />
+                <Text style={styles.label}>Colors</Text>
+                <Text style={styles.optionalTag}>optional</Text>
+              </View>
+              <View style={styles.tagInputRow}>
+                <TextInput
+                  style={[styles.tagInput, Platform.OS === 'web' && { outlineStyle: 'none' } as any]}
+                  placeholder="e.g. Red, Blue, Black"
+                  placeholderTextColor="#b0b0b0"
+                  value={colorInput}
+                  onChangeText={setColorInput}
+                  onSubmitEditing={addColor}
+                  returnKeyType="done"
+                />
+                <TouchableOpacity style={styles.tagAddBtn} onPress={addColor} activeOpacity={0.8}>
+                  <Plus size={18} color="#ffffff" strokeWidth={2.5} />
+                </TouchableOpacity>
+              </View>
+              {colors.length > 0 && (
+                <View style={styles.tagsWrap}>
+                  {colors.map((c) => (
+                    <View key={c} style={styles.tag}>
+                      <View style={[styles.colorDot, { backgroundColor: c.toLowerCase() }]} />
+                      <Text style={styles.tagText}>{c}</Text>
+                      <TouchableOpacity onPress={() => removeColor(c)} activeOpacity={0.7}>
+                        <X size={12} color="#ff8c00" strokeWidth={2.5} />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
+              <Text style={styles.helperText}>Add color options customers can choose from</Text>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <View style={styles.labelRow}>
+                <RotateCcw size={14} color="#888" />
+                <Text style={styles.label}>Return Policy</Text>
+                <Text style={styles.optionalTag}>optional</Text>
+              </View>
+              <TextInput
+                style={[styles.input, styles.textArea, Platform.OS === 'web' && { outlineStyle: 'none' } as any]}
+                placeholder="e.g. Returns accepted within 7 days of delivery..."
+                placeholderTextColor="#b0b0b0"
+                value={formData.return_policy}
+                onChangeText={(text) => setFormData({ ...formData, return_policy: text })}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
             </View>
 
             <View style={styles.discountDivider} />
@@ -1172,5 +1293,63 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: Fonts.headingBold,
     color: '#059669',
+  },
+  optionalTag: {
+    fontSize: 11,
+    fontFamily: Fonts.medium,
+    color: '#aaa',
+    marginLeft: 2,
+  },
+  tagInputRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  tagInput: {
+    flex: 1,
+    backgroundColor: '#f8f8f8',
+    borderRadius: 14,
+    padding: 14,
+    fontSize: 15,
+    fontFamily: Fonts.regular,
+    color: '#1a1a1a',
+    borderWidth: 1.5,
+    borderColor: '#eee',
+  },
+  tagAddBtn: {
+    width: 48,
+    height: 48,
+    backgroundColor: '#ff8c00',
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tagsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
+  },
+  tag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff7ed',
+    borderWidth: 1.5,
+    borderColor: '#ffedd5',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    gap: 6,
+  },
+  tagText: {
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
+    color: '#c2410c',
+  },
+  colorDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.1)',
   },
 });

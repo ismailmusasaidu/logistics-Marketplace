@@ -92,6 +92,9 @@ export interface Product {
   discount_percentage: number;
   discount_active: boolean;
   weight_kg?: number;
+  sizes?: string[] | null;
+  colors?: string[] | null;
+  return_policy?: string | null;
   created_at: string;
   updated_at: string;
 }
