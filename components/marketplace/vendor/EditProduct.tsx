@@ -31,6 +31,7 @@ import {
   RotateCcw,
   Plus,
   X,
+  Truck,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/marketplace/supabase';
@@ -70,6 +71,9 @@ export default function EditProduct({ product, onBack, onSuccess }: EditProductP
   const [colors, setColors] = useState<string[]>(product.colors || []);
   const [colorInput, setColorInput] = useState('');
   const [returnPolicy, setReturnPolicy] = useState(product.return_policy || '');
+  const [expectedDeliveryDays, setExpectedDeliveryDays] = useState(
+    product.expected_delivery_days != null ? String(product.expected_delivery_days) : ''
+  );
 
   useEffect(() => {
     fetchCategories();
@@ -134,6 +138,7 @@ export default function EditProduct({ product, onBack, onSuccess }: EditProductP
           sizes: sizes.length > 0 ? sizes : null,
           colors: colors.length > 0 ? colors : null,
           return_policy: returnPolicy.trim() || null,
+          expected_delivery_days: expectedDeliveryDays ? parseInt(expectedDeliveryDays) : null,
         })
         .eq('id', product.id);
 
@@ -465,6 +470,39 @@ export default function EditProduct({ product, onBack, onSuccess }: EditProductP
                     numberOfLines={3}
                     textAlignVertical="top"
                   />
+                </View>
+              </View>
+
+              <View style={styles.sectionCard}>
+                <View style={styles.sectionCardHeader}>
+                  <View style={styles.sectionIconWrap}>
+                    <Truck size={18} color="#ff8c00" strokeWidth={2.2} />
+                  </View>
+                  <Text style={styles.sectionCardTitle}>Expected Delivery</Text>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <View style={styles.labelRow}>
+                    <Truck size={14} color="#888" />
+                    <Text style={styles.label}>Delivery Time</Text>
+                    <Text style={styles.optionalTag}>optional</Text>
+                  </View>
+                  <View style={styles.inputWithSuffix}>
+                    <TextInput
+                      style={[styles.input, styles.suffixInput, Platform.OS === 'web' && { outlineStyle: 'none' } as any]}
+                      placeholder="e.g. 3"
+                      placeholderTextColor="#b0b0b0"
+                      value={expectedDeliveryDays}
+                      onChangeText={(text) => {
+                        const num = text.replace(/[^0-9]/g, '');
+                        setExpectedDeliveryDays(num);
+                      }}
+                      keyboardType="number-pad"
+                      maxLength={3}
+                    />
+                    <Text style={styles.suffixText}>days</Text>
+                  </View>
+                  <Text style={styles.helperText}>Estimated number of days for delivery after order placement</Text>
                 </View>
               </View>
 

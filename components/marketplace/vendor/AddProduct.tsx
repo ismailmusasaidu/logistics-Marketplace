@@ -32,6 +32,7 @@ import {
   Ruler,
   Palette,
   RotateCcw,
+  Truck,
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '@/lib/marketplace/supabase';
@@ -71,6 +72,7 @@ export default function AddProduct({ onBack, onSuccess }: AddProductProps) {
     discount_percentage: '',
     discount_active: false,
     return_policy: '',
+    expected_delivery_days: '',
   });
 
   const [sizeInput, setSizeInput] = useState('');
@@ -340,6 +342,7 @@ export default function AddProduct({ onBack, onSuccess }: AddProductProps) {
           sizes: sizes.length > 0 ? sizes : null,
           colors: colors.length > 0 ? colors : null,
           return_policy: formData.return_policy.trim() || null,
+          expected_delivery_days: formData.expected_delivery_days ? parseInt(formData.expected_delivery_days) : null,
         })
         .select()
         .single();
@@ -754,6 +757,30 @@ export default function AddProduct({ onBack, onSuccess }: AddProductProps) {
                 numberOfLines={3}
                 textAlignVertical="top"
               />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <View style={styles.labelRow}>
+                <Truck size={14} color="#888" />
+                <Text style={styles.label}>Expected Delivery</Text>
+                <Text style={styles.optionalTag}>optional</Text>
+              </View>
+              <View style={styles.inputWithSuffix}>
+                <TextInput
+                  style={[styles.input, styles.suffixInput, Platform.OS === 'web' && { outlineStyle: 'none' } as any]}
+                  placeholder="e.g. 3"
+                  placeholderTextColor="#b0b0b0"
+                  value={formData.expected_delivery_days}
+                  onChangeText={(text) => {
+                    const num = text.replace(/[^0-9]/g, '');
+                    setFormData({ ...formData, expected_delivery_days: num });
+                  }}
+                  keyboardType="number-pad"
+                  maxLength={3}
+                />
+                <Text style={styles.suffixText}>days</Text>
+              </View>
+              <Text style={styles.helperText}>Estimated number of days for delivery after order placement</Text>
             </View>
 
             <View style={styles.discountDivider} />

@@ -95,6 +95,7 @@ export interface Product {
   sizes?: string[] | null;
   colors?: string[] | null;
   return_policy?: string | null;
+  expected_delivery_days?: number | null;
   created_at: string;
   updated_at: string;
 }

@@ -14,7 +14,7 @@ import {
   NativeScrollEvent,
   Platform,
 } from 'react-native';
-import { X, Star, ShoppingCart, Plus, Minus, MapPin, ZoomIn, ChevronLeft, ChevronRight, Percent, Ruler, Palette, RotateCcw } from 'lucide-react-native';
+import { X, Star, ShoppingCart, Plus, Minus, MapPin, ZoomIn, ChevronLeft, ChevronRight, Percent, Ruler, Palette, RotateCcw, Truck } from 'lucide-react-native';
 import { Product, Review } from '@/types/database';
 import { supabase } from '@/lib/marketplace/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -479,6 +479,26 @@ export default function ProductDetailModal({
                   </View>
                   <View style={styles.returnPolicyCard}>
                     <Text style={styles.returnPolicyText}>{currentProduct.return_policy}</Text>
+                  </View>
+                </View>
+              )}
+
+              {currentProduct.expected_delivery_days != null && (
+                <View style={styles.section}>
+                  <View style={styles.optionHeader}>
+                    <Truck size={16} color="#ff8c00" strokeWidth={2.2} />
+                    <Text style={styles.sectionTitle}>Expected Delivery</Text>
+                  </View>
+                  <View style={styles.deliveryCard}>
+                    <View style={styles.deliveryIconWrap}>
+                      <Truck size={22} color="#ff8c00" strokeWidth={2} />
+                    </View>
+                    <View style={styles.deliveryInfo}>
+                      <Text style={styles.deliveryDays}>
+                        {currentProduct.expected_delivery_days} {currentProduct.expected_delivery_days === 1 ? 'day' : 'days'}
+                      </Text>
+                      <Text style={styles.deliverySubtext}>estimated after order placement</Text>
+                    </View>
                   </View>
                 </View>
               )}
@@ -1271,5 +1291,38 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
     color: '#166534',
     lineHeight: 22,
+  },
+  deliveryCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff7ed',
+    borderRadius: 14,
+    padding: 16,
+    gap: 14,
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+  },
+  deliveryIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#ffedd5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deliveryInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  deliveryDays: {
+    fontSize: 20,
+    fontFamily: Fonts.displayBold,
+    color: '#c2410c',
+    letterSpacing: -0.3,
+  },
+  deliverySubtext: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: '#92400e',
   },
 });
