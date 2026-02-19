@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, TextInput, ActivityIndicator } from 'react-native';
 import { User, Mail, LogOut, Edit, Save, X, Phone, Calendar, Bike, FileText, Hash, Star, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
@@ -35,6 +35,7 @@ interface ReviewStats {
 }
 
 export default function RiderProfile() {
+  const insets = useSafeAreaInsets();
   const { profile, signOut, refreshProfile } = useAuth();
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
@@ -240,7 +241,7 @@ export default function RiderProfile() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) }}>
         <View style={styles.header}>
           <Text style={styles.title}>Profile</Text>
           {!isEditing && (

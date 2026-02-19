@@ -580,7 +580,11 @@ export default function VendorOrderManagement({ onBack }: VendorOrderManagementP
                         >
                           <View style={{ flex: 1 }}>
                             <Text style={styles.itemName}>{item.products?.name || 'Product'}</Text>
-                            <Text style={styles.itemQty}>Qty: {item.quantity} × ₦{Number(item.unit_price).toLocaleString()}</Text>
+                            <Text style={styles.itemQty}>
+                              Qty: {item.quantity} × ₦{Number(item.unit_price).toLocaleString()}
+                              {(item as any).selected_size ? `\nSize: ${(item as any).selected_size}` : ''}
+                              {(item as any).selected_color ? `  ${(item as any).selected_color}` : ''}
+                            </Text>
                           </View>
                           <Text style={styles.itemTotal}>
                             ₦{(Number(item.unit_price) * item.quantity).toLocaleString()}

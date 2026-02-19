@@ -291,7 +291,7 @@ export default function OrdersScreen() {
         <FlatList
           data={filteredOrders}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 16 }]}
           renderItem={({ item, index }) => {
             const StatusIcon = statusIcons[item.status];
             const statusColor = statusColors[item.status];
@@ -377,6 +377,8 @@ export default function OrdersScreen() {
                           </Text>
                           <Text style={styles.reviewItemQuantity}>
                             Qty: {orderItem.quantity}
+                            {(orderItem as any).selected_size ? ` · Size: ${(orderItem as any).selected_size}` : ''}
+                            {(orderItem as any).selected_color ? ` · ${(orderItem as any).selected_color}` : ''}
                           </Text>
                         </View>
                         {orderItem.hasReview ? (

@@ -149,7 +149,7 @@ export default function AdminHome() {
   ];
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}>
       <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
         <View style={styles.headerBadge}>
           <Shield size={14} color="#ff8c00" />

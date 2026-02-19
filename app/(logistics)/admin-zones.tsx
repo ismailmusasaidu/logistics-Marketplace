@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Modal, TextInput } from 'react-native';
 import { MapPin, Plus, Edit2, Trash2, X, Users, Search } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { Toast } from '@/components/Toast';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
@@ -23,6 +24,7 @@ interface Rider {
 }
 
 export default function AdminZones() {
+  const insets = useSafeAreaInsets();
   const [zones, setZones] = useState<Zone[]>([]);
   const [riders, setRiders] = useState<Rider[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -251,7 +253,7 @@ export default function AdminZones() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <Text style={styles.title}>Delivery Zones</Text>
         <TouchableOpacity style={styles.addButton} onPress={handleCreate}>
           <Plus size={20} color="#ffffff" />
@@ -279,6 +281,7 @@ export default function AdminZones() {
       <ScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadZones(); loadRiders(); }} />}>
 
         {filteredZones.length === 0 && zones.length === 0 ? (
@@ -498,7 +501,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 24,
-    paddingTop: 60,
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Modal, TextInput, Platform, Linking, ActivityIndicator, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Package, MapPin, Clock, Plus, X, User, Phone, ChevronDown, ChevronUp, Layers, Navigation, Search, Tag, Receipt, Star, ArrowDown, Truck, CheckCircle2, CircleDot, RefreshCw } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { Order } from '@/lib/supabase';
@@ -18,8 +18,12 @@ import { PaymentMethod, walletService } from '@/lib/wallet';
 import { getUserFriendlyError } from '@/lib/errorHandler';
 import { matchAddressToZone } from '@/lib/zoneMatching';
 import { Fonts } from '@/constants/fonts';
+import LogisticsBannerSlider from '@/components/logistics/BannerSlider';
+import LogisticsAdModal from '@/components/logistics/AdModal';
+import { supabase as coreSupabase } from '@/lib/supabase';
 
 export default function CustomerHome() {
+  const insets = useSafeAreaInsets();
   const { profile, locationAddress, locationPermissionDenied, locationLoading, refreshLocation } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,11 +70,36 @@ export default function CustomerHome() {
   const [selectedOrderForRating, setSelectedOrderForRating] = useState<Order | null>(null);
   const [ratedOrders, setRatedOrders] = useState<Set<string>>(new Set());
   const [ratingRiderName, setRatingRiderName] = useState('Your Rider');
+  const [adModalVisible, setAdModalVisible] = useState(false);
+  const [activeAdvert, setActiveAdvert] = useState<any>(null);
 
   const orderTypeOptions = ['Groceries', 'Medicine', 'Bulk / Heavy Items', 'Express Delivery'];
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'success') => {
     setToast({ visible: true, message, type });
+  };
+
+  useEffect(() => {
+    fetchModalAdvert();
+  }, []);
+
+  const fetchModalAdvert = async () => {
+    try {
+      const { data } = await coreSupabase
+        .from('logistics_adverts')
+        .select('*')
+        .eq('is_active', true)
+        .in('display_mode', ['modal', 'both'])
+        .order('priority', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (data) {
+        setTimeout(() => {
+          setActiveAdvert(data);
+          setAdModalVisible(true);
+        }, 1500);
+      }
+    } catch {}
   };
 
   useEffect(() => {
@@ -716,10 +745,12 @@ export default function CustomerHome() {
       <ScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadOrders(); }} />}>
 
         {activeTab === 'active' && (
           <>
+            <LogisticsBannerSlider />
             <Text style={styles.sectionTitle}>Active Orders</Text>
 
             {activeOrders.length === 0 ? (
@@ -1303,6 +1334,12 @@ export default function CustomerHome() {
           onSuccess={handleRatingSuccess}
         />
       )}
+
+      <LogisticsAdModal
+        visible={adModalVisible}
+        advert={activeAdvert}
+        onClose={() => setAdModalVisible(false)}
+      />
     </SafeAreaView>
   );
 }

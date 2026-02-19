@@ -17,6 +17,8 @@ interface OrderItem {
   product_id: string;
   quantity: number;
   unit_price: number;
+  selected_size: string | null;
+  selected_color: string | null;
   product: {
     name: string;
     image_url: string;
@@ -50,6 +52,8 @@ export default function OrderItemsList({ orderId, orderStatus }: OrderItemsListP
           product_id,
           quantity,
           unit_price,
+          selected_size,
+          selected_color,
           products (
             name,
             image_url
@@ -76,6 +80,8 @@ export default function OrderItemsList({ orderId, orderStatus }: OrderItemsListP
         product_id: item.product_id,
         quantity: item.quantity,
         unit_price: item.unit_price,
+        selected_size: item.selected_size || null,
+        selected_color: item.selected_color || null,
         product: {
           name: item.products?.name || 'Unknown Product',
           image_url: item.products?.image_url || '',
@@ -106,6 +112,16 @@ export default function OrderItemsList({ orderId, orderStatus }: OrderItemsListP
     <View style={styles.itemCard}>
       <View style={styles.itemInfo}>
         <Text style={styles.productName}>{item.product.name}</Text>
+        {(item.selected_size || item.selected_color) && (
+          <Text style={styles.itemVariant}>
+            {[
+              item.selected_size ? `Size: ${item.selected_size}` : null,
+              item.selected_color ? item.selected_color : null,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+          </Text>
+        )}
         <Text style={styles.itemDetails}>
           {item.quantity} × ₦{item.unit_price.toFixed(2)}
         </Text>
@@ -202,6 +218,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#111827',
     marginBottom: 4,
+  },
+  itemVariant: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginBottom: 2,
   },
   itemDetails: {
     fontSize: 12,

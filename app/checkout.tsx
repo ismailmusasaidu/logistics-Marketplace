@@ -25,6 +25,8 @@ interface CartItemWithProduct {
   id: string;
   quantity: number;
   product_id: string;
+  selected_size: string | null;
+  selected_color: string | null;
   product: {
     id: string;
     name: string;
@@ -280,6 +282,8 @@ export default function CheckoutScreen() {
           id,
           quantity,
           product_id,
+          selected_size,
+          selected_color,
           products (
             id,
             name,
@@ -298,6 +302,8 @@ export default function CheckoutScreen() {
         id: item.id,
         quantity: item.quantity,
         product_id: item.product_id,
+        selected_size: item.selected_size ?? null,
+        selected_color: item.selected_color ?? null,
         product: item.products,
       }));
 
@@ -683,6 +689,8 @@ export default function CheckoutScreen() {
         quantity: item.quantity,
         unit_price: item.product.price,
         subtotal: item.product.price * item.quantity,
+        selected_size: item.selected_size ?? null,
+        selected_color: item.selected_color ?? null,
       }));
 
       const { error: itemsError } = await supabase.from('order_items').insert(orderItems);

@@ -192,12 +192,24 @@ export default function ProductDetailModal({
     try {
       setLoading(true);
 
-      const { data: existingItem } = await supabase
+      let query = supabase
         .from('carts')
         .select('id, quantity')
         .eq('user_id', profile.id)
-        .eq('product_id', product.id)
-        .maybeSingle();
+        .eq('product_id', product.id);
+
+      if (selectedSize) {
+        query = query.eq('selected_size', selectedSize);
+      } else {
+        query = query.is('selected_size', null);
+      }
+      if (selectedColor) {
+        query = query.eq('selected_color', selectedColor);
+      } else {
+        query = query.is('selected_color', null);
+      }
+
+      const { data: existingItem } = await query.maybeSingle();
 
       if (existingItem) {
         const { error } = await supabase
@@ -213,6 +225,8 @@ export default function ProductDetailModal({
             user_id: profile.id,
             product_id: product.id,
             quantity: quantity,
+            selected_size: selectedSize || null,
+            selected_color: selectedColor || null,
           });
 
         if (error) throw error;

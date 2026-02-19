@@ -9,7 +9,7 @@ import {
   RefreshControl,
   Modal,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Star, Search, X, ChevronDown, MessageSquare, User, Bike, Package, Trash2, Filter } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
@@ -41,6 +41,7 @@ const SORT_LABELS: Record<SortOption, string> = {
 };
 
 export default function AdminReviews() {
+  const insets = useSafeAreaInsets();
   const { profile } = useAuth();
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [loading, setLoading] = useState(true);
@@ -264,6 +265,7 @@ export default function AdminReviews() {
       <ScrollView
         style={styles.scroll}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#f59e0b" />}
       >
         {stats.total > 0 && (

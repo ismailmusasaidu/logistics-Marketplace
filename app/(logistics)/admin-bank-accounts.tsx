@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal, Alert, Platform, RefreshControl } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Building2, Plus, Edit2, Trash2, X, CheckCircle, XCircle } from 'lucide-react-native';
@@ -23,6 +23,7 @@ type BankAccount = {
 };
 
 export default function AdminBankAccounts() {
+  const insets = useSafeAreaInsets();
   const { profile, signOut } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
@@ -232,6 +233,7 @@ export default function AdminBankAccounts() {
 
       <ScrollView
         style={styles.content}
+        contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
         <View style={styles.accountsList}>
           {bankAccounts.map((account) => (

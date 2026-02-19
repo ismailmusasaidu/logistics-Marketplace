@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal, Alert, Platform, RefreshControl } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import {
@@ -96,6 +96,7 @@ const TAB_CONFIG = [
 type TabKey = typeof TAB_CONFIG[number]['key'];
 
 export default function AdminPricing() {
+  const insets = useSafeAreaInsets();
   const { profile } = useAuth();
   const [activeTab, setActiveTab] = useState<TabKey>('zones');
   const [refreshing, setRefreshing] = useState(false);
@@ -687,6 +688,7 @@ export default function AdminPricing() {
 
       <ScrollView
         style={styles.content}
+        contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#f97316" />}>
         {activeTab === 'zones'      && renderDeliveryZones()}
         {activeTab === 'pricing'    && renderPricing()}

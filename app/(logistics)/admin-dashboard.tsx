@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, TextInput, Modal } from 'react-native';
-import { Package, Users, Bike, TrendingUp, DollarSign, Activity, CheckCircle, Zap, Star, Search, X, ChevronDown, MessageSquare, User, Trash2, Filter } from 'lucide-react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Package, Users, Bike, TrendingUp, DollarSign, Activity, CheckCircle, Zap, Star, Search, X, ChevronDown, MessageSquare, User, Trash2, Filter, Megaphone } from 'lucide-react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Fonts } from '@/constants/fonts';
 import { Toast } from '@/components/Toast';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import LogisticsAdvertManagement from '@/components/logistics/AdvertManagement';
 
 type Stats = {
   totalOrders: number;
@@ -41,9 +42,10 @@ const SORT_LABELS: Record<SortOption, string> = {
   lowest: 'Lowest Rating',
 };
 
-type ActiveTab = 'overview' | 'reviews';
+type ActiveTab = 'overview' | 'reviews' | 'adverts';
 
 export default function AdminDashboard() {
+  const insets = useSafeAreaInsets();
   const { profile } = useAuth();
   const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
 
@@ -268,13 +270,21 @@ export default function AdminDashboard() {
               </View>
             )}
           </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tabItem, activeTab === 'adverts' && styles.tabItemActive]}
+            onPress={() => setActiveTab('adverts')}
+            activeOpacity={0.8}
+          >
+            <Megaphone size={16} color={activeTab === 'adverts' ? '#f97316' : '#6b7280'} />
+            <Text style={[styles.tabLabel, activeTab === 'adverts' && styles.tabLabelActive]}>Adverts</Text>
+          </TouchableOpacity>
         </View>
 
         {activeTab === 'overview' ? (
           <ScrollView
             style={styles.scroll}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom + 20, 48) }]}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#f97316" />
             }
@@ -414,7 +424,7 @@ export default function AdminDashboard() {
               </View>
             </View>
           </ScrollView>
-        ) : (
+        ) : activeTab === 'reviews' ? (
           <ScrollView
             style={styles.scroll}
             showsVerticalScrollIndicator={false}
@@ -543,7 +553,9 @@ export default function AdminDashboard() {
             )}
             <View style={{ height: 32 }} />
           </ScrollView>
-        )}
+        ) : activeTab === 'adverts' ? (
+          <LogisticsAdvertManagement />
+        ) : null}
       </View>
 
       <Modal visible={sortModalVisible} transparent animationType="fade" onRequestClose={() => setSortModalVisible(false)}>

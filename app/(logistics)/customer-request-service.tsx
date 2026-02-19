@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, RefreshControl } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Package, Truck, X, CheckCircle, Clock, ChevronRight, ArrowUpRight, MapPin, Phone, User, AlertCircle } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
@@ -20,6 +20,7 @@ interface ServiceRequest {
 }
 
 export default function CustomerRequestService() {
+  const insets = useSafeAreaInsets();
   const { profile } = useAuth();
   const [modalVisible, setModalVisible] = useState(false);
   const [serviceType, setServiceType] = useState<'gadget_delivery' | 'relocation'>('gadget_delivery');
@@ -144,6 +145,7 @@ export default function CustomerRequestService() {
       <ScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadMyRequests(); }} tintColor="#f97316" />}>
 
         <View style={styles.servicesSection}>

@@ -4,6 +4,7 @@ import { Package, User, LayoutDashboard, Bike, Users, DollarSign, Headphones, Ar
 import { useAuth } from '@/contexts/AuthContext';
 import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Fonts } from '@/constants/fonts';
 
 const hubListener = {
   tabPress: (e: any) => {
@@ -41,6 +42,7 @@ export default function TabLayout() {
           tabBarLabelStyle: {
             fontSize: 11,
             letterSpacing: 0.3,
+            fontFamily: Fonts.spaceSemiBold,
           },
           tabBarStyle: {
             backgroundColor: '#ffffff',
@@ -113,6 +115,7 @@ export default function TabLayout() {
           tabBarLabelStyle: {
             fontSize: 11,
             letterSpacing: 0.3,
+            fontFamily: Fonts.spaceSemiBold,
           },
           tabBarStyle: {
             backgroundColor: '#ffffff',
@@ -178,6 +181,7 @@ export default function TabLayout() {
             fontSize: 10,
             marginTop: 2,
             letterSpacing: 0.3,
+            fontFamily: Fonts.spaceSemiBold,
           },
           tabBarIconStyle: {
             marginTop: 2,

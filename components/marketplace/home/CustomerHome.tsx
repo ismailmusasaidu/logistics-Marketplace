@@ -341,7 +341,7 @@ export default function CustomerHome() {
           data={filteredProducts}
           keyExtractor={(item) => item.id}
           numColumns={2}
-          contentContainerStyle={styles.productGrid}
+          contentContainerStyle={[styles.productGrid, { paddingBottom: insets.bottom + 24 }]}
           showsVerticalScrollIndicator={false}
           columnWrapperStyle={styles.gridRow}
           onEndReached={loadMoreProducts}
@@ -577,7 +577,6 @@ const styles = StyleSheet.create({
   productGrid: {
     paddingHorizontal: 10,
     paddingTop: 10,
-    paddingBottom: 24,
   },
   gridRow: {
     justifyContent: 'space-between',

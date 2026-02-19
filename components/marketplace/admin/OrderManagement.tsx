@@ -618,7 +618,11 @@ export default function OrderManagement({ onBack }: OrderManagementProps) {
                         <View key={item.id} style={styles.modalItemRow}>
                           <View style={{ flex: 1 }}>
                             <Text style={styles.modalItemName}>{item.products?.name || 'Product'}</Text>
-                            <Text style={styles.modalItemQty}>Qty: {item.quantity}</Text>
+                            <Text style={styles.modalItemQty}>
+                              Qty: {item.quantity}
+                              {(item as any).selected_size ? ` · Size: ${(item as any).selected_size}` : ''}
+                              {(item as any).selected_color ? ` · ${(item as any).selected_color}` : ''}
+                            </Text>
                           </View>
                           <Text style={styles.modalItemPrice}>
                             {'\u20A6'}{(Number(item.unit_price) * item.quantity).toLocaleString('en-NG', { minimumFractionDigits: 2 })}

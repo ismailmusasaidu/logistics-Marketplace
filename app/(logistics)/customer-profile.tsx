@@ -172,7 +172,7 @@ export default function CustomerProfile() {
       contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 20) }}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <Text style={styles.title}>Profile</Text>
         {!isEditing && (
           <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
@@ -463,7 +463,6 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 24,
-    paddingTop: 60,
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',

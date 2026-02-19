@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Modal, Animated, Linking, Dimensions, TextInput, ActivityIndicator } from 'react-native';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Bike, Package, CheckCircle, Clock, AlertCircle, Phone, User, X, Bell, Check, XCircle, Power, ArrowRight, Truck, Search, History, MapPin, RefreshCw } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -46,6 +46,7 @@ type RiderStats = {
 };
 
 export default function RiderHome() {
+  const insets = useSafeAreaInsets();
   const { profile } = useAuth();
   const { locationState, requestAndSaveLocation, loadSavedLocation } = useLocation();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -459,7 +460,7 @@ export default function RiderHome() {
       <ScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.contentContainer}
+        contentContainerStyle={[styles.contentContainer, { paddingBottom: Math.max(insets.bottom + 20, 48) }]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData(); }} />
         }>
@@ -986,7 +987,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 24,
-    paddingTop: 60,
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',

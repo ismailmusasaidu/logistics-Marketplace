@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Modal, TextInput, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Bike, Phone, ShieldOff, ShieldCheck, Filter, CheckCircle, XCircle, Eye, AlertCircle, MapPin, Calendar, Wifi } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -30,6 +30,7 @@ interface RiderDetails extends RiderProfile {
 }
 
 export default function AdminRiders() {
+  const insets = useSafeAreaInsets();
   const { profile } = useAuth();
   const [riders, setRiders] = useState<RiderProfile[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -302,6 +303,7 @@ export default function AdminRiders() {
       <ScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadRiders(); }} />}>
 
         {filteredRiders.length === 0 ? (

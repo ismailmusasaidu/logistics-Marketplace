@@ -148,6 +148,7 @@ export default function AdminUsers() {
       <ScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadUsers(); }} tintColor="#3b82f6" />}>
 
         {filteredUsers.length === 0 ? (

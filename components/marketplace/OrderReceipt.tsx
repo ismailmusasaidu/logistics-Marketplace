@@ -162,6 +162,11 @@ export default function OrderReceipt({
       color: #1f2937;
       line-height: 1.5;
     }
+    .item-variant {
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 4px;
+    }
     .item-detail {
       display: flex;
       justify-content: space-between;
@@ -311,6 +316,7 @@ export default function OrderReceipt({
         ${orderItems.map(item => `
           <div class="item">
             <div class="item-name">${item.products.name}</div>
+            ${((item as any).selected_size || (item as any).selected_color) ? `<div class="item-variant">${(item as any).selected_size ? `Size: ${(item as any).selected_size}` : ''}${(item as any).selected_size && (item as any).selected_color ? ' · ' : ''}${(item as any).selected_color ? (item as any).selected_color : ''}</div>` : ''}
             <div class="item-detail">
               <span>₦${item.unit_price.toFixed(2)} × ${item.quantity}</span>
               <span>₦${(item.unit_price * item.quantity).toFixed(2)}</span>
@@ -628,6 +634,13 @@ export default function OrderReceipt({
                         <View key={item.id} style={styles.itemRow}>
                           <View style={styles.itemInfo}>
                             <Text style={styles.itemName}>{item.products.name}</Text>
+                            {((item as any).selected_size || (item as any).selected_color) && (
+                              <Text style={styles.itemVariant}>
+                                {(item as any).selected_size ? `Size: ${(item as any).selected_size}` : ''}
+                                {(item as any).selected_size && (item as any).selected_color ? ' · ' : ''}
+                                {(item as any).selected_color ? (item as any).selected_color : ''}
+                              </Text>
+                            )}
                             <Text style={styles.itemDetails}>
                               ₦{item.unit_price.toFixed(2)} × {item.quantity}
                             </Text>
@@ -914,6 +927,13 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: Fonts.semiBold,
     color: '#111827',
+  },
+  itemVariant: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: '#6b7280',
+    marginTop: 2,
+    marginBottom: 2,
   },
   itemDetails: {
     fontSize: 13,
