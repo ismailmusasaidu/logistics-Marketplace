@@ -16,7 +16,7 @@ import { Search, ShoppingBag, SlidersHorizontal } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '@/lib/marketplace/supabase';
-import { Product, Category } from '@/types/database';
+import { Product, Category, Advert } from '@/types/database';
 import { useAuth } from '@/contexts/AuthContext';
 import { cartEvents } from '@/lib/marketplace/cartEvents';
 import ProductDetailModal from '@/components/marketplace/ProductDetailModal';
@@ -25,21 +25,6 @@ import AdModal from '@/components/marketplace/AdModal';
 import PromoBannerSlider from '@/components/marketplace/PromoBannerSlider';
 import FilterSortPanel, { FilterState, DEFAULT_FILTERS } from '@/components/marketplace/FilterSortPanel';
 import { Fonts } from '@/constants/fonts';
-
-interface Advert {
-  id: string;
-  title: string;
-  description: string;
-  image_url?: string;
-  action_text?: string;
-  action_url?: string;
-  display_frequency: 'once' | 'daily' | 'always';
-  priority: number;
-  hot_deal_text?: string;
-  featured_text?: string;
-  trending_text?: string;
-  limited_offer_text?: string;
-}
 
 const PAGE_SIZE = 16;
 
@@ -159,7 +144,11 @@ export default function CustomerHome() {
   const checkAndShowAdvert = async () => {
     try {
       const { data: adverts, error } = await supabase
-        .from('adverts').select('*').eq('is_active', true).order('priority', { ascending: false });
+        .from('adverts')
+        .select('*')
+        .eq('is_active', true)
+        .or('display_position.eq.modal,display_position.eq.both,display_position.is.null')
+        .order('priority', { ascending: false });
       if (error || !adverts || adverts.length === 0) return;
       const advert = adverts[0] as Advert;
       const shouldShow = await shouldShowAdvert(advert);
