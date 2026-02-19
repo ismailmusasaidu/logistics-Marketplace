@@ -170,30 +170,21 @@ export default function OrderManagement({ onBack }: OrderManagementProps) {
     try {
       setLoading(true);
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          customer:profiles!orders_customer_id_fkey(full_name, email, phone)
+        `)
+        .eq('order_source', 'marketplace')
+        .order('created_at', { ascending: false });
 
-      const apiUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/admin-orders`;
-      const response = await fetch(apiUrl, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      if (error) throw new Error(error.message);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch orders');
-      }
-
-      const data = await response.json();
-
-      const marketplaceOrders = data.filter((order: any) => order.order_source === 'marketplace');
-
-      const formattedOrders: OrderWithCustomer[] = marketplaceOrders.map((order: any) => ({
+      const formattedOrders: OrderWithCustomer[] = (data || []).map((order: any) => ({
         ...order,
         customer: order.customer || { full_name: 'Unknown', email: 'N/A', phone: null },
-        vendor: order.vendor || { business_name: 'Unknown', store_name: 'Unknown' },
+        vendor: { business_name: order.vendor_name || 'Unknown' },
       }));
 
       setOrders(formattedOrders);
@@ -208,19 +199,12 @@ export default function OrderManagement({ onBack }: OrderManagementProps) {
     try {
       setDeletingOrder(true);
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
+      const { error } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', orderId);
 
-      const apiUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/admin-orders?id=${orderId}`;
-      const response = await fetch(apiUrl, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) throw new Error('Failed to delete order');
+      if (error) throw new Error(error.message);
 
       setShowStatusModal(false);
       setSelectedOrder(null);
@@ -262,23 +246,12 @@ export default function OrderManagement({ onBack }: OrderManagementProps) {
     try {
       setUpdatingStatus(true);
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: newStatus, updated_at: new Date().toISOString() })
+        .eq('id', orderId);
 
-      const apiUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/admin-orders?id=${orderId}`;
-      const response = await fetch(apiUrl, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          status: newStatus,
-          updated_at: new Date().toISOString(),
-        }),
-      });
-
-      if (!response.ok) throw new Error('Failed to update order');
+      if (error) throw new Error(error.message);
 
       setShowStatusModal(false);
       setSelectedOrder(null);
@@ -292,23 +265,12 @@ export default function OrderManagement({ onBack }: OrderManagementProps) {
 
   const markAsPaid = async (orderId: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
+      const { error } = await supabase
+        .from('orders')
+        .update({ payment_status: 'completed', updated_at: new Date().toISOString() })
+        .eq('id', orderId);
 
-      const apiUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/admin-orders?id=${orderId}`;
-      const response = await fetch(apiUrl, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          payment_status: 'completed',
-          updated_at: new Date().toISOString(),
-        }),
-      });
-
-      if (!response.ok) throw new Error('Failed to update payment status');
+      if (error) throw new Error(error.message);
 
       await fetchOrders();
       showToast('Payment marked as paid', 'success');
