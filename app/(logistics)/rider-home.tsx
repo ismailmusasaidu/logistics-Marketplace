@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, M
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Bike, Package, CheckCircle, Clock, AlertCircle, Phone, User, X, Bell, Check, XCircle, Power, ArrowRight, Truck, Search, History, MapPin, RefreshCw } from 'lucide-react-native';
+import { Bike, Package, CheckCircle, Clock, AlertCircle, Phone, User, X, Bell, Check, XCircle, Power, ArrowRight, Truck, Search, History, MapPin, RefreshCw, Info, Scale, Zap, CreditCard } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Fonts } from '@/constants/fonts';
@@ -20,6 +20,20 @@ type Order = {
   delivery_fee: number | null;
   notes: string | null;
   created_at: string;
+  pickup_instructions: string | null;
+  delivery_instructions: string | null;
+  recipient_name: string | null;
+  recipient_phone: string | null;
+  package_description: string | null;
+  package_weight: number | null;
+  order_size: string | null;
+  order_types: string[] | null;
+  delivery_speed: string | null;
+  delivery_speed_cost: number | null;
+  weight_surcharge_amount: number | null;
+  weight_surcharge_label: string | null;
+  payment_method: string | null;
+  payment_status: string | null;
   customer?: {
     full_name: string | null;
     phone: string | null;
@@ -247,6 +261,20 @@ export default function RiderHome() {
           delivery_fee,
           notes,
           created_at,
+          pickup_instructions,
+          delivery_instructions,
+          recipient_name,
+          recipient_phone,
+          package_description,
+          package_weight,
+          order_size,
+          order_types,
+          delivery_speed,
+          delivery_speed_cost,
+          weight_surcharge_amount,
+          weight_surcharge_label,
+          payment_method,
+          payment_status,
           customer:profiles!orders_customer_id_fkey(full_name, phone)
         `)
         .eq('rider_id', riderId)
@@ -841,30 +869,47 @@ export default function RiderHome() {
                   </Text>
                 </View>
 
-                {selectedOrder.customer && (
+                {(selectedOrder.customer || selectedOrder.recipient_name) && (
                   <View style={styles.recipientCard}>
                     <View style={styles.recipientCardHeader}>
                       <User size={15} color="#6b7280" />
-                      <Text style={styles.recipientCardLabel}>Recipient</Text>
+                      <Text style={styles.recipientCardLabel}>
+                        {selectedOrder.recipient_name ? 'Recipient' : 'Customer'}
+                      </Text>
                     </View>
                     <View style={styles.recipientCardBody}>
                       <View style={styles.recipientCardAvatar}>
                         <Text style={styles.recipientCardAvatarText}>
-                          {(selectedOrder.customer.full_name || 'U').charAt(0).toUpperCase()}
+                          {(selectedOrder.recipient_name || selectedOrder.customer?.full_name || 'U').charAt(0).toUpperCase()}
                         </Text>
                       </View>
                       <View style={styles.recipientCardInfo}>
-                        <Text style={styles.recipientCardName}>{selectedOrder.customer.full_name || 'Unknown'}</Text>
-                        {selectedOrder.customer.phone && (
+                        <Text style={styles.recipientCardName}>
+                          {selectedOrder.recipient_name || selectedOrder.customer?.full_name || 'Unknown'}
+                        </Text>
+                        {(selectedOrder.recipient_phone || selectedOrder.customer?.phone) && (
                           <TouchableOpacity
                             style={styles.callButton}
-                            onPress={() => handleCall(selectedOrder.customer!.phone!)}>
+                            onPress={() => handleCall((selectedOrder.recipient_phone || selectedOrder.customer?.phone)!)}>
                             <Phone size={15} color="#ffffff" />
-                            <Text style={styles.callButtonText}>{selectedOrder.customer.phone}</Text>
+                            <Text style={styles.callButtonText}>
+                              {selectedOrder.recipient_phone || selectedOrder.customer?.phone}
+                            </Text>
                           </TouchableOpacity>
                         )}
                       </View>
                     </View>
+                    {selectedOrder.recipient_name && selectedOrder.customer?.full_name && (
+                      <View style={styles.senderInfo}>
+                        <Text style={styles.senderInfoLabel}>Sender:</Text>
+                        <Text style={styles.senderInfoValue}>{selectedOrder.customer.full_name}</Text>
+                        {selectedOrder.customer.phone && (
+                          <TouchableOpacity onPress={() => handleCall(selectedOrder.customer!.phone!)}>
+                            <Text style={styles.senderInfoPhone}>{selectedOrder.customer.phone}</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    )}
                   </View>
                 )}
 
@@ -880,6 +925,9 @@ export default function RiderHome() {
                         <View style={styles.routeStopContent}>
                           <Text style={styles.routeStopLabel}>PICKUP</Text>
                           <Text style={styles.routeStopAddress}>{selectedOrder.pickup_address}</Text>
+                          {selectedOrder.pickup_instructions && (
+                            <Text style={styles.routeInstructions}>{selectedOrder.pickup_instructions}</Text>
+                          )}
                         </View>
                       </View>
                     )}
@@ -897,10 +945,127 @@ export default function RiderHome() {
                         <View style={styles.routeStopContent}>
                           <Text style={styles.routeStopLabel}>DELIVERY</Text>
                           <Text style={styles.routeStopAddress}>{selectedOrder.delivery_address}</Text>
+                          {selectedOrder.delivery_instructions && (
+                            <Text style={styles.routeInstructions}>{selectedOrder.delivery_instructions}</Text>
+                          )}
                         </View>
                       </View>
                     )}
                   </View>
+                </View>
+
+                {(selectedOrder.package_description || selectedOrder.order_size || selectedOrder.package_weight || (selectedOrder.order_types && selectedOrder.order_types.length > 0) || selectedOrder.delivery_speed) && (
+                  <View style={styles.packageCard}>
+                    <View style={styles.packageCardHeader}>
+                      <Package size={15} color="#6b7280" />
+                      <Text style={styles.packageCardTitle}>Package Details</Text>
+                    </View>
+                    <View style={styles.packageCardBody}>
+                      {selectedOrder.package_description && (
+                        <View style={styles.packageDetailRow}>
+                          <Info size={14} color="#9ca3af" />
+                          <View style={styles.packageDetailContent}>
+                            <Text style={styles.packageDetailLabel}>Description</Text>
+                            <Text style={styles.packageDetailValue}>{selectedOrder.package_description}</Text>
+                          </View>
+                        </View>
+                      )}
+                      {selectedOrder.order_size && (
+                        <View style={styles.packageDetailRow}>
+                          <Package size={14} color="#9ca3af" />
+                          <View style={styles.packageDetailContent}>
+                            <Text style={styles.packageDetailLabel}>Size</Text>
+                            <Text style={styles.packageDetailValue}>{selectedOrder.order_size}</Text>
+                          </View>
+                        </View>
+                      )}
+                      {selectedOrder.package_weight && (
+                        <View style={styles.packageDetailRow}>
+                          <Scale size={14} color="#9ca3af" />
+                          <View style={styles.packageDetailContent}>
+                            <Text style={styles.packageDetailLabel}>Weight</Text>
+                            <Text style={styles.packageDetailValue}>{selectedOrder.package_weight} kg</Text>
+                          </View>
+                        </View>
+                      )}
+                      {selectedOrder.order_types && selectedOrder.order_types.length > 0 && (
+                        <View style={styles.packageDetailRow}>
+                          <Info size={14} color="#9ca3af" />
+                          <View style={styles.packageDetailContent}>
+                            <Text style={styles.packageDetailLabel}>Type</Text>
+                            <Text style={styles.packageDetailValue}>{selectedOrder.order_types.join(', ')}</Text>
+                          </View>
+                        </View>
+                      )}
+                      {selectedOrder.delivery_speed && (
+                        <View style={styles.packageDetailRow}>
+                          <Zap size={14} color="#9ca3af" />
+                          <View style={styles.packageDetailContent}>
+                            <Text style={styles.packageDetailLabel}>Speed</Text>
+                            <Text style={styles.packageDetailValue}>{selectedOrder.delivery_speed}</Text>
+                          </View>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                )}
+
+                <View style={styles.pricingCard}>
+                  <View style={styles.packageCardHeader}>
+                    <CreditCard size={15} color="#6b7280" />
+                    <Text style={styles.packageCardTitle}>Pricing Breakdown</Text>
+                  </View>
+                  <View style={styles.pricingBody}>
+                    <View style={styles.pricingRow}>
+                      <Text style={styles.pricingLabel}>Delivery Fee</Text>
+                      <Text style={styles.pricingValue}>{'\u20A6'}{(selectedOrder.delivery_fee || 0).toLocaleString()}</Text>
+                    </View>
+                    {selectedOrder.delivery_speed_cost && selectedOrder.delivery_speed_cost > 0 ? (
+                      <View style={styles.pricingRow}>
+                        <Text style={styles.pricingLabel}>Speed Surcharge</Text>
+                        <Text style={styles.pricingValue}>{'\u20A6'}{selectedOrder.delivery_speed_cost.toLocaleString()}</Text>
+                      </View>
+                    ) : null}
+                    {selectedOrder.weight_surcharge_amount && selectedOrder.weight_surcharge_amount > 0 ? (
+                      <View style={styles.pricingRow}>
+                        <Text style={styles.pricingLabel}>{selectedOrder.weight_surcharge_label || 'Weight Surcharge'}</Text>
+                        <Text style={styles.pricingValue}>{'\u20A6'}{selectedOrder.weight_surcharge_amount.toLocaleString()}</Text>
+                      </View>
+                    ) : null}
+                    <View style={styles.pricingTotalRow}>
+                      <Text style={styles.pricingTotalLabel}>Total</Text>
+                      <Text style={styles.pricingTotalValue}>{'\u20A6'}{(selectedOrder.total || selectedOrder.delivery_fee || 0).toLocaleString()}</Text>
+                    </View>
+                  </View>
+                  {selectedOrder.payment_method && (
+                    <View style={styles.paymentMethodRow}>
+                      <Text style={styles.paymentMethodLabel}>Payment:</Text>
+                      <View style={styles.paymentMethodBadge}>
+                        <Text style={styles.paymentMethodText}>
+                          {selectedOrder.payment_method === 'wallet' ? 'Wallet' :
+                           selectedOrder.payment_method === 'transfer' ? 'Transfer' :
+                           selectedOrder.payment_method === 'online' ? 'Online' :
+                           selectedOrder.payment_method === 'cash_on_delivery' ? 'Cash on Delivery' :
+                           selectedOrder.payment_method}
+                        </Text>
+                      </View>
+                      {selectedOrder.payment_status && (
+                        <View style={[styles.paymentStatusBadge,
+                          selectedOrder.payment_status === 'completed' ? styles.paymentStatusCompleted :
+                          selectedOrder.payment_status === 'failed' ? styles.paymentStatusFailed :
+                          styles.paymentStatusPending
+                        ]}>
+                          <Text style={[styles.paymentStatusText,
+                            selectedOrder.payment_status === 'completed' ? styles.paymentStatusTextCompleted :
+                            selectedOrder.payment_status === 'failed' ? styles.paymentStatusTextFailed :
+                            styles.paymentStatusTextPending
+                          ]}>
+                            {selectedOrder.payment_status.charAt(0).toUpperCase() + selectedOrder.payment_status.slice(1)}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
                 </View>
 
                 {selectedOrder.notes && (
@@ -1736,6 +1901,183 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
     color: '#1f2937',
     lineHeight: 20,
+  },
+  routeInstructions: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: '#9ca3af',
+    fontStyle: 'italic',
+    marginTop: 4,
+    lineHeight: 17,
+  },
+
+  senderInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    flexWrap: 'wrap',
+  },
+  senderInfoLabel: {
+    fontSize: 12,
+    fontFamily: Fonts.semiBold,
+    color: '#6b7280',
+  },
+  senderInfoValue: {
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
+    color: '#111827',
+  },
+  senderInfoPhone: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: '#3b82f6',
+    textDecorationLine: 'underline',
+  },
+
+  packageCard: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  packageCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 14,
+  },
+  packageCardTitle: {
+    fontSize: 11,
+    fontFamily: Fonts.bold,
+    color: '#6b7280',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  packageCardBody: {
+    gap: 12,
+  },
+  packageDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  packageDetailContent: {
+    flex: 1,
+  },
+  packageDetailLabel: {
+    fontSize: 11,
+    fontFamily: Fonts.semiBold,
+    color: '#9ca3af',
+    marginBottom: 2,
+  },
+  packageDetailValue: {
+    fontSize: 14,
+    fontFamily: Fonts.medium,
+    color: '#1f2937',
+    lineHeight: 20,
+  },
+
+  pricingCard: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  pricingBody: {
+    gap: 10,
+  },
+  pricingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  pricingLabel: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: '#6b7280',
+  },
+  pricingValue: {
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
+    color: '#1f2937',
+  },
+  pricingTotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+  },
+  pricingTotalLabel: {
+    fontSize: 14,
+    fontFamily: Fonts.bold,
+    color: '#111827',
+  },
+  pricingTotalValue: {
+    fontSize: 16,
+    fontFamily: Fonts.bold,
+    color: '#059669',
+  },
+  paymentMethodRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    flexWrap: 'wrap',
+  },
+  paymentMethodLabel: {
+    fontSize: 12,
+    fontFamily: Fonts.semiBold,
+    color: '#6b7280',
+  },
+  paymentMethodBadge: {
+    backgroundColor: '#e5e7eb',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  paymentMethodText: {
+    fontSize: 11,
+    fontFamily: Fonts.semiBold,
+    color: '#374151',
+  },
+  paymentStatusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  paymentStatusPending: {
+    backgroundColor: '#fef3c7',
+  },
+  paymentStatusCompleted: {
+    backgroundColor: '#d1fae5',
+  },
+  paymentStatusFailed: {
+    backgroundColor: '#fee2e2',
+  },
+  paymentStatusText: {
+    fontSize: 11,
+    fontFamily: Fonts.semiBold,
+  },
+  paymentStatusTextPending: {
+    color: '#d97706',
+  },
+  paymentStatusTextCompleted: {
+    color: '#059669',
+  },
+  paymentStatusTextFailed: {
+    color: '#dc2626',
   },
 
   notesCard: {
