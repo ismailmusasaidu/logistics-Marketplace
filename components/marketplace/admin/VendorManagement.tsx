@@ -25,6 +25,7 @@ import {
   FileText,
   Award,
   ShoppingBag,
+  RotateCcw,
 } from 'lucide-react-native';
 import { supabase } from '@/lib/marketplace/supabase';
 import { Profile } from '@/types/database';
@@ -146,6 +147,28 @@ export default function VendorManagement({ onBack }: VendorManagementProps) {
       setRejectionReason('');
     } catch (error) {
       console.error('Error rejecting vendor:', error);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleUnreject = async (vendorId: string) => {
+    try {
+      setProcessing(true);
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          vendor_status: 'pending',
+          rejection_reason: null,
+        })
+        .eq('id', vendorId);
+
+      if (error) throw error;
+      await fetchVendors();
+      setShowModal(false);
+      setSelectedVendor(null);
+    } catch (error) {
+      console.error('Error unrejecting vendor:', error);
     } finally {
       setProcessing(false);
     }
@@ -432,6 +455,58 @@ export default function VendorManagement({ onBack }: VendorManagementProps) {
                             <>
                               <XCircle size={18} color="#ffffff" />
                               <Text style={styles.rejectButtonText}>Reject</Text>
+                            </>
+                          )}
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
+
+                  {selectedVendor.vendor_status === 'rejected' && (
+                    <View style={styles.actionsSection}>
+                      <Text style={styles.actionsSectionLabel}>Rejected Vendor</Text>
+
+                      {selectedVendor.rejection_reason && (
+                        <View style={styles.rejectionReasonCard}>
+                          <View style={styles.rejectionReasonHeader}>
+                            <XCircle size={14} color="#ef4444" />
+                            <Text style={styles.rejectionReasonLabel}>Rejection Reason</Text>
+                          </View>
+                          <Text style={styles.rejectionReasonText}>
+                            {selectedVendor.rejection_reason}
+                          </Text>
+                        </View>
+                      )}
+
+                      <View style={styles.actionButtons}>
+                        <TouchableOpacity
+                          style={styles.unrejectButton}
+                          onPress={() => handleUnreject(selectedVendor.id)}
+                          disabled={processing}
+                          activeOpacity={0.7}
+                        >
+                          {processing ? (
+                            <ActivityIndicator color="#ffffff" size="small" />
+                          ) : (
+                            <>
+                              <RotateCcw size={18} color="#ffffff" />
+                              <Text style={styles.unrejectButtonText}>Move to Pending</Text>
+                            </>
+                          )}
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={styles.approveButton}
+                          onPress={() => handleApprove(selectedVendor.id)}
+                          disabled={processing}
+                          activeOpacity={0.7}
+                        >
+                          {processing ? (
+                            <ActivityIndicator color="#ffffff" size="small" />
+                          ) : (
+                            <>
+                              <CheckCircle size={18} color="#ffffff" />
+                              <Text style={styles.approveButtonText}>Approve</Text>
                             </>
                           )}
                         </TouchableOpacity>
@@ -936,6 +1011,48 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   rejectButtonText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontFamily: Fonts.semiBold,
+  },
+  rejectionReasonCard: {
+    backgroundColor: '#fef2f2',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#fecaca',
+  },
+  rejectionReasonHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  rejectionReasonLabel: {
+    fontSize: 12,
+    fontFamily: Fonts.semiBold,
+    color: '#ef4444',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  rejectionReasonText: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: '#991b1b',
+    lineHeight: 20,
+  },
+  unrejectButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    borderRadius: 14,
+    gap: 8,
+    backgroundColor: '#3b82f6',
+  },
+  unrejectButtonText: {
     color: '#ffffff',
     fontSize: 15,
     fontFamily: Fonts.semiBold,
