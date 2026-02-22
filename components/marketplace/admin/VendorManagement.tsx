@@ -380,18 +380,10 @@ export default function VendorManagement({ onBack }: VendorManagementProps) {
 
                   <View style={styles.detailsCard}>
                     <DetailItem icon={Mail} label="Email" value={selectedVendor.email} />
-                    {selectedVendor.business_phone && (
-                      <DetailItem icon={Phone} label="Phone" value={selectedVendor.business_phone} />
-                    )}
-                    {selectedVendor.business_address && (
-                      <DetailItem icon={MapPin} label="Address" value={selectedVendor.business_address} />
-                    )}
-                    {selectedVendor.business_description && (
-                      <DetailItem icon={FileText} label="Description" value={selectedVendor.business_description} />
-                    )}
-                    {selectedVendor.business_license && (
-                      <DetailItem icon={Award} label="License" value={selectedVendor.business_license} last />
-                    )}
+                    <DetailItem icon={Phone} label="Phone" value={selectedVendor.business_phone || 'Not provided'} />
+                    <DetailItem icon={MapPin} label="Address" value={selectedVendor.business_address || 'Not provided'} />
+                    <DetailItem icon={FileText} label="Description" value={selectedVendor.business_description || 'Not provided'} />
+                    <DetailItem icon={Award} label="License" value={selectedVendor.business_license || 'Not provided'} last />
                   </View>
 
                   {selectedVendor.vendor_status === 'pending' && (
