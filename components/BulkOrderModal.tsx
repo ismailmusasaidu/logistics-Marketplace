@@ -345,11 +345,13 @@ export default function BulkOrderModal({ visible, onClose, onSuccess, customerId
         finalFee = Math.max(0, afterBulkDiscount - promoDiscount);
       }
 
+      const bulkOrderNumber = `BULK-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+
       const { data: bulkOrder, error: bulkError } = await supabase
         .from('bulk_orders')
         .insert({
           customer_id: customerId,
-          bulk_order_number: '',
+          bulk_order_number: bulkOrderNumber,
           total_orders: deliveries.length,
           total_fee: totalFee,
           discount_percentage: discountPercentage,
@@ -366,7 +368,7 @@ export default function BulkOrderModal({ visible, onClose, onSuccess, customerId
         await pricingCalculator.incrementPromoUsage(validatedPromo.id);
       }
 
-      const orderInserts = await Promise.all(deliveries.map(async (delivery) => {
+      const orderInserts = await Promise.all(deliveries.map(async (delivery, index) => {
         let scheduledDeliveryTime = null;
         if (delivery.isScheduled && delivery.scheduledDate && delivery.scheduledTime) {
           scheduledDeliveryTime = new Date(`${delivery.scheduledDate}T${delivery.scheduledTime}`).toISOString();
@@ -377,7 +379,7 @@ export default function BulkOrderModal({ visible, onClose, onSuccess, customerId
         return {
           customer_id: customerId,
           bulk_order_id: bulkOrder.id,
-          order_number: '',
+          order_number: `ORD-${Date.now()}-${index + 1}-${Math.random().toString(36).substring(2, 6)}`,
           status: 'pending',
           pickup_address: delivery.pickupAddress,
           pickup_lat: 0,
