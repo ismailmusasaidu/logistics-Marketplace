@@ -27,31 +27,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const { locationState, requestAndSaveLocation, loadSavedLocation } = useLocation();
+  const isSigningIn = React.useRef(false);
+  const initialLoadDone = React.useRef(false);
 
   useEffect(() => {
-    coreBackend.auth.getSession().then(({ data: { session }, error }) => {
+    coreBackend.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        loadProfile(session.user.id);
+        loadProfile(session.user.id).then(() => {
+          initialLoadDone.current = true;
+        });
       } else {
+        initialLoadDone.current = true;
         setLoading(false);
       }
     }).catch(() => {
+      initialLoadDone.current = true;
       setLoading(false);
     });
 
     const { data: { subscription } } = coreBackend.auth.onAuthStateChange((_event, session) => {
-      (async () => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await loadProfile(session.user.id);
-        } else {
-          setProfile(null);
-          setLoading(false);
+      if (isSigningIn.current) return;
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        if (initialLoadDone.current) {
+          (async () => {
+            await loadProfile(session.user.id);
+          })();
         }
-      })();
+      } else {
+        setProfile(null);
+        setLoading(false);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -83,13 +92,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await coreBackend.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) throw error;
-    if (data?.user) {
-      await loadProfile(data.user.id, true);
+    isSigningIn.current = true;
+    try {
+      const { data, error } = await coreBackend.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) throw error;
+      if (data?.session && data?.user) {
+        setSession(data.session);
+        setUser(data.user);
+        await loadProfile(data.user.id, true);
+      }
+    } finally {
+      isSigningIn.current = false;
     }
   };
 

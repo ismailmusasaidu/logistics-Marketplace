@@ -8,23 +8,23 @@ export default function Index() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading) {
-      const redirect = setTimeout(() => {
-        if (session && profile) {
-          const needsApproval =
-            (profile.role === 'vendor' || profile.role === 'rider') &&
-            profile.vendor_status !== 'approved';
+    if (loading) return;
 
-          if (needsApproval) {
-            router.replace('/auth/vendor-pending');
-          } else {
-            router.replace('/hub');
-          }
-        } else {
-          router.replace('/auth/login');
-        }
-      }, 100);
-      return () => clearTimeout(redirect);
+    if (!session) {
+      router.replace('/auth/login');
+      return;
+    }
+
+    if (!profile) return;
+
+    const needsApproval =
+      (profile.role === 'vendor' || profile.role === 'rider') &&
+      profile.vendor_status !== 'approved';
+
+    if (needsApproval) {
+      router.replace('/auth/vendor-pending');
+    } else {
+      router.replace('/hub');
     }
   }, [session, loading, profile]);
 
