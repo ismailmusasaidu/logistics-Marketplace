@@ -47,19 +47,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
     });
 
-    const { data: { subscription } } = coreBackend.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = coreBackend.auth.onAuthStateChange((event, session) => {
       if (isSigningIn.current) return;
-      setSession(session);
-      setUser(session?.user ?? null);
+      if (event === 'INITIAL_SESSION') return;
+
+      if (event === 'SIGNED_OUT') {
+        setSession(null);
+        setUser(null);
+        setProfile(null);
+        setLoading(false);
+        return;
+      }
+
       if (session?.user) {
-        if (initialLoadDone.current) {
+        setSession(session);
+        setUser(session.user);
+        if (initialLoadDone.current && event === 'TOKEN_REFRESHED') {
           (async () => {
             await loadProfile(session.user.id);
           })();
         }
-      } else {
-        setProfile(null);
-        setLoading(false);
       }
     });
 

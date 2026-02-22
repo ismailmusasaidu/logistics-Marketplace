@@ -25,7 +25,6 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [loginSucceeded, setLoginSucceeded] = useState(false);
   const { signIn, profile, session } = useAuth();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -54,7 +53,7 @@ export default function LoginScreen() {
   }, []);
 
   useEffect(() => {
-    if (!loginSucceeded || !session || !profile) return;
+    if (!session || !profile) return;
 
     const needsApproval =
       (profile.role === 'vendor' || profile.role === 'rider') &&
@@ -65,7 +64,7 @@ export default function LoginScreen() {
     } else {
       router.replace('/hub');
     }
-  }, [loginSucceeded, session, profile]);
+  }, [session, profile]);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -78,7 +77,6 @@ export default function LoginScreen() {
 
     try {
       await signIn(email, password);
-      setLoginSucceeded(true);
     } catch (err: any) {
       setError(err.message || 'Failed to sign in');
       setLoading(false);
