@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Modal, TextInput, Platform } from 'react-native';
-import { Package, MapPin, Clock, Filter, Edit2, Trash2, X, Search, User, Receipt, ShoppingBag, Bike, ChevronDown, CheckCircle, AlertCircle } from 'lucide-react-native';
+import { Package, MapPin, Clock, Filter, Edit2, Trash2, X, Search, User, Receipt, Bike, CheckCircle, AlertCircle } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { Toast } from '@/components/Toast';
@@ -24,23 +24,33 @@ const formatRelativeTime = (timestamp: string | null): string => {
   return date.toLocaleDateString();
 };
 
-type MarketplaceOrder = {
+type LogisticsOrder = {
   id: string;
   customer_id: string | null;
-  vendor_id: string | null;
-  vendor_user_id: string | null;
   order_number: string;
   status: string;
-  subtotal: number;
   delivery_fee: number;
-  tax: number;
   total: number;
+  pickup_address: string | null;
   delivery_address: string | null;
-  delivery_type: string;
+  pickup_instructions: string | null;
+  delivery_instructions: string | null;
+  recipient_name: string | null;
+  recipient_phone: string | null;
+  package_description: string | null;
+  package_weight: number | null;
+  order_size: string | null;
+  order_types: string[] | null;
+  delivery_speed: string | null;
+  delivery_speed_cost: number | null;
+  weight_surcharge_amount: number | null;
+  weight_surcharge_label: string | null;
   payment_method: string | null;
   payment_status: string | null;
   notes: string | null;
   rider_id: string | null;
+  assigned_rider_id: string | null;
+  assignment_status: string | null;
   confirmed_at: string | null;
   preparing_at: string | null;
   ready_for_pickup_at: string | null;
@@ -50,15 +60,8 @@ type MarketplaceOrder = {
   created_at: string;
   updated_at: string;
   customer?: { id: string; full_name: string | null; email: string | null; phone: string | null } | null;
-  vendor?: { id: string; full_name: string | null; email: string | null; business_name: string | null } | null;
-  rider?: { id: string; user: { full_name: string | null; phone: string | null } | null; vehicle_type: string; status: string } | null;
-  order_items?: Array<{
-    id: string;
-    quantity: number;
-    unit_price: number;
-    subtotal: number;
-    product?: { id: string; name: string; image_url: string | null } | null;
-  }>;
+  assigned_rider?: { id: string; user: { full_name: string | null; phone: string | null } | null; vehicle_type: string; status: string } | null;
+  manual_rider?: { id: string; user: { full_name: string | null; phone: string | null } | null; vehicle_type: string; status: string } | null;
 };
 
 type Rider = {
@@ -106,14 +109,14 @@ const TIMELINE_STEPS = [
 
 export default function AdminOrders() {
   const insets = useSafeAreaInsets();
-  const [orders, setOrders] = useState<MarketplaceOrder[]>([]);
-  const [filteredOrders, setFilteredOrders] = useState<MarketplaceOrder[]>([]);
+  const [orders, setOrders] = useState<LogisticsOrder[]>([]);
+  const [filteredOrders, setFilteredOrders] = useState<LogisticsOrder[]>([]);
   const [riders, setRiders] = useState<Rider[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [editModalVisible, setEditModalVisible] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<MarketplaceOrder | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<LogisticsOrder | null>(null);
   const [editStatus, setEditStatus] = useState<string>('pending');
   const [editNotes, setEditNotes] = useState('');
   const [editRiderId, setEditRiderId] = useState<string>('');
@@ -161,14 +164,13 @@ export default function AdminOrders() {
         .select(`
           *,
           customer:profiles!orders_customer_id_fkey(id, full_name, email, phone),
-          vendor:profiles!orders_vendor_id_fkey(id, full_name, email, business_name),
-          rider:riders!orders_rider_id_fkey(
+          assigned_rider:riders!orders_assigned_rider_id_fkey(
             id, vehicle_type, status,
             user:profiles!riders_user_id_fkey(full_name, phone)
           ),
-          order_items(
-            id, quantity, unit_price, subtotal,
-            product:products(id, name, image_url)
+          manual_rider:riders!orders_rider_id_fkey(
+            id, vehicle_type, status,
+            user:profiles!riders_user_id_fkey(full_name, phone)
           )
         `)
         .eq('order_source', 'logistics')
@@ -195,11 +197,11 @@ export default function AdminOrders() {
     }
   };
 
-  const handleEdit = (order: MarketplaceOrder) => {
+  const handleEdit = (order: LogisticsOrder) => {
     setSelectedOrder(order);
     setEditStatus(order.status);
     setEditNotes(order.notes || '');
-    setEditRiderId(order.rider_id || '');
+    setEditRiderId(order.assigned_rider_id || order.rider_id || '');
     setEditModalVisible(true);
   };
 
@@ -208,7 +210,13 @@ export default function AdminOrders() {
     try {
       const { error } = await supabase
         .from('orders')
-        .update({ status: editStatus, notes: editNotes, rider_id: editRiderId || null })
+        .update({
+          status: editStatus,
+          notes: editNotes,
+          assigned_rider_id: editRiderId || null,
+          rider_id: editRiderId || null,
+          assignment_status: editRiderId ? 'accepted' : 'pending',
+        })
         .eq('id', selectedOrder.id);
       if (error) throw error;
       setEditModalVisible(false);
@@ -320,6 +328,7 @@ export default function AdminOrders() {
             const sc = STATUS_CONFIG[order.status] || { label: order.status, color: '#6b7280', bg: '#f3f4f6' };
             const paymentSc = PAYMENT_STATUS_CONFIG[order.payment_status || ''] || { color: '#6b7280', bg: '#f3f4f6' };
             const timelineSteps = TIMELINE_STEPS.filter(s => s.key === 'created_at' || (order as any)[s.key]);
+            const rider = order.assigned_rider || order.manual_rider;
             return (
               <View key={order.id} style={styles.card}>
                 <View style={styles.cardTopBar}>
@@ -355,32 +364,33 @@ export default function AdminOrders() {
                     </View>
                   )}
 
-                  {order.vendor && (
-                    <View style={[styles.infoRow, styles.infoRowVendor]}>
-                      <View style={[styles.infoIcon, { backgroundColor: '#faf5ff' }]}>
-                        <ShoppingBag size={14} color="#7c3aed" />
+                  {order.recipient_name && (
+                    <View style={[styles.infoRow, { backgroundColor: '#fefce8' }]}>
+                      <View style={[styles.infoIcon, { backgroundColor: '#fef9c3' }]}>
+                        <User size={14} color="#ca8a04" />
                       </View>
                       <View style={styles.infoBody}>
-                        <Text style={styles.infoLabel}>Vendor</Text>
-                        <Text style={[styles.infoValue, { color: '#6d28d9' }]}>
-                          {order.vendor.business_name || order.vendor.full_name || 'Unknown Vendor'}
-                        </Text>
+                        <Text style={styles.infoLabel}>Recipient</Text>
+                        <Text style={styles.infoValue}>{order.recipient_name}</Text>
+                        {order.recipient_phone && (
+                          <Text style={styles.infoMeta}>{order.recipient_phone}</Text>
+                        )}
                       </View>
                     </View>
                   )}
 
-                  {order.rider ? (
+                  {rider ? (
                     <View style={[styles.infoRow, styles.infoRowRider]}>
                       <View style={[styles.infoIcon, { backgroundColor: '#f0fdf4' }]}>
                         <Bike size={14} color="#16a34a" />
                       </View>
                       <View style={styles.infoBody}>
-                        <Text style={styles.infoLabel}>Rider</Text>
+                        <Text style={styles.infoLabel}>Rider {order.assignment_status ? `(${order.assignment_status})` : ''}</Text>
                         <Text style={[styles.infoValue, { color: '#15803d' }]}>
-                          {order.rider.user?.full_name || 'Unknown'} · {order.rider.vehicle_type}
+                          {rider.user?.full_name || 'Unknown'} · {rider.vehicle_type}
                         </Text>
                         <Text style={styles.infoMeta}>
-                          {order.rider.user?.phone || 'No phone'} · {order.rider.status === 'available' ? 'Online' : 'Offline'}
+                          {rider.user?.phone || 'No phone'} · {rider.status === 'available' || rider.status === 'online' ? 'Online' : 'Offline'}
                         </Text>
                       </View>
                     </View>
@@ -391,61 +401,98 @@ export default function AdminOrders() {
                       </View>
                       <View style={styles.infoBody}>
                         <Text style={[styles.infoValue, { color: '#be123c' }]}>No rider assigned</Text>
+                        {order.assignment_status && order.assignment_status !== 'pending' && (
+                          <Text style={styles.infoMeta}>Status: {order.assignment_status}</Text>
+                        )}
+                      </View>
+                    </View>
+                  )}
+
+                  {order.pickup_address && (
+                    <View style={styles.addressRow}>
+                      <MapPin size={14} color="#3b82f6" />
+                      <View style={styles.addressBody}>
+                        <Text style={styles.addressLabel}>Pickup Address</Text>
+                        <Text style={styles.addressText}>{order.pickup_address}</Text>
+                        {order.pickup_instructions && (
+                          <Text style={[styles.addressText, { color: '#9ca3af', fontStyle: 'italic', marginTop: 2 }]}>{order.pickup_instructions}</Text>
+                        )}
                       </View>
                     </View>
                   )}
 
                   {order.delivery_address && (
-                    <View style={styles.addressRow}>
+                    <View style={[styles.addressRow, { backgroundColor: '#fef2f2' }]}>
                       <MapPin size={14} color="#ef4444" />
                       <View style={styles.addressBody}>
-                        <Text style={styles.addressLabel}>
-                          {order.delivery_type === 'delivery' ? 'Delivery Address' : 'Pickup Location'}
-                        </Text>
+                        <Text style={styles.addressLabel}>Delivery Address</Text>
                         <Text style={styles.addressText}>{order.delivery_address}</Text>
+                        {order.delivery_instructions && (
+                          <Text style={[styles.addressText, { color: '#9ca3af', fontStyle: 'italic', marginTop: 2 }]}>{order.delivery_instructions}</Text>
+                        )}
                       </View>
                     </View>
                   )}
                 </View>
 
-                {order.order_items && order.order_items.length > 0 && (
-                  <View style={styles.cartSection}>
-                    <View style={styles.cartHeader}>
-                      <ShoppingBag size={14} color="#6b7280" />
-                      <Text style={styles.cartTitle}>Order Items</Text>
-                      <View style={styles.cartCount}>
-                        <Text style={styles.cartCountText}>{order.order_items.length}</Text>
-                      </View>
+                <View style={styles.cartSection}>
+                  <View style={styles.cartHeader}>
+                    <Package size={14} color="#6b7280" />
+                    <Text style={styles.cartTitle}>Package Details</Text>
+                  </View>
+                  {order.package_description && (
+                    <View style={styles.cartItem}>
+                      <Text style={[styles.cartItemName, { flex: 0, color: '#6b7280', marginRight: 8 }]}>Description:</Text>
+                      <Text style={[styles.cartItemName, { flex: 1 }]}>{order.package_description}</Text>
                     </View>
-                    {order.order_items.map((item) => (
-                      <View key={item.id} style={styles.cartItem}>
-                        <View style={styles.cartItemQtyBadge}>
-                          <Text style={styles.cartItemQty}>{item.quantity}x</Text>
-                        </View>
-                        <Text style={styles.cartItemName} numberOfLines={1}>
-                          {item.product?.name || 'Deleted Product'}
-                        </Text>
-                        <Text style={styles.cartItemPrice}>₦{item.subtotal.toLocaleString()}</Text>
-                      </View>
-                    ))}
-                    <View style={styles.cartTotals}>
+                  )}
+                  {order.order_size && (
+                    <View style={styles.cartItem}>
+                      <Text style={[styles.cartItemName, { flex: 0, color: '#6b7280', marginRight: 8 }]}>Size:</Text>
+                      <Text style={styles.cartItemName}>{order.order_size}</Text>
+                    </View>
+                  )}
+                  {order.package_weight && (
+                    <View style={styles.cartItem}>
+                      <Text style={[styles.cartItemName, { flex: 0, color: '#6b7280', marginRight: 8 }]}>Weight:</Text>
+                      <Text style={styles.cartItemName}>{order.package_weight} kg</Text>
+                    </View>
+                  )}
+                  {order.order_types && order.order_types.length > 0 && (
+                    <View style={styles.cartItem}>
+                      <Text style={[styles.cartItemName, { flex: 0, color: '#6b7280', marginRight: 8 }]}>Type:</Text>
+                      <Text style={styles.cartItemName}>{order.order_types.join(', ')}</Text>
+                    </View>
+                  )}
+                  {order.delivery_speed && (
+                    <View style={styles.cartItem}>
+                      <Text style={[styles.cartItemName, { flex: 0, color: '#6b7280', marginRight: 8 }]}>Speed:</Text>
+                      <Text style={styles.cartItemName}>{order.delivery_speed}</Text>
+                    </View>
+                  )}
+                  <View style={styles.cartTotals}>
+                    <View style={styles.cartTotalRow}>
+                      <Text style={styles.cartTotalLabel}>Delivery Fee</Text>
+                      <Text style={styles.cartTotalValue}>₦{(order.delivery_fee || 0).toLocaleString()}</Text>
+                    </View>
+                    {order.delivery_speed_cost && order.delivery_speed_cost > 0 ? (
                       <View style={styles.cartTotalRow}>
-                        <Text style={styles.cartTotalLabel}>Subtotal</Text>
-                        <Text style={styles.cartTotalValue}>₦{order.subtotal.toLocaleString()}</Text>
+                        <Text style={styles.cartTotalLabel}>Speed Surcharge</Text>
+                        <Text style={styles.cartTotalValue}>₦{order.delivery_speed_cost.toLocaleString()}</Text>
                       </View>
-                      {order.delivery_fee > 0 && (
-                        <View style={styles.cartTotalRow}>
-                          <Text style={styles.cartTotalLabel}>Delivery Fee</Text>
-                          <Text style={styles.cartTotalValue}>₦{order.delivery_fee.toLocaleString()}</Text>
-                        </View>
-                      )}
-                      <View style={[styles.cartTotalRow, styles.cartGrandTotal]}>
-                        <Text style={styles.cartGrandLabel}>Total</Text>
-                        <Text style={styles.cartGrandValue}>₦{order.total.toLocaleString()}</Text>
+                    ) : null}
+                    {order.weight_surcharge_amount && order.weight_surcharge_amount > 0 ? (
+                      <View style={styles.cartTotalRow}>
+                        <Text style={styles.cartTotalLabel}>{order.weight_surcharge_label || 'Weight Surcharge'}</Text>
+                        <Text style={styles.cartTotalValue}>₦{order.weight_surcharge_amount.toLocaleString()}</Text>
                       </View>
+                    ) : null}
+                    <View style={[styles.cartTotalRow, styles.cartGrandTotal]}>
+                      <Text style={styles.cartGrandLabel}>Total</Text>
+                      <Text style={styles.cartGrandValue}>₦{(order.total || order.delivery_fee || 0).toLocaleString()}</Text>
                     </View>
                   </View>
-                )}
+                </View>
 
                 {order.notes && (
                   <View style={styles.notesBox}>
@@ -816,7 +863,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   infoRowCustomer: { backgroundColor: '#f0f9ff' },
-  infoRowVendor: { backgroundColor: '#faf5ff' },
+  infoRowRecipient: { backgroundColor: '#fefce8' },
   infoRowRider: { backgroundColor: '#f0fdf4' },
   infoRowNoRider: { backgroundColor: '#fff1f2' },
   infoIcon: {

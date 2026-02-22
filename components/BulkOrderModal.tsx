@@ -401,9 +401,34 @@ export default function BulkOrderModal({ visible, onClose, onSuccess, customerId
         };
       }));
 
-      const { error: ordersError } = await supabase.from('orders').insert(orderInserts);
+      const { data: createdOrders, error: ordersError } = await supabase
+        .from('orders')
+        .insert(orderInserts)
+        .select('id');
 
       if (ordersError) throw ordersError;
+
+      if (createdOrders && createdOrders.length > 0) {
+        const apiUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/assign-rider`;
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+
+        for (const order of createdOrders) {
+          try {
+            await fetch(apiUrl, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
+              },
+              body: JSON.stringify({ order_id: order.id }),
+            });
+          } catch (e) {
+            console.error('Error assigning rider for bulk order:', e);
+          }
+        }
+      }
 
       const promoMessage = validatedPromo ? ` & ${validatedPromo.discount_type === 'percentage' ? validatedPromo.discount_value + '%' : '₦' + validatedPromo.discount_value} promo discount` : '';
       const successMessage = `Bulk order created successfully! ${discountPercentage}% bulk discount${promoMessage} applied.`;
