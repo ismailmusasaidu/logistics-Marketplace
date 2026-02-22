@@ -139,6 +139,21 @@ export default function CustomerHome() {
 
       if (error) throw error;
       setOrders(data || []);
+
+      const deliveredIds = (data || [])
+        .filter(o => o.status === 'delivered')
+        .map(o => o.id);
+
+      if (deliveredIds.length > 0) {
+        const { data: ratingsData } = await coreBackend
+          .from('ratings')
+          .select('order_id')
+          .in('order_id', deliveredIds);
+
+        if (ratingsData && ratingsData.length > 0) {
+          setRatedOrders(new Set(ratingsData.map(r => r.order_id)));
+        }
+      }
     } catch (error) {
       console.error('Error loading orders:', error);
     } finally {
