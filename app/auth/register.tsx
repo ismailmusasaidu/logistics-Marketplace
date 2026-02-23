@@ -133,7 +133,7 @@ export default function RegisterScreen() {
 
         if (profileError) throw profileError;
 
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
         if (needsApproval) {
           setError('');

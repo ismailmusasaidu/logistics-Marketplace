@@ -62,7 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (session?.user) {
         setSession(session);
         setUser(session.user);
-        if (initialLoadDone.current && event === 'TOKEN_REFRESHED') {
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           (async () => {
             await loadProfile(session.user.id);
           })();
@@ -131,6 +131,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     if (error) throw error;
+    if (data?.session && data?.user) {
+      setSession(data.session);
+      setUser(data.user);
+    }
     if (data?.user && role === 'customer') {
       requestAndSaveLocation(data.user.id);
     }
