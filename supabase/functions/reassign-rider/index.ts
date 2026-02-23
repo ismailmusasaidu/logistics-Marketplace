@@ -88,7 +88,7 @@ Deno.serve(async (req: Request) => {
     let query = supabase
       .from('riders')
       .select('id, active_orders, zone_id')
-      .eq('status', 'available')
+      .eq('status', 'online')
       .eq('zone_id', order.pickup_zone_id)
       .lt('active_orders', 10)
       .order('active_orders', { ascending: true })

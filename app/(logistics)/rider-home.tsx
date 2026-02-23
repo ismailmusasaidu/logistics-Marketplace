@@ -206,6 +206,10 @@ export default function RiderHome() {
       if (error) throw error;
       if (data) {
         setRiderId(data.id);
+        await supabase
+          .from('riders')
+          .update({ status: 'online' })
+          .eq('id', data.id);
       }
     } catch (error) {
       console.error('Error loading rider ID:', error);
