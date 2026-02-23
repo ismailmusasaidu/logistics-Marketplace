@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Modal, TextInput, Platform, Linking, ActivityIndicator, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Package, MapPin, Clock, Plus, X, User, Phone, ChevronDown, ChevronUp, Layers, Navigation, Search, Tag, Receipt, Star, ArrowDown, Truck, CheckCircle2, CircleDot, RefreshCw } from 'lucide-react-native';
+import { Package, MapPin, Clock, Plus, X, User, Phone, ChevronDown, ChevronUp, Layers, Navigation, Search, Tag, Receipt, Star, ArrowDown, Truck, CheckCircle2, CircleDot, RefreshCw, Calendar } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { Order } from '@/lib/supabase';
 import { coreBackend } from '@/lib/coreBackend';
@@ -382,6 +382,7 @@ export default function CustomerHome() {
           status: 'pending',
           notes: orderDetails.notes,
           order_source: 'logistics',
+          scheduled_delivery_time: orderDetails.scheduled_delivery_time || null,
         })
         .select()
         .single();
@@ -474,6 +475,7 @@ export default function CustomerHome() {
           delivery_fee: pricingBreakdown.finalPrice,
           notes: notes,
           validatedPromo: validatedPromo,
+          scheduled_delivery_time: scheduledTime ? scheduledTime.toISOString() : null,
         };
 
         console.log('Payment completed with reference:', paystackReference);
@@ -506,6 +508,7 @@ export default function CustomerHome() {
         status: 'pending',
         notes: notes,
         order_source: 'logistics',
+        scheduled_delivery_time: scheduledTime ? scheduledTime.toISOString() : null,
       };
 
       const { data: orderData, error: orderError } = await coreBackend
@@ -826,6 +829,18 @@ export default function CustomerHome() {
                     </View>
                   </View>
                 </View>
+
+                {(order as any).scheduled_delivery_time && (
+                  <View style={styles.scheduledBadge}>
+                    <Calendar size={13} color="#7c3aed" />
+                    <Text style={styles.scheduledBadgeText}>
+                      Scheduled: {new Date((order as any).scheduled_delivery_time).toLocaleString('en-US', {
+                        month: 'short', day: 'numeric', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit',
+                      })}
+                    </Text>
+                  </View>
+                )}
 
                 {order.notes && (
                   <View style={styles.notesCard}>
@@ -1622,6 +1637,24 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.poppinsMedium,
     color: '#111827',
     lineHeight: 18,
+  },
+  scheduledBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: '#ede9fe',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#ddd6fe',
+  },
+  scheduledBadgeText: {
+    fontSize: 12,
+    fontFamily: Fonts.poppinsSemiBold,
+    color: '#5b21b6',
+    flex: 1,
   },
   notesCard: {
     backgroundColor: '#ffffff',
