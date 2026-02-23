@@ -114,6 +114,8 @@ export default function DeliveryManagement() {
   const [pricingSaved, setPricingSaved] = useState(false);
   const [speedOptions, setSpeedOptions] = useState<DeliverySpeedOption[]>([]);
   const [editingSpeed, setEditingSpeed] = useState<DeliverySpeedOption | null>(null);
+  const [speedError, setSpeedError] = useState<string | null>(null);
+  const [speedSaving, setSpeedSaving] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -168,6 +170,8 @@ export default function DeliveryManagement() {
 
   const saveSpeedOption = async () => {
     if (!editingSpeed) return;
+    setSpeedSaving(true);
+    setSpeedError(null);
     const { error } = editingSpeed.id.startsWith('new-')
       ? await supabase.from('delivery_speed_options').insert([{
           name: editingSpeed.name,
@@ -188,8 +192,12 @@ export default function DeliveryManagement() {
           display_order: editingSpeed.display_order,
           updated_at: new Date().toISOString(),
         }).eq('id', editingSpeed.id);
-    if (!error) {
+    setSpeedSaving(false);
+    if (error) {
+      setSpeedError(error.message);
+    } else {
       setEditingSpeed(null);
+      setSpeedError(null);
       loadSpeedOptions();
     }
   };
@@ -637,9 +645,16 @@ export default function DeliveryManagement() {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.saveBtn} onPress={saveSpeedOption}>
-          <Check size={18} color="#ffffff" />
-          <Text style={styles.saveBtnText}>Save Speed Option</Text>
+        {speedError ? (
+          <View style={styles.errorBanner}>
+            <AlertTriangle size={14} color="#ef4444" />
+            <Text style={styles.errorBannerText}>{speedError}</Text>
+          </View>
+        ) : null}
+
+        <TouchableOpacity style={[styles.saveBtn, speedSaving && { opacity: 0.7 }]} onPress={saveSpeedOption} disabled={speedSaving}>
+          {speedSaving ? <ActivityIndicator size="small" color="#ffffff" /> : <Check size={18} color="#ffffff" />}
+          <Text style={styles.saveBtnText}>{speedSaving ? 'Saving...' : 'Save Speed Option'}</Text>
         </TouchableOpacity>
       </ScrollView>
     );
@@ -1340,6 +1355,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Fonts.semiBold,
     color: '#ffffff',
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#fef2f2',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#fecaca',
+  },
+  errorBannerText: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: '#ef4444',
   },
   speedInfoBanner: {
     flexDirection: 'row',
