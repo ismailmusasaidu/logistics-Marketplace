@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import {
   DollarSign, Plus, Edit2, Trash2, X, CheckCircle, XCircle,
-  Building2, MapPin, Users, Search, Tag, Truck, Zap, BarChart2, Navigation,
+  Building2, MapPin, Users, Search, Tag, Truck, Zap, BarChart2, Navigation, Layers,
 } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { getUserFriendlyError } from '@/lib/errorHandler';
@@ -85,12 +85,24 @@ interface Rider {
   profile: { full_name: string };
 }
 
+type OrderTypeAdjustment = {
+  id: string;
+  adjustment_name: string;
+  description: string | null;
+  adjustment_type: 'flat' | 'percentage';
+  adjustment_value: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
 const TAB_CONFIG = [
-  { key: 'zones',      label: 'Zones',      icon: Navigation },
-  { key: 'pricing',    label: 'Pricing',    icon: DollarSign },
-  { key: 'promotions', label: 'Promos',     icon: Tag },
-  { key: 'banks',      label: 'Banks',      icon: Building2 },
-  { key: 'areas',      label: 'Areas',      icon: MapPin },
+  { key: 'zones',       label: 'Zones',        icon: Navigation },
+  { key: 'pricing',     label: 'Pricing',      icon: DollarSign },
+  { key: 'order_types', label: 'Order Types',  icon: Layers },
+  { key: 'promotions',  label: 'Promos',       icon: Tag },
+  { key: 'banks',       label: 'Banks',        icon: Building2 },
+  { key: 'areas',       label: 'Areas',        icon: MapPin },
 ] as const;
 
 type TabKey = typeof TAB_CONFIG[number]['key'];
@@ -142,6 +154,15 @@ export default function AdminPricing() {
   const [bankIsActive, setBankIsActive] = useState(true);
   const [displayOrder, setDisplayOrder] = useState('1');
 
+  const [orderTypeAdjustments, setOrderTypeAdjustments] = useState<OrderTypeAdjustment[]>([]);
+  const [showOrderTypeModal, setShowOrderTypeModal] = useState(false);
+  const [editingOrderType, setEditingOrderType] = useState<OrderTypeAdjustment | null>(null);
+  const [otName, setOtName] = useState('');
+  const [otDescription, setOtDescription] = useState('');
+  const [otType, setOtType] = useState<'flat' | 'percentage'>('flat');
+  const [otValue, setOtValue] = useState('');
+  const [otActive, setOtActive] = useState(true);
+
   const [areas, setAreas] = useState<Zone[]>([]);
   const [riders, setRiders] = useState<Rider[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -165,7 +186,7 @@ export default function AdminPricing() {
   }, [profile]);
 
   const loadAllData = async () => {
-    await Promise.all([loadDeliveryZones(), loadPricing(), loadPromotions(), loadBankAccounts(), loadAreas(), loadRiders()]);
+    await Promise.all([loadDeliveryZones(), loadPricing(), loadPromotions(), loadBankAccounts(), loadAreas(), loadRiders(), loadOrderTypeAdjustments()]);
   };
 
   const onRefresh = async () => { setRefreshing(true); await loadAllData(); setRefreshing(false); };
@@ -200,6 +221,44 @@ export default function AdminPricing() {
       setRiders(data as any || []);
     } catch {}
   };
+
+  const loadOrderTypeAdjustments = async () => {
+    const { data, error } = await supabase.from('order_type_adjustments').select('*').order('adjustment_name');
+    if (!error && data) setOrderTypeAdjustments(data);
+  };
+
+  const handleSaveOrderType = async () => {
+    if (!otName.trim() || !otValue) { showToast('Please fill in name and value', 'error'); return; }
+    const numVal = parseFloat(otValue);
+    if (isNaN(numVal) || numVal < 0) { showToast('Invalid value', 'error'); return; }
+    if (otType === 'percentage' && numVal > 100) { showToast('Percentage cannot exceed 100', 'error'); return; }
+    try {
+      const payload = { adjustment_name: otName.trim(), description: otDescription.trim() || null, adjustment_type: otType, adjustment_value: numVal, is_active: otActive };
+      if (editingOrderType) {
+        const { error } = await supabase.from('order_type_adjustments').update(payload).eq('id', editingOrderType.id);
+        if (error) throw error;
+        showToast('Order type updated', 'success');
+      } else {
+        const { error } = await supabase.from('order_type_adjustments').insert(payload);
+        if (error) throw error;
+        showToast('Order type added', 'success');
+      }
+      setShowOrderTypeModal(false);
+      loadOrderTypeAdjustments();
+    } catch (err: any) { showToast(err.message || 'Failed to save', 'error'); }
+  };
+
+  const handleDeleteOrderType = (item: OrderTypeAdjustment) => {
+    setConfirmDialog({ visible: true, title: 'Delete Order Type', message: `Delete "${item.adjustment_name}"? This will remove the surcharge from pricing calculations.`, onConfirm: async () => { try { const { error } = await supabase.from('order_type_adjustments').delete().eq('id', item.id); if (error) throw error; showToast('Deleted', 'success'); loadOrderTypeAdjustments(); } catch (err: any) { showToast(err.message || 'Failed to delete', 'error'); } } });
+  };
+
+  const handleToggleOrderType = async (item: OrderTypeAdjustment) => {
+    const { error } = await supabase.from('order_type_adjustments').update({ is_active: !item.is_active }).eq('id', item.id);
+    if (!error) loadOrderTypeAdjustments();
+  };
+
+  const openAddOrderType = () => { setEditingOrderType(null); setOtName(''); setOtDescription(''); setOtType('flat'); setOtValue(''); setOtActive(true); setShowOrderTypeModal(true); };
+  const openEditOrderType = (item: OrderTypeAdjustment) => { setEditingOrderType(item); setOtName(item.adjustment_name); setOtDescription(item.description || ''); setOtType(item.adjustment_type); setOtValue(item.adjustment_value.toString()); setOtActive(item.is_active); setShowOrderTypeModal(true); };
 
   const handleSaveZone = async () => {
     if (!zoneName || !minDistance || !maxDistance || !zonePrice) { if (Platform.OS === 'web') alert('Please fill in all fields'); return; }
@@ -572,6 +631,78 @@ export default function AdminPricing() {
     </View>
   );
 
+  const renderOrderTypes = () => (
+    <View style={styles.section}>
+      <View style={styles.sectionHeader}>
+        <View>
+          <Text style={styles.sectionTitle}>Order Type Charges</Text>
+          <Text style={styles.sectionSubtitle}>{orderTypeAdjustments.length} type{orderTypeAdjustments.length !== 1 ? 's' : ''} configured</Text>
+        </View>
+        <TouchableOpacity style={styles.addBtn} onPress={openAddOrderType} activeOpacity={0.8}>
+          <Plus size={16} color="#fff" />
+          <Text style={styles.addBtnText}>Add Type</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.orderTypeInfoBox}>
+        <Layers size={15} color="#0369a1" />
+        <Text style={styles.orderTypeInfoText}>
+          Order type charges are added to the base delivery fee when a customer selects special handling options (e.g., fragile, express, oversized).
+        </Text>
+      </View>
+
+      {orderTypeAdjustments.length === 0 ? (
+        <View style={styles.emptyState}>
+          <View style={styles.emptyIconWrap}><Layers size={32} color="#d1d5db" /></View>
+          <Text style={styles.emptyTitle}>No order types yet</Text>
+          <Text style={styles.emptySubtitle}>Add surcharges for special handling options like fragile, bulky, or express</Text>
+        </View>
+      ) : orderTypeAdjustments.map((item) => (
+        <View key={item.id} style={[styles.dataCard, !item.is_active && styles.dataCardInactive]}>
+          <View style={styles.dataCardTop}>
+            <View style={styles.dataCardTitleRow}>
+              <View style={[styles.dataCardIconWrap, { backgroundColor: '#faf5ff' }]}>
+                <Layers size={16} color="#7c3aed" />
+              </View>
+              <View style={styles.dataCardTitleBlock}>
+                <Text style={styles.dataCardTitle}>{item.adjustment_name}</Text>
+                {item.description ? <Text style={styles.dataCardMeta}>{item.description}</Text> : null}
+              </View>
+            </View>
+            <View style={styles.dataCardActions}>
+              <TouchableOpacity style={styles.iconBtn} onPress={() => handleToggleOrderType(item)}>
+                {item.is_active ? <CheckCircle size={18} color="#10b981" /> : <XCircle size={18} color="#9ca3af" />}
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.iconBtn, styles.iconBtnBlue]} onPress={() => openEditOrderType(item)}>
+                <Edit2 size={15} color="#3b82f6" />
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.iconBtn, styles.iconBtnRed]} onPress={() => handleDeleteOrderType(item)}>
+                <Trash2 size={15} color="#ef4444" />
+              </TouchableOpacity>
+            </View>
+          </View>
+          <View style={styles.orderTypeCardBody}>
+            <View style={styles.orderTypeCharge}>
+              <Text style={styles.orderTypeChargeLabel}>
+                {item.adjustment_type === 'flat' ? 'Flat Fee' : 'Surcharge'}
+              </Text>
+              <Text style={styles.orderTypeChargeValue}>
+                {item.adjustment_type === 'flat'
+                  ? `+ ₦${item.adjustment_value.toLocaleString()}`
+                  : `+ ${item.adjustment_value}%`}
+              </Text>
+            </View>
+            <View style={[styles.statusChip, item.is_active ? styles.statusChipActive : styles.statusChipInactive]}>
+              <Text style={[styles.statusChipText, item.is_active ? styles.statusChipTextActive : styles.statusChipTextInactive]}>
+                {item.is_active ? 'Active' : 'Inactive'}
+              </Text>
+            </View>
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+
   const renderAreas = () => (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
@@ -690,11 +821,12 @@ export default function AdminPricing() {
         style={styles.content}
         contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#f97316" />}>
-        {activeTab === 'zones'      && renderDeliveryZones()}
-        {activeTab === 'pricing'    && renderPricing()}
-        {activeTab === 'promotions' && renderPromotions()}
-        {activeTab === 'banks'      && renderBanks()}
-        {activeTab === 'areas'      && renderAreas()}
+        {activeTab === 'zones'       && renderDeliveryZones()}
+        {activeTab === 'pricing'     && renderPricing()}
+        {activeTab === 'order_types' && renderOrderTypes()}
+        {activeTab === 'promotions'  && renderPromotions()}
+        {activeTab === 'banks'       && renderBanks()}
+        {activeTab === 'areas'       && renderAreas()}
         <View style={{ height: 32 }} />
       </ScrollView>
 
@@ -846,6 +978,47 @@ export default function AdminPricing() {
             <View style={styles.sheetFooter}>
               <TouchableOpacity style={styles.cancelBtn2} onPress={() => setShowBankModal(false)}><Text style={styles.cancelBtn2Text}>Cancel</Text></TouchableOpacity>
               <TouchableOpacity style={styles.saveBtn2} onPress={handleSaveBank}><CheckCircle size={16} color="#fff" /><Text style={styles.saveBtn2Text}>Save</Text></TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={showOrderTypeModal} animationType="slide" transparent onRequestClose={() => setShowOrderTypeModal(false)}>
+        <View style={styles.sheetOverlay}>
+          <View style={styles.sheet}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>{editingOrderType ? 'Edit Order Type' : 'New Order Type'}</Text>
+              <TouchableOpacity style={styles.sheetClose} onPress={() => setShowOrderTypeModal(false)}><X size={20} color="#6b7280" /></TouchableOpacity>
+            </View>
+            <ScrollView style={styles.sheetBody} showsVerticalScrollIndicator={false}>
+              <Text style={styles.inputLabel}>Name *</Text>
+              <TextInput style={styles.input} value={otName} onChangeText={setOtName} placeholder="e.g., Fragile Item, Oversized, Express" placeholderTextColor="#9ca3af" />
+              <Text style={styles.inputLabel}>Description (Optional)</Text>
+              <TextInput style={[styles.input, styles.textArea]} value={otDescription} onChangeText={setOtDescription} placeholder="Describe when this surcharge applies" placeholderTextColor="#9ca3af" multiline numberOfLines={3} />
+              <Text style={styles.inputLabel}>Charge Type</Text>
+              <View style={styles.discountTypeRow}>
+                <TouchableOpacity style={[styles.typeChip, otType === 'flat' && styles.typeChipActive]} onPress={() => setOtType('flat')}>
+                  <Text style={[styles.typeChipText, otType === 'flat' && styles.typeChipTextActive]}>₦ Flat Amount</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.typeChip, otType === 'percentage' && styles.typeChipActive]} onPress={() => setOtType('percentage')}>
+                  <Text style={[styles.typeChipText, otType === 'percentage' && styles.typeChipTextActive]}>% Percentage</Text>
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.inputLabel}>{otType === 'flat' ? 'Amount (₦)' : 'Percentage (%)'}</Text>
+              <TextInput style={styles.input} value={otValue} onChangeText={setOtValue} placeholder={otType === 'flat' ? 'e.g., 500' : 'e.g., 15'} keyboardType="decimal-pad" placeholderTextColor="#9ca3af" />
+              <TouchableOpacity style={styles.toggleRow} onPress={() => setOtActive(!otActive)}>
+                <View style={styles.toggleRowLeft}>
+                  {otActive ? <CheckCircle size={18} color="#10b981" /> : <XCircle size={18} color="#ef4444" />}
+                  <Text style={styles.toggleRowLabel}>{otActive ? 'Active' : 'Inactive'}</Text>
+                </View>
+                <Text style={styles.toggleRowHint}>{otActive ? 'Applied to matching orders' : 'Not applied to orders'}</Text>
+              </TouchableOpacity>
+              <View style={{ height: 8 }} />
+            </ScrollView>
+            <View style={styles.sheetFooter}>
+              <TouchableOpacity style={styles.cancelBtn2} onPress={() => setShowOrderTypeModal(false)}><Text style={styles.cancelBtn2Text}>Cancel</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.saveBtn2} onPress={handleSaveOrderType}><CheckCircle size={16} color="#fff" /><Text style={styles.saveBtn2Text}>{editingOrderType ? 'Update' : 'Add Type'}</Text></TouchableOpacity>
             </View>
           </View>
         </View>
@@ -1339,4 +1512,41 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center',
   },
   checkBoxActive: { borderColor: '#0ea5e9', backgroundColor: '#0ea5e9' },
+
+  orderTypeInfoBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#f0f9ff',
+    borderRadius: 12,
+    padding: 13,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#bae6fd',
+  },
+  orderTypeInfoText: { flex: 1, fontSize: 13, fontFamily: Fonts.regular, color: '#0c4a6e', lineHeight: 18 },
+  orderTypeCardBody: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingBottom: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f3f4f6',
+    paddingTop: 10,
+  },
+  orderTypeCharge: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#faf5ff',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e9d5ff',
+  },
+  orderTypeChargeLabel: { fontSize: 11, fontFamily: Fonts.semiBold, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: 0.4 },
+  orderTypeChargeValue: { fontSize: 16, fontFamily: Fonts.bold, color: '#5b21b6' },
 });
