@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, M
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Bike, Package, CheckCircle, Clock, AlertCircle, Phone, User, X, Bell, Check, XCircle, Power, ArrowRight, Truck, Search, History, MapPin, RefreshCw, Info, Scale, Zap, CreditCard } from 'lucide-react-native';
+import { Bike, Package, CheckCircle, Clock, AlertCircle, Phone, User, X, Bell, Check, XCircle, Power, ArrowRight, Truck, Search, History, MapPin, RefreshCw, Info, Scale, Zap, CreditCard, Calendar } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Fonts } from '@/constants/fonts';
@@ -34,6 +34,7 @@ type Order = {
   weight_surcharge_label: string | null;
   payment_method: string | null;
   payment_status: string | null;
+  scheduled_delivery_time: string | null;
   customer?: {
     full_name: string | null;
     phone: string | null;
@@ -279,6 +280,7 @@ export default function RiderHome() {
           weight_surcharge_label,
           payment_method,
           payment_status,
+          scheduled_delivery_time,
           customer:profiles!orders_customer_id_fkey(full_name, phone)
         `)
         .eq('rider_id', riderId)
@@ -1007,6 +1009,20 @@ export default function RiderHome() {
                           <View style={styles.packageDetailContent}>
                             <Text style={styles.packageDetailLabel}>Speed</Text>
                             <Text style={styles.packageDetailValue}>{selectedOrder.delivery_speed}</Text>
+                          </View>
+                        </View>
+                      )}
+                      {selectedOrder.scheduled_delivery_time && (
+                        <View style={[styles.packageDetailRow, { backgroundColor: '#f5f3ff', borderRadius: 8, padding: 8 }]}>
+                          <Calendar size={14} color="#7c3aed" />
+                          <View style={styles.packageDetailContent}>
+                            <Text style={[styles.packageDetailLabel, { color: '#7c3aed' }]}>Scheduled Delivery</Text>
+                            <Text style={[styles.packageDetailValue, { color: '#7c3aed', fontFamily: Fonts.poppinsSemiBold }]}>
+                              {new Date(selectedOrder.scheduled_delivery_time).toLocaleString('en-US', {
+                                weekday: 'short', month: 'short', day: 'numeric',
+                                year: 'numeric', hour: '2-digit', minute: '2-digit',
+                              })}
+                            </Text>
                           </View>
                         </View>
                       )}

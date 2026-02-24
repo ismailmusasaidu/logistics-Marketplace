@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Modal, TextInput, Platform } from 'react-native';
-import { Package, MapPin, Clock, Filter, Edit2, Trash2, X, Search, User, Receipt, Bike, CheckCircle, AlertCircle } from 'lucide-react-native';
+import { Package, MapPin, Clock, Filter, Edit2, Trash2, X, Search, User, Receipt, Bike, CheckCircle, AlertCircle, Calendar } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { Toast } from '@/components/Toast';
@@ -51,6 +51,7 @@ type LogisticsOrder = {
   rider_id: string | null;
   assigned_rider_id: string | null;
   assignment_status: string | null;
+  scheduled_delivery_time: string | null;
   confirmed_at: string | null;
   preparing_at: string | null;
   ready_for_pickup_at: string | null;
@@ -468,6 +469,20 @@ export default function AdminOrders() {
                     <View style={styles.cartItem}>
                       <Text style={[styles.cartItemName, { flex: 0, color: '#6b7280', marginRight: 8 }]}>Speed:</Text>
                       <Text style={styles.cartItemName}>{order.delivery_speed}</Text>
+                    </View>
+                  )}
+                  {order.scheduled_delivery_time && (
+                    <View style={[styles.cartItem, { backgroundColor: '#f5f3ff', borderRadius: 8, padding: 8, marginTop: 4 }]}>
+                      <Calendar size={14} color="#7c3aed" />
+                      <View style={{ marginLeft: 6, flex: 1 }}>
+                        <Text style={[styles.cartItemName, { color: '#6b7280', fontSize: 11, marginBottom: 2 }]}>Scheduled Delivery</Text>
+                        <Text style={[styles.cartItemName, { color: '#7c3aed', fontFamily: Fonts.poppinsSemiBold }]}>
+                          {new Date(order.scheduled_delivery_time).toLocaleString('en-US', {
+                            weekday: 'short', month: 'short', day: 'numeric',
+                            year: 'numeric', hour: '2-digit', minute: '2-digit',
+                          })}
+                        </Text>
+                      </View>
                     </View>
                   )}
                   <View style={styles.cartTotals}>
