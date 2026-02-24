@@ -65,13 +65,27 @@ export default function BulkOrderModal({ visible, onClose, onSuccess, customerId
   const [checkoutModalVisible, setCheckoutModalVisible] = useState(false);
   const [customerEmail, setCustomerEmail] = useState('');
 
-  const orderTypeOptions = ['Groceries', 'Medicine', 'Express Delivery'];
+  const [orderTypeOptions, setOrderTypeOptions] = useState<string[]>([]);
 
   useEffect(() => {
-    if (visible && customerId) {
-      loadCustomerEmail();
+    if (visible) {
+      fetchOrderTypeOptions();
+      if (customerId) loadCustomerEmail();
     }
   }, [visible, customerId]);
+
+  const fetchOrderTypeOptions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('order_type_adjustments')
+        .select('adjustment_name')
+        .eq('is_active', true)
+        .order('adjustment_name');
+      if (!error && data) {
+        setOrderTypeOptions(data.map((r: { adjustment_name: string }) => r.adjustment_name));
+      }
+    } catch {}
+  };
 
   const loadCustomerEmail = async () => {
     try {
@@ -732,28 +746,30 @@ export default function BulkOrderModal({ visible, onClose, onSuccess, customerId
                   </View>
                 </View>
 
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Order Type (Optional)</Text>
-                  <View style={styles.orderTypesContainer}>
-                    {orderTypeOptions.map((type) => (
-                      <TouchableOpacity
-                        key={type}
-                        style={[
-                          styles.orderTypeChip,
-                          delivery.orderTypes.includes(type) && styles.orderTypeChipActive,
-                        ]}
-                        onPress={() => toggleOrderType(delivery.id, type)}>
-                        <Text
+                {orderTypeOptions.length > 0 && (
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Order Type (Optional)</Text>
+                    <View style={styles.orderTypesContainer}>
+                      {orderTypeOptions.map((type) => (
+                        <TouchableOpacity
+                          key={type}
                           style={[
-                            styles.orderTypeChipText,
-                            delivery.orderTypes.includes(type) && styles.orderTypeChipTextActive,
-                          ]}>
-                          {type}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                            styles.orderTypeChip,
+                            delivery.orderTypes.includes(type) && styles.orderTypeChipActive,
+                          ]}
+                          onPress={() => toggleOrderType(delivery.id, type)}>
+                          <Text
+                            style={[
+                              styles.orderTypeChipText,
+                              delivery.orderTypes.includes(type) && styles.orderTypeChipTextActive,
+                            ]}>
+                            {type}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
                   </View>
-                </View>
+                )}
 
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Delivery Time</Text>

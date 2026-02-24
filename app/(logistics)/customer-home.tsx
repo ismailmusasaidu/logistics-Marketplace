@@ -73,7 +73,7 @@ export default function CustomerHome() {
   const [adModalVisible, setAdModalVisible] = useState(false);
   const [activeAdvert, setActiveAdvert] = useState<any>(null);
 
-  const orderTypeOptions = ['Groceries', 'Medicine', 'Bulk / Heavy Items', 'Express Delivery'];
+  const [orderTypeOptions, setOrderTypeOptions] = useState<string[]>([]);
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'success') => {
     setToast({ visible: true, message, type });
@@ -81,7 +81,21 @@ export default function CustomerHome() {
 
   useEffect(() => {
     fetchModalAdvert();
+    fetchOrderTypeOptions();
   }, []);
+
+  const fetchOrderTypeOptions = async () => {
+    try {
+      const { data, error } = await coreSupabase
+        .from('order_type_adjustments')
+        .select('adjustment_name')
+        .eq('is_active', true)
+        .order('adjustment_name');
+      if (!error && data) {
+        setOrderTypeOptions(data.map((r: { adjustment_name: string }) => r.adjustment_name));
+      }
+    } catch {}
+  };
 
   const fetchModalAdvert = async () => {
     try {
@@ -1236,28 +1250,30 @@ export default function CustomerHome() {
                     ))}
                   </View>
                 </View>
-                <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Order Type <Text style={styles.optionalLabel}>(Optional)</Text></Text>
-                  <View style={styles.orderTypesContainer}>
-                    {orderTypeOptions.map((type) => (
-                      <TouchableOpacity
-                        key={type}
-                        style={[
-                          styles.orderTypeChip,
-                          newOrder.orderTypes.includes(type) && styles.orderTypeChipActive,
-                        ]}
-                        onPress={() => toggleOrderType(type)}>
-                        <Text
+                {orderTypeOptions.length > 0 && (
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Order Type <Text style={styles.optionalLabel}>(Optional)</Text></Text>
+                    <View style={styles.orderTypesContainer}>
+                      {orderTypeOptions.map((type) => (
+                        <TouchableOpacity
+                          key={type}
                           style={[
-                            styles.orderTypeChipText,
-                            newOrder.orderTypes.includes(type) && styles.orderTypeChipTextActive,
-                          ]}>
-                          {type}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                            styles.orderTypeChip,
+                            newOrder.orderTypes.includes(type) && styles.orderTypeChipActive,
+                          ]}
+                          onPress={() => toggleOrderType(type)}>
+                          <Text
+                            style={[
+                              styles.orderTypeChipText,
+                              newOrder.orderTypes.includes(type) && styles.orderTypeChipTextActive,
+                            ]}>
+                            {type}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
                   </View>
-                </View>
+                )}
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Promo Code <Text style={styles.optionalLabel}>(Optional)</Text></Text>
                   <View style={styles.inputWrapper}>
