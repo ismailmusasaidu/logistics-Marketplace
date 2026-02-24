@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ActivityIndicator, ScrollView, Alert, Linking, TextInput } from 'react-native';
 import { X, Wallet, CreditCard, Banknote, CircleCheck as CheckCircle2, Building2, Info, Calendar, Clock } from 'lucide-react-native';
+import { Fonts } from '@/constants/fonts';
 import { PricingBreakdown as PricingBreakdownType } from '@/lib/pricingCalculator';
 import { PaymentMethod, walletService } from '@/lib/wallet';
 import { PricingBreakdown } from './PricingBreakdown';
@@ -512,7 +513,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: '700',
+    fontFamily: Fonts.poppinsBold,
     color: '#111827',
   },
   content: {
@@ -523,7 +524,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: Fonts.poppinsSemiBold,
     color: '#111827',
     marginBottom: 12,
   },
@@ -535,6 +536,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 14,
+    fontFamily: Fonts.poppinsRegular,
     color: '#6b7280',
   },
   paymentOptions: {
@@ -586,7 +588,7 @@ const styles = StyleSheet.create({
   },
   paymentTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: Fonts.poppinsSemiBold,
     color: '#111827',
   },
   paymentTitleDisabled: {
@@ -594,6 +596,7 @@ const styles = StyleSheet.create({
   },
   paymentDescription: {
     fontSize: 13,
+    fontFamily: Fonts.poppinsRegular,
     color: '#6b7280',
   },
   paymentDescriptionDisabled: {
@@ -610,7 +613,7 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontFamily: Fonts.poppinsSemiBold,
     color: '#1e40af',
   },
   badgeTextWarning: {
@@ -625,6 +628,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 13,
+    fontFamily: Fonts.poppinsRegular,
     color: '#dc2626',
   },
   footer: {
@@ -640,12 +644,12 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: Fonts.poppinsMedium,
     color: '#6b7280',
   },
   totalAmount: {
     fontSize: 24,
-    fontWeight: '800',
+    fontFamily: Fonts.poppinsBold,
     color: '#f97316',
   },
   confirmButton: {
@@ -660,7 +664,7 @@ const styles = StyleSheet.create({
   confirmButtonText: {
     color: '#ffffff',
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: Fonts.poppinsBold,
   },
   bankAccountsSection: {
     marginTop: 16,
@@ -674,11 +678,12 @@ const styles = StyleSheet.create({
   },
   guidelinesTitle: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: Fonts.poppinsSemiBold,
     color: '#f97316',
   },
   guidelinesText: {
     fontSize: 13,
+    fontFamily: Fonts.poppinsRegular,
     color: '#6b7280',
     lineHeight: 18,
     marginBottom: 8,
@@ -701,7 +706,7 @@ const styles = StyleSheet.create({
   },
   bankName: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: Fonts.poppinsBold,
     color: '#111827',
   },
   accountDetails: {
@@ -714,13 +719,13 @@ const styles = StyleSheet.create({
   },
   accountLabel: {
     fontSize: 13,
+    fontFamily: Fonts.poppinsMedium,
     color: '#6b7280',
-    fontWeight: '500',
   },
   accountValue: {
     fontSize: 14,
+    fontFamily: Fonts.poppinsSemiBold,
     color: '#111827',
-    fontWeight: '600',
   },
   accountGuidelines: {
     backgroundColor: '#fef3c7',
@@ -730,6 +735,7 @@ const styles = StyleSheet.create({
   },
   accountGuidelinesText: {
     fontSize: 12,
+    fontFamily: Fonts.poppinsRegular,
     color: '#92400e',
     lineHeight: 16,
   },
@@ -741,6 +747,7 @@ const styles = StyleSheet.create({
   },
   transferNoticeText: {
     fontSize: 12,
+    fontFamily: Fonts.poppinsRegular,
     color: '#1e40af',
     lineHeight: 16,
   },
@@ -773,7 +780,7 @@ const styles = StyleSheet.create({
   },
   deliveryTimeTitle: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: Fonts.poppinsSemiBold,
     color: '#111827',
   },
   deliveryTimeTitleSelected: {
@@ -781,6 +788,7 @@ const styles = StyleSheet.create({
   },
   deliveryTimeDescription: {
     fontSize: 13,
+    fontFamily: Fonts.poppinsRegular,
     color: '#6b7280',
   },
   schedulingInputs: {
@@ -792,7 +800,7 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: Fonts.poppinsSemiBold,
     color: '#111827',
   },
   inputWithIcon: {
@@ -808,6 +816,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 14,
+    fontFamily: Fonts.poppinsRegular,
     color: '#111827',
   },
 });

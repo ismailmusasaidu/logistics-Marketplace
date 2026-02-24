@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { MapPin, Plus, Minus, DollarSign } from 'lucide-react-native';
 import { PricingBreakdown as PricingBreakdownType, formatCurrency } from '@/lib/pricingCalculator';
+import { Fonts } from '@/constants/fonts';
 
 type Props = {
   breakdown: PricingBreakdownType;
@@ -155,7 +156,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: Fonts.poppinsBold,
     color: '#111827',
   },
   section: {
@@ -163,10 +164,11 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: Fonts.poppinsSemiBold,
     color: '#6b7280',
     marginBottom: 8,
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   row: {
     flexDirection: 'row',
@@ -181,20 +183,22 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
+    fontFamily: Fonts.poppinsRegular,
     color: '#6b7280',
   },
   value: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: Fonts.poppinsSemiBold,
     color: '#111827',
   },
   adjustmentLabel: {
     fontSize: 14,
+    fontFamily: Fonts.poppinsRegular,
     color: '#f59e0b',
   },
   adjustmentValue: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: Fonts.poppinsSemiBold,
     color: '#f59e0b',
   },
   subtotalRow: {
@@ -208,12 +212,12 @@ const styles = StyleSheet.create({
   },
   subtotalLabel: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: Fonts.poppinsMedium,
     color: '#6b7280',
   },
   subtotalValue: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: Fonts.poppinsSemiBold,
     color: '#6b7280',
   },
   discountSection: {
@@ -224,19 +228,19 @@ const styles = StyleSheet.create({
   },
   discountLabel: {
     fontSize: 14,
+    fontFamily: Fonts.poppinsSemiBold,
     color: '#f97316',
-    fontWeight: '600',
   },
   discountValue: {
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: Fonts.poppinsBold,
     color: '#f97316',
   },
   promoCode: {
     fontSize: 12,
+    fontFamily: Fonts.poppinsMedium,
     color: '#f97316',
     marginTop: 4,
-    fontWeight: '600',
   },
   totalRow: {
     flexDirection: 'row',
@@ -252,12 +256,12 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: Fonts.poppinsBold,
     color: '#111827',
   },
   totalValue: {
     fontSize: 20,
-    fontWeight: '800',
+    fontFamily: Fonts.poppinsBold,
     color: '#f97316',
   },
   freeDeliveryBanner: {
@@ -269,7 +273,7 @@ const styles = StyleSheet.create({
   },
   freeDeliveryText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: Fonts.poppinsBold,
     color: '#ffffff',
   },
 });
