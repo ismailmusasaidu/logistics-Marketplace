@@ -140,6 +140,8 @@ export default function AdminPricing() {
   const [discountValue, setDiscountValue] = useState('');
   const [minOrderAmount, setMinOrderAmount] = useState('');
   const [usageLimit, setUsageLimit] = useState('');
+  const [validFrom, setValidFrom] = useState(new Date().toISOString().split('T')[0]);
+  const [validUntil, setValidUntil] = useState('');
 
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [showBankModal, setShowBankModal] = useState(false);
@@ -277,11 +279,35 @@ export default function AdminPricing() {
   };
 
   const handleSavePromotion = async () => {
-    if (!promoCode || !promoName || !discountValue) { if (Platform.OS === 'web') alert('Please fill in required fields'); return; }
-    const promoData = { code: promoCode.toUpperCase(), name: promoName, discount_type: discountType, discount_value: parseFloat(discountValue), min_order_amount: minOrderAmount ? parseFloat(minOrderAmount) : 0, usage_limit: usageLimit ? parseInt(usageLimit) : null, is_active: true };
-    if (editingItem) await supabase.from('promotions').update(promoData).eq('id', editingItem.id);
-    else await supabase.from('promotions').insert(promoData);
-    setShowPromotionModal(false); resetPromotionForm(); loadPromotions();
+    if (!promoCode || !promoName || !discountValue || !validFrom) {
+      if (Platform.OS === 'web') alert('Please fill in all required fields (Code, Name, Discount Value, Valid From)');
+      return;
+    }
+    try {
+      const promoData = {
+        code: promoCode.toUpperCase(),
+        name: promoName,
+        discount_type: discountType,
+        discount_value: parseFloat(discountValue),
+        min_order_amount: minOrderAmount ? parseFloat(minOrderAmount) : 0,
+        usage_limit: usageLimit ? parseInt(usageLimit) : null,
+        is_active: true,
+        valid_from: new Date(validFrom).toISOString(),
+        valid_until: validUntil ? new Date(validUntil).toISOString() : new Date('2099-12-31').toISOString(),
+      };
+      let error;
+      if (editingItem) {
+        ({ error } = await supabase.from('promotions').update(promoData).eq('id', editingItem.id));
+      } else {
+        ({ error } = await supabase.from('promotions').insert(promoData));
+      }
+      if (error) throw error;
+      setShowPromotionModal(false);
+      resetPromotionForm();
+      loadPromotions();
+    } catch (err: any) {
+      if (Platform.OS === 'web') alert(err?.message || 'Failed to save promotion');
+    }
   };
 
   const handleSaveBank = async () => {
@@ -341,14 +367,14 @@ export default function AdminPricing() {
 
   const openEditDeliveryZone = (zone: DeliveryZone) => { setEditingItem(zone); setZoneName(zone.name); setMinDistance(zone.min_distance_km.toString()); setMaxDistance(zone.max_distance_km.toString()); setZonePrice(zone.price.toString()); setShowZoneModal(true); };
   const openEditPricing = (item: DeliveryPricing) => { setEditingItem(item); setPricingZoneId(item.zone_id); setMinWeight(item.min_weight_kg.toString()); setMaxWeight(item.max_weight_kg.toString()); setBasePrice(item.base_price.toString()); setPricePerKg(item.price_per_kg.toString()); setExpressMultiplier(item.express_multiplier.toString()); setShowPricingModal(true); };
-  const openEditPromotion = (promotion: Promotion) => { setEditingItem(promotion); setPromoCode(promotion.code); setPromoName(promotion.name); setDiscountType(promotion.discount_type); setDiscountValue(promotion.discount_value.toString()); setMinOrderAmount(promotion.min_order_amount.toString()); setUsageLimit(promotion.usage_limit?.toString() || ''); setShowPromotionModal(true); };
+  const openEditPromotion = (promotion: Promotion) => { setEditingItem(promotion); setPromoCode(promotion.code); setPromoName(promotion.name); setDiscountType(promotion.discount_type); setDiscountValue(promotion.discount_value.toString()); setMinOrderAmount(promotion.min_order_amount.toString()); setUsageLimit(promotion.usage_limit?.toString() || ''); setValidFrom(promotion.valid_from ? promotion.valid_from.split('T')[0] : new Date().toISOString().split('T')[0]); setValidUntil(promotion.valid_until ? promotion.valid_until.split('T')[0] : ''); setShowPromotionModal(true); };
   const openAddBankModal = () => { setEditingAccount(null); setBankName(''); setAccountName(''); setAccountNumber(''); setAccountType('Checking'); setSwiftCode(''); setBranch(''); setBankGuidelines(''); setBankIsActive(true); setDisplayOrder('1'); setShowBankModal(true); };
   const openEditBankModal = (account: BankAccount) => { setEditingAccount(account); setBankName(account.bank_name); setAccountName(account.account_name); setAccountNumber(account.account_number); setAccountType(account.account_type); setSwiftCode(account.swift_code || ''); setBranch(account.branch || ''); setBankGuidelines(account.guidelines || ''); setBankIsActive(account.is_active); setDisplayOrder(account.display_order.toString()); setShowBankModal(true); };
   const toggleBankStatus = async (account: BankAccount) => { try { await supabase.from('bank_accounts').update({ is_active: !account.is_active }).eq('id', account.id); loadBankAccounts(); } catch {} };
 
   const resetZoneForm = () => { setEditingItem(null); setZoneName(''); setMinDistance(''); setMaxDistance(''); setZonePrice(''); };
   const resetPricingForm = () => { setEditingItem(null); setPricingZoneId(''); setMinWeight(''); setMaxWeight(''); setBasePrice(''); setPricePerKg(''); setExpressMultiplier(''); };
-  const resetPromotionForm = () => { setEditingItem(null); setPromoCode(''); setPromoName(''); setDiscountType('fixed'); setDiscountValue(''); setMinOrderAmount(''); setUsageLimit(''); };
+  const resetPromotionForm = () => { setEditingItem(null); setPromoCode(''); setPromoName(''); setDiscountType('fixed'); setDiscountValue(''); setMinOrderAmount(''); setUsageLimit(''); setValidFrom(new Date().toISOString().split('T')[0]); setValidUntil(''); };
   const getZoneName = (zoneId: string) => deliveryZones.find(z => z.id === zoneId)?.name || zoneId;
   const getRidersCount = (zoneId: string) => riders.filter(r => r.zone_id === zoneId).length;
   const filteredAreas = areas.filter(area => !searchQuery.trim() || area.name.toLowerCase().includes(searchQuery.toLowerCase()) || (area.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false));
@@ -926,6 +952,10 @@ export default function AdminPricing() {
               <TextInput style={styles.input} placeholder="1000" value={minOrderAmount} onChangeText={setMinOrderAmount} keyboardType="decimal-pad" placeholderTextColor="#9ca3af" />
               <Text style={styles.inputLabel}>Usage Limit (optional)</Text>
               <TextInput style={styles.input} placeholder="100" value={usageLimit} onChangeText={setUsageLimit} keyboardType="number-pad" placeholderTextColor="#9ca3af" />
+              <Text style={styles.inputLabel}>Valid From *</Text>
+              <TextInput style={styles.input} placeholder="YYYY-MM-DD" value={validFrom} onChangeText={setValidFrom} placeholderTextColor="#9ca3af" />
+              <Text style={styles.inputLabel}>Valid Until (optional)</Text>
+              <TextInput style={styles.input} placeholder="YYYY-MM-DD (leave blank = no expiry)" value={validUntil} onChangeText={setValidUntil} placeholderTextColor="#9ca3af" />
             </ScrollView>
             <View style={styles.sheetFooter}>
               <TouchableOpacity style={styles.cancelBtn2} onPress={() => setShowPromotionModal(false)}><Text style={styles.cancelBtn2Text}>Cancel</Text></TouchableOpacity>
