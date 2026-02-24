@@ -74,6 +74,13 @@ export default function CustomerHome() {
   const [activeAdvert, setActiveAdvert] = useState<any>(null);
 
   const [orderTypeOptions, setOrderTypeOptions] = useState<string[]>([]);
+  const [fieldErrors, setFieldErrors] = useState<{
+    pickupAddress?: string;
+    deliveryAddress?: string;
+    recipientName?: string;
+    recipientPhone?: string;
+    packageDescription?: string;
+  }>({});
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'success') => {
     setToast({ visible: true, message, type });
@@ -265,10 +272,30 @@ export default function CustomerHome() {
   };
 
   const proceedToCheckout = () => {
-    if (!newOrder.pickupAddress || !newOrder.deliveryAddress || !newOrder.recipientName || !newOrder.recipientPhone || !newOrder.packageDescription) {
-      showToast('Please fill in all fields', 'warning');
+    const errors: typeof fieldErrors = {};
+
+    if (!newOrder.pickupAddress.trim()) {
+      errors.pickupAddress = 'Pickup address is required';
+    }
+    if (!newOrder.deliveryAddress.trim()) {
+      errors.deliveryAddress = 'Delivery address is required';
+    }
+    if (!newOrder.recipientName.trim()) {
+      errors.recipientName = 'Recipient name is required';
+    }
+    if (!newOrder.recipientPhone.trim()) {
+      errors.recipientPhone = 'Recipient phone number is required';
+    }
+    if (!newOrder.packageDescription.trim()) {
+      errors.packageDescription = 'Package description is required';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
       return;
     }
+
+    setFieldErrors({});
 
     if (!pricingBreakdown) {
       showToast('Please wait for pricing to be calculated', 'info');
@@ -1075,7 +1102,7 @@ export default function CustomerHome() {
                     <Text style={styles.modalSubtitle}>Fill in delivery details below</Text>
                   </View>
                 </View>
-                <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setModalVisible(false)}>
+                <TouchableOpacity style={styles.modalCloseBtn} onPress={() => { setModalVisible(false); setFieldErrors({}); }}>
                   <X size={18} color="#a8a29e" />
                 </TouchableOpacity>
               </View>
@@ -1089,16 +1116,17 @@ export default function CustomerHome() {
                 </View>
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Pickup Address</Text>
-                  <View style={styles.inputWrapper}>
-                    <MapPin size={16} color="#f97316" style={styles.inputIcon} />
+                  <View style={[styles.inputWrapper, fieldErrors.pickupAddress ? styles.inputWrapperError : null]}>
+                    <MapPin size={16} color={fieldErrors.pickupAddress ? '#ef4444' : '#f97316'} style={styles.inputIcon} />
                     <TextInput
                       style={styles.inputWithIcon}
                       placeholder="e.g. 10 Admiralty Way, Lekki Phase 1, Lagos"
                       placeholderTextColor="#9ca3af"
                       value={newOrder.pickupAddress}
-                      onChangeText={(text) => setNewOrder({ ...newOrder, pickupAddress: text })}
+                      onChangeText={(text) => { setNewOrder({ ...newOrder, pickupAddress: text }); if (fieldErrors.pickupAddress) setFieldErrors(e => ({ ...e, pickupAddress: undefined })); }}
                     />
                   </View>
+                  {fieldErrors.pickupAddress && <Text style={styles.fieldError}>{fieldErrors.pickupAddress}</Text>}
                 </View>
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Pickup Instructions <Text style={styles.optionalLabel}>(Optional)</Text></Text>
@@ -1129,16 +1157,17 @@ export default function CustomerHome() {
                 </View>
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Delivery Address</Text>
-                  <View style={styles.inputWrapper}>
-                    <MapPin size={16} color="#22c55e" style={styles.inputIcon} />
+                  <View style={[styles.inputWrapper, fieldErrors.deliveryAddress ? styles.inputWrapperError : null]}>
+                    <MapPin size={16} color={fieldErrors.deliveryAddress ? '#ef4444' : '#22c55e'} style={styles.inputIcon} />
                     <TextInput
                       style={styles.inputWithIcon}
                       placeholder="e.g. Plot 1234, Victoria Island, Lagos"
                       placeholderTextColor="#9ca3af"
                       value={newOrder.deliveryAddress}
-                      onChangeText={(text) => setNewOrder({ ...newOrder, deliveryAddress: text })}
+                      onChangeText={(text) => { setNewOrder({ ...newOrder, deliveryAddress: text }); if (fieldErrors.deliveryAddress) setFieldErrors(e => ({ ...e, deliveryAddress: undefined })); }}
                     />
                   </View>
+                  {fieldErrors.deliveryAddress && <Text style={styles.fieldError}>{fieldErrors.deliveryAddress}</Text>}
                 </View>
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Delivery Instructions <Text style={styles.optionalLabel}>(Optional)</Text></Text>
@@ -1161,45 +1190,48 @@ export default function CustomerHome() {
                 </View>
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Recipient Name</Text>
-                  <View style={styles.inputWrapper}>
-                    <User size={16} color="#6b7280" style={styles.inputIcon} />
+                  <View style={[styles.inputWrapper, fieldErrors.recipientName ? styles.inputWrapperError : null]}>
+                    <User size={16} color={fieldErrors.recipientName ? '#ef4444' : '#6b7280'} style={styles.inputIcon} />
                     <TextInput
                       style={styles.inputWithIcon}
                       placeholder="John Doe"
                       placeholderTextColor="#9ca3af"
                       value={newOrder.recipientName}
-                      onChangeText={(text) => setNewOrder({ ...newOrder, recipientName: text })}
+                      onChangeText={(text) => { setNewOrder({ ...newOrder, recipientName: text }); if (fieldErrors.recipientName) setFieldErrors(e => ({ ...e, recipientName: undefined })); }}
                     />
                   </View>
+                  {fieldErrors.recipientName && <Text style={styles.fieldError}>{fieldErrors.recipientName}</Text>}
                 </View>
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Recipient Phone</Text>
-                  <View style={styles.inputWrapper}>
-                    <Phone size={16} color="#6b7280" style={styles.inputIcon} />
+                  <View style={[styles.inputWrapper, fieldErrors.recipientPhone ? styles.inputWrapperError : null]}>
+                    <Phone size={16} color={fieldErrors.recipientPhone ? '#ef4444' : '#6b7280'} style={styles.inputIcon} />
                     <TextInput
                       style={styles.inputWithIcon}
                       placeholder="+234 800 000 0000"
                       placeholderTextColor="#9ca3af"
                       value={newOrder.recipientPhone}
-                      onChangeText={(text) => setNewOrder({ ...newOrder, recipientPhone: text })}
+                      onChangeText={(text) => { setNewOrder({ ...newOrder, recipientPhone: text }); if (fieldErrors.recipientPhone) setFieldErrors(e => ({ ...e, recipientPhone: undefined })); }}
                       keyboardType="phone-pad"
                     />
                   </View>
+                  {fieldErrors.recipientPhone && <Text style={styles.fieldError}>{fieldErrors.recipientPhone}</Text>}
                 </View>
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Package Description</Text>
-                  <View style={styles.inputWrapper}>
-                    <Package size={16} color="#6b7280" style={styles.inputIcon} />
+                  <View style={[styles.inputWrapper, fieldErrors.packageDescription ? styles.inputWrapperError : null]}>
+                    <Package size={16} color={fieldErrors.packageDescription ? '#ef4444' : '#6b7280'} style={styles.inputIcon} />
                     <TextInput
                       style={[styles.inputWithIcon, styles.textArea]}
                       placeholder="Describe your package"
                       placeholderTextColor="#9ca3af"
                       value={newOrder.packageDescription}
-                      onChangeText={(text) => setNewOrder({ ...newOrder, packageDescription: text })}
+                      onChangeText={(text) => { setNewOrder({ ...newOrder, packageDescription: text }); if (fieldErrors.packageDescription) setFieldErrors(e => ({ ...e, packageDescription: undefined })); }}
                       multiline
                       numberOfLines={3}
                     />
                   </View>
+                  {fieldErrors.packageDescription && <Text style={styles.fieldError}>{fieldErrors.packageDescription}</Text>}
                 </View>
               </View>
 
@@ -2134,6 +2166,17 @@ const styles = StyleSheet.create({
     color: '#ef4444',
     fontFamily: Fonts.poppinsSemiBold,
     marginTop: 4,
+  },
+  fieldError: {
+    fontSize: 12,
+    color: '#ef4444',
+    fontFamily: Fonts.poppinsRegular,
+    marginTop: 4,
+  },
+  inputWrapperError: {
+    borderColor: '#ef4444',
+    borderWidth: 1.5,
+    backgroundColor: '#fff5f5',
   },
   breakdownContainer: {
     marginBottom: 20,
