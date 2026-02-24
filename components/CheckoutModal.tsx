@@ -29,6 +29,57 @@ type CheckoutModalProps = {
   orderId?: string;
 };
 
+function getOrderError(error: any): string {
+  const msg = (error?.message || error?.toString() || '').toLowerCase();
+  const code = error?.code || '';
+
+  if (!msg && !code) return 'Something went wrong. Please try again.';
+
+  if (msg.includes('insufficient wallet') || msg.includes('insufficient balance') || msg.includes('wallet balance')) {
+    return 'Your wallet balance is too low. Please top up your wallet or choose a different payment method.';
+  }
+  if (msg.includes('payment verification failed') || msg.includes('verify')) {
+    return 'Payment could not be verified. Please check your payment and try again.';
+  }
+  if (msg.includes('declined') || msg.includes('card declined')) {
+    return 'Your card was declined. Please use a different card or payment method.';
+  }
+  if (msg.includes('insufficient funds')) {
+    return 'Insufficient funds. Please check your account balance.';
+  }
+  if (msg.includes('expired')) {
+    return 'Your card has expired. Please use a different card.';
+  }
+  if (msg.includes('cancelled') || msg.includes('abandoned')) {
+    return 'Payment was not completed. Your order was not placed.';
+  }
+  if (msg.includes('network') || msg.includes('fetch failed') || msg.includes('connection')) {
+    return 'Network error. Please check your internet connection and try again.';
+  }
+  if (msg.includes('timeout') || msg.includes('timed out')) {
+    return 'The request timed out. Please try again.';
+  }
+  if (msg.includes('permission denied') || msg.includes('not authorized') || code === '42501') {
+    return 'Unable to place order. Please try logging out and back in.';
+  }
+  if (msg.includes('duplicate') || msg.includes('unique constraint') || code === '23505') {
+    return 'This order may already exist. Please refresh and check your orders.';
+  }
+  if (code === '23503') {
+    return 'Unable to place order due to a data issue. Please contact support.';
+  }
+  if (msg.includes('missing required') || msg.includes('null value')) {
+    return 'Some required order details are missing. Please fill in all fields and try again.';
+  }
+  if (msg.includes('rate limit') || msg.includes('too many')) {
+    return 'Too many requests. Please wait a moment and try again.';
+  }
+  if (msg.length > 120) {
+    return 'An error occurred while placing your order. Please try again.';
+  }
+  return error?.message || 'Failed to place order. Please try again.';
+}
+
 export function CheckoutModal({ visible, onClose, onConfirm, pricing, userId, userEmail, orderId }: CheckoutModalProps) {
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod>('cash_on_delivery');
   const [walletBalance, setWalletBalance] = useState(0);
@@ -123,7 +174,7 @@ export function CheckoutModal({ visible, onClose, onConfirm, pricing, userId, us
       }
     } catch (err: any) {
       console.error('Payment initialization error:', err);
-      setError(err.message || 'Failed to initialize payment. Please try again.');
+      setError(getOrderError(err));
       setProcessingPayment(false);
     }
   };
@@ -166,7 +217,7 @@ export function CheckoutModal({ visible, onClose, onConfirm, pricing, userId, us
       await onConfirm(selectedPayment, undefined, scheduledDateTime);
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Payment failed. Please try again.');
+      setError(getOrderError(err));
     } finally {
       setLoading(false);
     }
@@ -177,13 +228,18 @@ export function CheckoutModal({ visible, onClose, onConfirm, pricing, userId, us
       ? new Date(`${scheduledDate}T${scheduledTime}`)
       : undefined;
 
-    if (verificationPaymentMethod === 'online') {
-      await onConfirm('online', paystackRef, scheduledDateTime);
-    } else {
-      await onConfirm('transfer', reference, scheduledDateTime);
+    try {
+      if (verificationPaymentMethod === 'online') {
+        await onConfirm('online', paystackRef, scheduledDateTime);
+      } else {
+        await onConfirm('transfer', reference, scheduledDateTime);
+      }
+      setShowVerificationModal(false);
+      onClose();
+    } catch (err: any) {
+      setShowVerificationModal(false);
+      setError(getOrderError(err));
     }
-    setShowVerificationModal(false);
-    onClose();
   };
 
   const paymentOptions = [
