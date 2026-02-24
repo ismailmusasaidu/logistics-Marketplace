@@ -404,7 +404,7 @@ export default function CustomerHome() {
       if (orderError) throw orderError;
 
       if (orderDetails.validatedPromo) {
-        await pricingCalculator.incrementPromoUsage(orderDetails.validatedPromo.promo_code);
+        await pricingCalculator.incrementPromoUsage(orderDetails.validatedPromo.code);
       }
 
       setVerifyingPayment(false);
@@ -548,7 +548,7 @@ export default function CustomerHome() {
       }
 
       if (validatedPromo) {
-        await pricingCalculator.incrementPromoUsage(validatedPromo.promo_code);
+        await pricingCalculator.incrementPromoUsage(validatedPromo.code);
       }
 
       let paymentMsg = '';
@@ -1288,7 +1288,7 @@ export default function CustomerHome() {
                     />
                   </View>
                   {validatedPromo && (
-                    <Text style={styles.promoSuccess}>✓ {validatedPromo.promo_name} applied!</Text>
+                    <Text style={styles.promoSuccess}>✓ {validatedPromo.name} applied!</Text>
                   )}
                   {newOrder.promoCode && !validatedPromo && pricingBreakdown && !calculatingDistance && (
                     <Text style={styles.promoError}>Invalid or expired promo code</Text>

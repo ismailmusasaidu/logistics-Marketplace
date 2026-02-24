@@ -27,16 +27,14 @@ export type OrderSizePricing = {
 export type Promotion = {
   id: string;
   code: string;
-  promo_code: string;
-  promo_name: string;
-  discount_type: 'flat' | 'percentage' | 'free_delivery';
+  name: string;
+  discount_type: 'fixed' | 'percentage';
   discount_value: number;
-  min_order_value: number;
-  max_discount: number | null;
+  min_order_amount: number;
+  max_discount_amount: number | null;
   is_active: boolean;
-  is_first_order_only: boolean;
-  start_date: string;
-  end_date: string | null;
+  valid_from: string;
+  valid_until: string;
   usage_limit: number | null;
   usage_count: number;
 };
@@ -152,8 +150,8 @@ export class PricingCalculator {
     if (!error && data) {
       this.promotions = data.filter(promo => {
         const now = new Date();
-        const startDate = new Date(promo.start_date);
-        const endDate = promo.end_date ? new Date(promo.end_date) : null;
+        const startDate = new Date(promo.valid_from);
+        const endDate = promo.valid_until ? new Date(promo.valid_until) : null;
 
         const isWithinDateRange =
           now >= startDate &&
@@ -194,28 +192,18 @@ export class PricingCalculator {
     customerId: string,
     orderValue: number
   ): Promise<Promotion | null> {
+    await this.ensureReady();
+
     const promo = this.promotions.find(p =>
-      p.promo_code.toUpperCase() === promoCode.toUpperCase()
+      p.code.toUpperCase() === promoCode.toUpperCase()
     );
 
     if (!promo) {
       return null;
     }
 
-    if (orderValue < promo.min_order_value) {
+    if (orderValue > 0 && orderValue < promo.min_order_amount) {
       return null;
-    }
-
-    if (promo.is_first_order_only) {
-      const { count } = await supabase
-        .from('orders')
-        .select('id', { count: 'exact', head: true })
-        .eq('customer_id', customerId)
-        .eq('status', 'completed');
-
-      if (count && count > 0) {
-        return null;
-      }
     }
 
     return promo;
@@ -276,20 +264,17 @@ export class PricingCalculator {
     let promoApplied: string | undefined;
 
     if (promotion) {
-      if (promotion.discount_type === 'free_delivery') {
-        discount = subtotal;
-        discountName = 'Free Delivery';
-      } else if (promotion.discount_type === 'flat') {
+      if (promotion.discount_type === 'fixed') {
         discount = Math.min(promotion.discount_value, subtotal);
       } else if (promotion.discount_type === 'percentage') {
         discount = (subtotal * promotion.discount_value) / 100;
-        if (promotion.max_discount) {
-          discount = Math.min(discount, promotion.max_discount);
+        if (promotion.max_discount_amount) {
+          discount = Math.min(discount, promotion.max_discount_amount);
         }
       }
 
-      promoApplied = promotion.promo_code;
-      discountName = promotion.promo_name;
+      promoApplied = promotion.code;
+      discountName = promotion.name;
     }
 
     const finalPrice = Math.max(0, subtotal - discount);
@@ -310,9 +295,13 @@ export class PricingCalculator {
   }
 
   async incrementPromoUsage(promoCode: string): Promise<void> {
-    const { error } = await supabase.rpc('increment_promo_usage', {
-      p_promo_code: promoCode,
-    });
+    const promo = this.promotions.find(p => p.code.toUpperCase() === promoCode.toUpperCase());
+    if (!promo) return;
+
+    const { error } = await supabase
+      .from('promotions')
+      .update({ usage_count: (promo.usage_count || 0) + 1 })
+      .eq('id', promo.id);
 
     if (error) {
       console.error('Failed to increment promo usage:', error);
