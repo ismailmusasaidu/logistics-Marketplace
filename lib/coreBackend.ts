@@ -19,7 +19,7 @@ if (!coreUrl || !coreAnonKey) {
 export const coreBackend: SupabaseClient = createClient(coreUrl, coreAnonKey, {
   auth: {
     persistSession: true,
-    detectSessionInUrl: false,
+    detectSessionInUrl: true,
   },
 });
 

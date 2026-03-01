@@ -59,6 +59,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
+      if (event === 'PASSWORD_RECOVERY') {
+        return;
+      }
+
       if (session?.user) {
         setSession(session);
         setUser(session.user);
