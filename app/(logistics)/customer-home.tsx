@@ -80,6 +80,7 @@ export default function CustomerHome() {
     recipientName?: string;
     recipientPhone?: string;
     packageDescription?: string;
+    orderSize?: string;
   }>({});
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'success') => {
@@ -288,6 +289,9 @@ export default function CustomerHome() {
     }
     if (!newOrder.packageDescription.trim()) {
       errors.packageDescription = 'Package description is required';
+    }
+    if (!newOrder.orderSize) {
+      errors.orderSize = 'Please select a package size';
     }
 
     if (Object.keys(errors).length > 0) {
@@ -1261,7 +1265,7 @@ export default function CustomerHome() {
 
               <View style={styles.formSection}>
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Order Size <Text style={styles.optionalLabel}>(Optional)</Text></Text>
+                  <Text style={styles.label}>Order Size <Text style={styles.requiredLabel}>*</Text></Text>
                   <View style={styles.orderTypesContainer}>
                     {['small', 'medium', 'large'].map((size) => (
                       <TouchableOpacity
@@ -1269,8 +1273,9 @@ export default function CustomerHome() {
                         style={[
                           styles.orderTypeChip,
                           newOrder.orderSize === size && styles.orderTypeChipActive,
+                          fieldErrors.orderSize && !newOrder.orderSize && styles.orderTypeChipError,
                         ]}
-                        onPress={() => setNewOrder({ ...newOrder, orderSize: size as 'small' | 'medium' | 'large' })}>
+                        onPress={() => { setNewOrder({ ...newOrder, orderSize: size as 'small' | 'medium' | 'large' }); setFieldErrors(e => ({ ...e, orderSize: undefined })); }}>
                         <Text
                           style={[
                             styles.orderTypeChipText,
@@ -1281,6 +1286,7 @@ export default function CustomerHome() {
                       </TouchableOpacity>
                     ))}
                   </View>
+                  {fieldErrors.orderSize && <Text style={styles.fieldError}>{fieldErrors.orderSize}</Text>}
                 </View>
                 {orderTypeOptions.length > 0 && (
                   <View style={styles.inputGroup}>
@@ -2154,6 +2160,15 @@ const styles = StyleSheet.create({
   },
   orderTypeChipTextActive: {
     color: '#f97316',
+  },
+  orderTypeChipError: {
+    borderColor: '#ef4444',
+    backgroundColor: '#fef2f2',
+  },
+  requiredLabel: {
+    fontSize: 14,
+    fontFamily: Fonts.poppinsRegular,
+    color: '#ef4444',
   },
   promoSuccess: {
     fontSize: 13,
