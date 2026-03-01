@@ -68,6 +68,10 @@ export default function ResetPasswordScreen() {
       if (Platform.OS === 'web' && typeof window !== 'undefined') {
         const hash = window.location.hash || window.location.search;
         if (hash) {
+          if (hash.includes('error=')) {
+            if (mounted) setChecking(false);
+            return;
+          }
           const fakeUrl = `https://placeholder${hash}`;
           const ok = await trySetSessionFromUrl(fakeUrl);
           if (mounted && ok) {
