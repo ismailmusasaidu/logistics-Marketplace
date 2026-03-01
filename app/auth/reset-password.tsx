@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { router } from 'expo-router';
 import * as Linking from 'expo-linking';
 import { coreBackend } from '@/lib/coreBackend';
@@ -65,13 +65,26 @@ export default function ResetPasswordScreen() {
     let mounted = true;
 
     const initialize = async () => {
-      const initialUrl = await Linking.getInitialURL();
-      if (initialUrl) {
-        const ok = await trySetSessionFromUrl(initialUrl);
-        if (mounted && ok) {
-          setIsValidSession(true);
-          setChecking(false);
-          return;
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        const hash = window.location.hash || window.location.search;
+        if (hash) {
+          const fakeUrl = `https://placeholder${hash}`;
+          const ok = await trySetSessionFromUrl(fakeUrl);
+          if (mounted && ok) {
+            setIsValidSession(true);
+            setChecking(false);
+            return;
+          }
+        }
+      } else {
+        const initialUrl = await Linking.getInitialURL();
+        if (initialUrl) {
+          const ok = await trySetSessionFromUrl(initialUrl);
+          if (mounted && ok) {
+            setIsValidSession(true);
+            setChecking(false);
+            return;
+          }
         }
       }
 

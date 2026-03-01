@@ -11,6 +11,7 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
+import * as Linking from 'expo-linking';
 import { Link, router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -66,8 +67,15 @@ export default function ForgotPasswordScreen() {
     setError('');
 
     try {
+      let redirectTo: string;
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        redirectTo = `${window.location.origin}/auth/reset-password`;
+      } else {
+        redirectTo = Linking.createURL('/auth/reset-password');
+      }
+
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'myapp://auth/reset-password',
+        redirectTo,
       });
 
       if (resetError) throw resetError;
