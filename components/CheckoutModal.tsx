@@ -68,6 +68,9 @@ function getOrderError(error: any): string {
   if (code === '23503') {
     return 'Unable to place order due to a data issue. Please contact support.';
   }
+  if (code === '23514' || msg.includes('order_size_check') || msg.includes('check constraint')) {
+    return 'Please select a valid package size before placing your order.';
+  }
   if (msg.includes('missing required') || msg.includes('null value')) {
     return 'Some required order details are missing. Please fill in all fields and try again.';
   }
