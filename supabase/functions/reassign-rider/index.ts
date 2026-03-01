@@ -11,6 +11,78 @@ interface ReassignRiderRequest {
   reason?: string;
 }
 
+interface Zone {
+  id: string;
+  name: string;
+}
+
+interface ZoneWithDistance {
+  zone: Zone;
+  distanceMeters: number;
+}
+
+async function rankZonesByDistance(
+  pickupAddress: string,
+  zones: Zone[]
+): Promise<ZoneWithDistance[]> {
+  const apiKey = Deno.env.get('GOOGLE_MAPS_API_KEY');
+
+  if (!apiKey) {
+    console.error('Google Maps API key not configured');
+    return [];
+  }
+
+  try {
+    const origin = encodeURIComponent(
+      pickupAddress.includes('Nigeria') ? pickupAddress : `${pickupAddress}, Nigeria`
+    );
+
+    const destinations = zones
+      .map(zone => encodeURIComponent(`${zone.name}, Nigeria`))
+      .join('|');
+
+    const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origin}&destinations=${destinations}&mode=driving&key=${apiKey}`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (data.status !== 'OK') {
+      console.error('Distance Matrix API error:', data.status, data.error_message);
+      return [];
+    }
+
+    if (!data.rows || data.rows.length === 0 || !data.rows[0].elements) {
+      console.error('No results from Distance Matrix API');
+      return [];
+    }
+
+    const elements = data.rows[0].elements;
+    const ranked: ZoneWithDistance[] = [];
+
+    for (let i = 0; i < elements.length; i++) {
+      const element = elements[i];
+      if (element.status === 'OK' && element.distance) {
+        ranked.push({
+          zone: zones[i],
+          distanceMeters: element.distance.value,
+        });
+      }
+    }
+
+    ranked.sort((a, b) => a.distanceMeters - b.distanceMeters);
+
+    console.log(
+      'Zones ranked by distance:',
+      ranked.map(r => `${r.zone.name} (${(r.distanceMeters / 1000).toFixed(2)}km)`).join(', ')
+    );
+
+    return ranked;
+  } catch (error) {
+    console.error('Error ranking zones by distance:', error);
+    return [];
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -29,91 +101,66 @@ Deno.serve(async (req: Request) => {
     if (!order_id) {
       return new Response(
         JSON.stringify({ error: 'order_id is required' }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Fetch order details
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select('id, pickup_zone_id, assignment_status, assigned_rider_id')
+      .select('id, pickup_zone_id, pickup_address, assignment_status, assigned_rider_id')
       .eq('id', order_id)
       .maybeSingle();
 
     if (orderError || !order) {
       return new Response(
         JSON.stringify({ error: 'Order not found', details: orderError }),
-        {
-          status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Skip if already accepted
     if (order.assignment_status === 'accepted') {
       return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Order already accepted by a rider',
-        }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
+        JSON.stringify({ success: false, message: 'Order already accepted by a rider' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // If no zone assigned yet, we can't auto-assign
-    if (!order.pickup_zone_id) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Order has no pickup zone assigned. Cannot reassign rider.',
-        }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    // Get the current assigned rider to exclude from next search
     const excludeRiderId = order.assigned_rider_id;
 
-    // Find available riders in the same zone (excluding the one who rejected)
-    let query = supabase
-      .from('riders')
-      .select('id, active_orders, zone_id')
-      .eq('status', 'online')
-      .eq('zone_id', order.pickup_zone_id)
-      .lt('active_orders', 10)
-      .order('active_orders', { ascending: true })
-      .limit(1);
+    const { data: allZones, error: zonesError } = await supabase
+      .from('zones')
+      .select('id, name')
+      .eq('is_active', true);
 
-    // Exclude the rider who just rejected or timed out
-    if (excludeRiderId) {
-      query = query.neq('id', excludeRiderId);
-    }
-
-    const { data: riders, error: ridersError } = await query;
-
-    if (ridersError) {
+    if (zonesError || !allZones || allZones.length === 0) {
       return new Response(
-        JSON.stringify({ error: 'Failed to fetch riders', details: ridersError }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
+        JSON.stringify({ success: false, message: 'No active zones found in the system' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    if (!riders || riders.length === 0) {
-      // No more riders available - reset assignment
-      const { error: resetError } = await supabase
+    // Build zone search order: assigned zone first, then others ranked by distance
+    let orderedZones: Zone[] = [];
+
+    if (order.pickup_zone_id) {
+      const assignedZone = allZones.find(z => z.id === order.pickup_zone_id);
+      const otherZones = allZones.filter(z => z.id !== order.pickup_zone_id);
+
+      if (assignedZone) {
+        orderedZones.push(assignedZone);
+      }
+
+      if (otherZones.length > 0) {
+        const ranked = await rankZonesByDistance(order.pickup_address, otherZones);
+        orderedZones = orderedZones.concat(ranked.map(r => r.zone));
+      }
+    } else {
+      const ranked = await rankZonesByDistance(order.pickup_address, allZones);
+      orderedZones = ranked.map(r => r.zone);
+    }
+
+    if (orderedZones.length === 0) {
+      await supabase
         .from('orders')
         .update({
           assigned_rider_id: null,
@@ -123,70 +170,103 @@ Deno.serve(async (req: Request) => {
         })
         .eq('id', order_id);
 
-      if (resetError) {
-        console.error('Failed to reset order assignment:', resetError);
+      return new Response(
+        JSON.stringify({ success: false, message: 'Could not determine zone. Order reset to pending.' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Try each zone in distance order until a rider is found
+    for (const zone of orderedZones) {
+      console.log(`Searching for riders in zone: ${zone.name} (${zone.id})`);
+
+      let query = supabase
+        .from('riders')
+        .select('id, active_orders, zone_id')
+        .eq('status', 'online')
+        .eq('zone_id', zone.id)
+        .lt('active_orders', 10)
+        .order('active_orders', { ascending: true })
+        .limit(1);
+
+      if (excludeRiderId) {
+        query = query.neq('id', excludeRiderId);
       }
+
+      const { data: riders, error: ridersError } = await query;
+
+      if (ridersError) {
+        console.error(`Error fetching riders for zone ${zone.name}:`, ridersError);
+        continue;
+      }
+
+      if (!riders || riders.length === 0) {
+        console.log(`No available riders in zone: ${zone.name}, trying next closest zone...`);
+        continue;
+      }
+
+      const selectedRider = riders[0];
+      const timeoutAt = new Date();
+      timeoutAt.setMinutes(timeoutAt.getMinutes() + 3);
+
+      const { error: updateError } = await supabase
+        .from('orders')
+        .update({
+          assigned_rider_id: selectedRider.id,
+          pickup_zone_id: zone.id,
+          assignment_status: 'assigned',
+          assigned_at: new Date().toISOString(),
+          assignment_timeout_at: timeoutAt.toISOString(),
+        })
+        .eq('id', order_id);
+
+      if (updateError) {
+        return new Response(
+          JSON.stringify({ error: 'Failed to reassign rider', details: updateError }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log(`Rider ${selectedRider.id} reassigned from zone: ${zone.name}`);
 
       return new Response(
         JSON.stringify({
-          success: false,
-          message: 'No more available riders found in the zone. Order reset to pending.',
+          success: true,
+          message: `Rider reassigned successfully from zone: ${zone.name}`,
+          rider_id: selectedRider.id,
+          zone_id: zone.id,
+          zone_name: zone.name,
+          timeout_at: timeoutAt.toISOString(),
+          reason: reason || 'Previous rider rejected or timed out',
         }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const selectedRider = riders[0];
-
-    // Calculate new timeout (3 minutes from now)
-    const timeoutAt = new Date();
-    timeoutAt.setMinutes(timeoutAt.getMinutes() + 3);
-
-    // Reassign rider to order
-    const { error: updateError } = await supabase
+    // All zones exhausted — reset order to pending
+    await supabase
       .from('orders')
       .update({
-        assigned_rider_id: selectedRider.id,
-        assignment_status: 'assigned',
-        assigned_at: new Date().toISOString(),
-        assignment_timeout_at: timeoutAt.toISOString(),
+        assigned_rider_id: null,
+        assignment_status: 'pending',
+        assigned_at: null,
+        assignment_timeout_at: null,
       })
       .eq('id', order_id);
 
-    if (updateError) {
-      return new Response(
-        JSON.stringify({ error: 'Failed to reassign rider', details: updateError }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
     return new Response(
       JSON.stringify({
-        success: true,
-        message: 'Rider reassigned successfully',
-        rider_id: selectedRider.id,
-        timeout_at: timeoutAt.toISOString(),
-        reason: reason || 'Previous rider rejected or timed out',
+        success: false,
+        message: 'No available riders found in any zone. Order reset to pending.',
       }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
+
   } catch (error: any) {
     console.error('Error in reassign-rider:', error);
     return new Response(
       JSON.stringify({ error: error.message || 'Internal server error' }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
