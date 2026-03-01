@@ -68,8 +68,14 @@ export default function ForgotPasswordScreen() {
 
     try {
       let redirectTo: string;
-      if (Platform.OS === 'web' && typeof window !== 'undefined') {
-        redirectTo = `${window.location.origin}/auth/reset-password`;
+      if (typeof window !== 'undefined' && window.location?.href) {
+        const url = new URL(window.location.href);
+        if (url.protocol === 'https:' || url.protocol === 'http:') {
+          redirectTo = `${url.origin}/auth/reset-password`;
+        } else {
+          const httpsOrigin = window.location.href.replace(/^exp:\/\//, 'https://').split('/--/')[0];
+          redirectTo = `${httpsOrigin}/--/auth/reset-password`;
+        }
       } else {
         redirectTo = Linking.createURL('/auth/reset-password');
       }
