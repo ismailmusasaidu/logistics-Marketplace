@@ -66,8 +66,12 @@ export default function ForgotPasswordScreen() {
     setError('');
 
     try {
+      const redirectTo = typeof window !== 'undefined'
+        ? `${window.location.origin}/auth/reset-password`
+        : 'myapp://auth/reset-password';
+
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
+        redirectTo,
       });
 
       if (resetError) throw resetError;

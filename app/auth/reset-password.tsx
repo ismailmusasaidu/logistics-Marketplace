@@ -14,15 +14,35 @@ export default function ResetPasswordScreen() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [isValidSession, setIsValidSession] = useState(false);
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    checkSession();
-  }, []);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setIsValidSession(true);
+        setChecking(false);
+      }
+    });
 
-  const checkSession = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    setIsValidSession(!!session);
-  };
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY' && session) {
+        setIsValidSession(true);
+        setChecking(false);
+      } else if (event === 'SIGNED_IN' && session) {
+        setIsValidSession(true);
+        setChecking(false);
+      }
+    });
+
+    const timer = setTimeout(() => {
+      setChecking(false);
+    }, 3000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timer);
+    };
+  }, []);
 
   const handleResetPassword = async () => {
     if (!password || !confirmPassword) {
@@ -60,6 +80,19 @@ export default function ResetPasswordScreen() {
       setLoading(false);
     }
   };
+
+  if (checking) {
+    return (
+      <LinearGradient
+        colors={['#ff8c00', '#ff6b00', '#ff4500']}
+        style={styles.container}
+      >
+        <View style={[styles.content, { paddingTop: insets.top }]}>
+          <ActivityIndicator size="large" color="#ffffff" />
+        </View>
+      </LinearGradient>
+    );
+  }
 
   if (!isValidSession) {
     return (
