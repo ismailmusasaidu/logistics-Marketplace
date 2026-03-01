@@ -1,10 +1,55 @@
 import { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
-import { supabase } from '@/lib/supabase';
+import * as Linking from 'expo-linking';
+import { coreBackend } from '@/lib/coreBackend';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CheckCircle } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+function extractParamsFromUrl(url: string): Record<string, string> {
+  const params: Record<string, string> = {};
+  try {
+    const hashIndex = url.indexOf('#');
+    if (hashIndex !== -1) {
+      const hash = url.substring(hashIndex + 1);
+      hash.split('&').forEach((pair) => {
+        const [key, value] = pair.split('=');
+        if (key && value) {
+          params[decodeURIComponent(key)] = decodeURIComponent(value);
+        }
+      });
+    }
+    const queryIndex = url.indexOf('?');
+    if (queryIndex !== -1) {
+      const queryEnd = hashIndex !== -1 ? hashIndex : url.length;
+      const query = url.substring(queryIndex + 1, queryEnd);
+      query.split('&').forEach((pair) => {
+        const [key, value] = pair.split('=');
+        if (key && value) {
+          params[decodeURIComponent(key)] = decodeURIComponent(value);
+        }
+      });
+    }
+  } catch {}
+  return params;
+}
+
+async function trySetSessionFromUrl(url: string): Promise<boolean> {
+  const params = extractParamsFromUrl(url);
+  const type = params['type'];
+  const accessToken = params['access_token'];
+  const refreshToken = params['refresh_token'];
+
+  if (type === 'recovery' && accessToken && refreshToken) {
+    const { error } = await coreBackend.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    });
+    return !error;
+  }
+  return false;
+}
 
 export default function ResetPasswordScreen() {
   const insets = useSafeAreaInsets();
@@ -17,29 +62,58 @@ export default function ResetPasswordScreen() {
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
+    let mounted = true;
+
+    const initialize = async () => {
+      const initialUrl = await Linking.getInitialURL();
+      if (initialUrl) {
+        const ok = await trySetSessionFromUrl(initialUrl);
+        if (mounted && ok) {
+          setIsValidSession(true);
+          setChecking(false);
+          return;
+        }
+      }
+
+      const { data: { session } } = await coreBackend.auth.getSession();
+      if (mounted && session) {
+        setIsValidSession(true);
+        setChecking(false);
+        return;
+      }
+
+      if (mounted) {
+        setChecking(false);
+      }
+    };
+
+    initialize();
+
+    const { data: { subscription } } = coreBackend.auth.onAuthStateChange((event, session) => {
+      if (!mounted) return;
+      if ((event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') && session) {
         setIsValidSession(true);
         setChecking(false);
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY' && session) {
-        setIsValidSession(true);
-        setChecking(false);
-      } else if (event === 'SIGNED_IN' && session) {
+    const linkingSub = Linking.addEventListener('url', async ({ url }) => {
+      if (!mounted) return;
+      const ok = await trySetSessionFromUrl(url);
+      if (ok) {
         setIsValidSession(true);
         setChecking(false);
       }
     });
 
     const timer = setTimeout(() => {
-      setChecking(false);
-    }, 3000);
+      if (mounted) setChecking(false);
+    }, 5000);
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
+      linkingSub.remove();
       clearTimeout(timer);
     };
   }, []);
@@ -64,7 +138,7 @@ export default function ResetPasswordScreen() {
     setError('');
 
     try {
-      const { error: updateError } = await supabase.auth.updateUser({
+      const { error: updateError } = await coreBackend.auth.updateUser({
         password: password,
       });
 
@@ -89,6 +163,7 @@ export default function ResetPasswordScreen() {
       >
         <View style={[styles.content, { paddingTop: insets.top }]}>
           <ActivityIndicator size="large" color="#ffffff" />
+          <Text style={styles.checkingText}>Verifying reset link...</Text>
         </View>
       </LinearGradient>
     );
@@ -201,6 +276,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     paddingHorizontal: 24,
+  },
+  checkingText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 16,
+    textAlign: 'center',
   },
   title: {
     fontSize: 36,
