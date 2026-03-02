@@ -7,6 +7,22 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
+async function sendEmailNotification(template: string, to: string, data: Record<string, any>) {
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const response = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ template, to, data }),
+    });
+    if (!response.ok) {
+      console.error("Failed to send email:", await response.text());
+    }
+  } catch (error) {
+    console.error("Email notification error:", error);
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, {
@@ -109,6 +125,25 @@ Deno.serve(async (req: Request) => {
       })
       .eq("id", withdrawalId);
 
+    const { data: userProfile } = await supabaseClient
+      .from("profiles")
+      .select("email, full_name")
+      .eq("id", withdrawal.user_id)
+      .maybeSingle();
+
+    if (userProfile?.email) {
+      sendEmailNotification("withdrawal_requested", userProfile.email, {
+        customerName: userProfile.full_name,
+        amount: withdrawal.amount,
+        bankName: bankAccount.bank_name,
+        accountName: bankAccount.account_name,
+        accountNumber: bankAccount.account_number,
+        fee: withdrawal.fee,
+        netAmount: withdrawal.net_amount,
+        reference: withdrawal.reference,
+      });
+    }
+
     let recipientCode = bankAccount.recipient_code;
 
     if (!recipientCode) {
@@ -199,6 +234,15 @@ Deno.serve(async (req: Request) => {
         p_withdrawal_id: withdrawalId,
       });
 
+      if (userProfile?.email) {
+        sendEmailNotification("withdrawal_failed", userProfile.email, {
+          customerName: userProfile.full_name,
+          amount: withdrawal.amount,
+          reference: withdrawal.reference,
+          failureReason: transferData.message || "Transfer failed",
+        });
+      }
+
       return new Response(
         JSON.stringify({
           success: false,
@@ -220,6 +264,17 @@ Deno.serve(async (req: Request) => {
         completed_at: new Date().toISOString(),
       })
       .eq("id", withdrawalId);
+
+    if (userProfile?.email) {
+      sendEmailNotification("withdrawal_completed", userProfile.email, {
+        customerName: userProfile.full_name,
+        netAmount: withdrawal.net_amount,
+        bankName: bankAccount.bank_name,
+        accountName: bankAccount.account_name,
+        accountNumber: bankAccount.account_number,
+        reference: withdrawal.reference,
+      });
+    }
 
     return new Response(
       JSON.stringify({

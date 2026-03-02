@@ -8,6 +8,22 @@ const corsHeaders = {
     "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
+async function sendEmailNotification(template: string, to: string, data: Record<string, any>) {
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const response = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ template, to, data }),
+    });
+    if (!response.ok) {
+      console.error("Failed to send email:", await response.text());
+    }
+  } catch (error) {
+    console.error("Email notification error:", error);
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders });
@@ -71,6 +87,31 @@ Deno.serve(async (req: Request) => {
         JSON.stringify({ success: false, error: "Failed to credit wallet" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    const { data: userProfile } = await adminClient
+      .from("profiles")
+      .select("email, full_name")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    const { data: walletData } = await adminClient
+      .from("wallets")
+      .select("balance")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (userProfile?.email) {
+      const isRefund = reference_type === "refund" || (description && description.toLowerCase().includes("refund"));
+      const template = isRefund ? "wallet_refunded" : "wallet_admin_credit";
+
+      sendEmailNotification(template, userProfile.email, {
+        customerName: userProfile.full_name,
+        amount: amount,
+        description: description || (isRefund ? "Refund" : "Admin Credit"),
+        reference: reference || "N/A",
+        newBalance: walletData?.balance !== undefined ? `₦${walletData.balance.toLocaleString()}` : "N/A",
+      });
     }
 
     return new Response(

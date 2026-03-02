@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase';
 import { Fonts } from '@/constants/fonts';
 import { Toast } from '@/components/Toast';
 import { useLocation } from '@/hooks/useLocation';
+import { sendLogisticsOrderStatusEmail } from '@/lib/emailService';
 
 type Order = {
   id: string;
@@ -38,6 +39,7 @@ type Order = {
   customer?: {
     full_name: string | null;
     phone: string | null;
+    email: string | null;
   } | null;
 };
 
@@ -281,7 +283,7 @@ export default function RiderHome() {
           payment_method,
           payment_status,
           scheduled_delivery_time,
-          customer:profiles!orders_customer_id_fkey(full_name, phone)
+          customer:profiles!orders_customer_id_fkey(full_name, phone, email)
         `)
         .eq('rider_id', riderId)
         .eq('order_source', 'logistics')
@@ -424,6 +426,21 @@ export default function RiderHome() {
         .eq('id', orderId);
 
       if (error) throw error;
+
+      if (selectedOrder && ['out_for_delivery', 'delivered'].includes(newStatus) && selectedOrder.customer?.email) {
+        sendLogisticsOrderStatusEmail(
+          newStatus as 'out_for_delivery' | 'delivered',
+          {
+            orderNumber: selectedOrder.order_number,
+            customerEmail: selectedOrder.customer.email,
+            customerName: selectedOrder.customer.full_name || 'Customer',
+            totalAmount: selectedOrder.total || undefined,
+            pickupAddress: selectedOrder.pickup_address || undefined,
+            deliveryAddress: selectedOrder.delivery_address || undefined,
+            recipientName: selectedOrder.recipient_name || undefined,
+          }
+        );
+      }
 
       showToast('Order status updated!', 'success');
       setModalVisible(false);

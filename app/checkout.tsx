@@ -20,6 +20,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { router } from 'expo-router';
 import { BankAccount } from '@/types/database';
 import { Fonts } from '@/constants/fonts';
+import { sendMarketplaceOrderPlacedEmail } from '@/lib/emailService';
 
 interface CartItemWithProduct {
   id: string;
@@ -717,6 +718,15 @@ export default function CheckoutScreen() {
       if (paymentMethod === 'wallet') {
         await fetchWalletBalance();
       }
+
+      sendMarketplaceOrderPlacedEmail({
+        orderNumber,
+        customerEmail: profile.email,
+        customerName: profile.full_name || 'Customer',
+        totalAmount: total,
+        itemCount: cartItems.length,
+        deliveryAddress: deliveryType === 'delivery' ? deliveryAddress : 'Pickup',
+      });
     } catch (error) {
       console.error('Error placing order:', error);
       Alert.alert('Error', 'Failed to place order. Please try again.');

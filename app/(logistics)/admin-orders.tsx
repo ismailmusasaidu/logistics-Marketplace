@@ -7,6 +7,7 @@ import { Toast } from '@/components/Toast';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { OrderReceiptModal } from '@/components/OrderReceiptModal';
 import { Fonts } from '@/constants/fonts';
+import { sendLogisticsOrderStatusEmail } from '@/lib/emailService';
 
 const formatRelativeTime = (timestamp: string | null): string => {
   if (!timestamp) return 'Not yet';
@@ -209,6 +210,7 @@ export default function AdminOrders() {
   const handleUpdate = async () => {
     if (!selectedOrder) return;
     try {
+      const previousStatus = selectedOrder.status;
       const { error } = await supabase
         .from('orders')
         .update({
@@ -220,6 +222,22 @@ export default function AdminOrders() {
         })
         .eq('id', selectedOrder.id);
       if (error) throw error;
+
+      if (previousStatus !== editStatus && ['confirmed', 'cancelled'].includes(editStatus) && selectedOrder.customer?.email) {
+        sendLogisticsOrderStatusEmail(
+          editStatus as 'confirmed' | 'cancelled',
+          {
+            orderNumber: selectedOrder.order_number,
+            customerEmail: selectedOrder.customer.email,
+            customerName: selectedOrder.customer.full_name || 'Customer',
+            totalAmount: selectedOrder.total,
+            pickupAddress: selectedOrder.pickup_address || undefined,
+            deliveryAddress: selectedOrder.delivery_address || undefined,
+            recipientName: selectedOrder.recipient_name || undefined,
+          }
+        );
+      }
+
       setEditModalVisible(false);
       setSelectedOrder(null);
       showToast('Order updated successfully!', 'success');

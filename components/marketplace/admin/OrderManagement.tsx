@@ -35,6 +35,7 @@ import { useToast } from '@/contexts/ToastContext';
 import OrderReceipt from '@/components/marketplace/OrderReceipt';
 import { Fonts } from '@/constants/fonts';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { sendMarketplaceOrderStatusEmail, sendMarketplacePaymentReceivedEmail } from '@/lib/emailService';
 
 const statusIcons: Record<OrderStatus, any> = {
   pending: Clock,
@@ -280,6 +281,19 @@ export default function OrderManagement({ onBack }: OrderManagementProps) {
 
       if (error) throw new Error(error.message);
 
+      if (selectedOrder && ['confirmed', 'out_for_delivery', 'delivered', 'cancelled'].includes(newStatus)) {
+        sendMarketplaceOrderStatusEmail(
+          newStatus as 'confirmed' | 'out_for_delivery' | 'delivered' | 'cancelled',
+          {
+            orderNumber: selectedOrder.order_number,
+            customerEmail: selectedOrder.customer.email,
+            customerName: selectedOrder.customer.full_name,
+            totalAmount: selectedOrder.total,
+            deliveryAddress: selectedOrder.delivery_address || undefined,
+          }
+        );
+      }
+
       setShowStatusModal(false);
       setSelectedOrder(null);
       await fetchOrders();
@@ -290,14 +304,21 @@ export default function OrderManagement({ onBack }: OrderManagementProps) {
     }
   };
 
-  const markAsPaid = async (orderId: string) => {
+  const markAsPaid = async (order: OrderWithCustomer) => {
     try {
       const { error } = await supabase
         .from('orders')
         .update({ payment_status: 'completed', updated_at: new Date().toISOString() })
-        .eq('id', orderId);
+        .eq('id', order.id);
 
       if (error) throw new Error(error.message);
+
+      sendMarketplacePaymentReceivedEmail({
+        orderNumber: order.order_number,
+        customerEmail: order.customer.email,
+        customerName: order.customer.full_name,
+        totalAmount: order.total,
+      });
 
       await fetchOrders();
       showToast('Payment marked as paid', 'success');
@@ -508,7 +529,7 @@ export default function OrderManagement({ onBack }: OrderManagementProps) {
                         style={styles.markPaidButton}
                         onPress={(e) => {
                           e.stopPropagation();
-                          markAsPaid(item.id);
+                          markAsPaid(item);
                         }}
                       >
                         <Text style={styles.markPaidText}>Mark Paid</Text>

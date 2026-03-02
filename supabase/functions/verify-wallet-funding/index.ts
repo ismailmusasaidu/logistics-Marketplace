@@ -7,6 +7,22 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
+async function sendEmailNotification(template: string, to: string, data: Record<string, any>) {
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const response = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ template, to, data }),
+    });
+    if (!response.ok) {
+      console.error("Failed to send email:", await response.text());
+    }
+  } catch (error) {
+    console.error("Email notification error:", error);
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, {
@@ -141,6 +157,21 @@ Deno.serve(async (req: Request) => {
         .update({ status: "failed", failed_at: new Date().toISOString() })
         .eq("id", rechargeRecord.id);
 
+      const { data: userProfile } = await supabaseClient
+        .from("profiles")
+        .select("email, full_name")
+        .eq("id", rechargeRecord.user_id)
+        .maybeSingle();
+
+      if (userProfile?.email) {
+        sendEmailNotification("wallet_funding_failed", userProfile.email, {
+          customerName: userProfile.full_name,
+          amount: rechargeRecord.amount,
+          reference: reference,
+          failureReason: errorMessage,
+        });
+      }
+
       return new Response(
         JSON.stringify({
           success: false,
@@ -214,6 +245,27 @@ Deno.serve(async (req: Request) => {
         paystack_reference: transactionData.reference,
       })
       .eq("id", rechargeRecord.id);
+
+    const { data: userProfile } = await supabaseClient
+      .from("profiles")
+      .select("email, full_name")
+      .eq("id", rechargeRecord.user_id)
+      .maybeSingle();
+
+    const { data: walletData } = await supabaseClient
+      .from("wallets")
+      .select("balance")
+      .eq("user_id", rechargeRecord.user_id)
+      .maybeSingle();
+
+    if (userProfile?.email) {
+      sendEmailNotification("wallet_funded_card", userProfile.email, {
+        customerName: userProfile.full_name,
+        amount: amountPaid,
+        reference: reference,
+        newBalance: walletData?.balance ? `₦${walletData.balance.toLocaleString()}` : "N/A",
+      });
+    }
 
     return new Response(
       JSON.stringify({

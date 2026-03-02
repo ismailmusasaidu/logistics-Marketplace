@@ -7,6 +7,22 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
+async function sendEmailNotification(template: string, to: string, data: Record<string, any>) {
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const response = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ template, to, data }),
+    });
+    if (!response.ok) {
+      console.error("Failed to send email:", await response.text());
+    }
+  } catch (error) {
+    console.error("Email notification error:", error);
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, {
@@ -173,6 +189,12 @@ Deno.serve(async (req: Request) => {
         }
       );
     }
+
+    sendEmailNotification("wallet_funding_initiated", profile.email, {
+      customerName: profile.full_name,
+      amount: amount,
+      reference: reference,
+    });
 
     return new Response(
       JSON.stringify({

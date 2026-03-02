@@ -8,6 +8,22 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, X-Paystack-Signature",
 };
 
+async function sendEmailNotification(template: string, to: string, data: Record<string, any>) {
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const response = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ template, to, data }),
+    });
+    if (!response.ok) {
+      console.error("Failed to send email:", await response.text());
+    }
+  } catch (error) {
+    console.error("Email notification error:", error);
+  }
+}
+
 interface PaystackChargeEvent {
   event: string;
   data: {
@@ -168,9 +184,24 @@ Deno.serve(async (req: Request) => {
 
       console.log(`Wallet credited: ₦${amountInNaira} for user ${virtualAccount.user_id}`);
 
+      const { data: userProfile } = await supabase
+        .from("profiles")
+        .select("email, full_name")
+        .eq("id", virtualAccount.user_id)
+        .maybeSingle();
+
+      if (userProfile?.email) {
+        sendEmailNotification("wallet_funded_transfer", userProfile.email, {
+          customerName: userProfile.full_name,
+          amount: amountInNaira,
+          reference: reference,
+          newBalance: `₦${newBalance.toLocaleString()}`,
+        });
+      }
+
       return new Response(
-        JSON.stringify({ 
-          success: true, 
+        JSON.stringify({
+          success: true,
           message: "Wallet credited successfully",
           amount: amountInNaira,
         }),
