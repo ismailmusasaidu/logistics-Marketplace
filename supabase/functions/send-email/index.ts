@@ -437,11 +437,11 @@ function generateEmailHtml(template: EmailTemplate, data: EmailData): { subject:
   }
 }
 
-async function sendEmail(to: string, subject: string, html: string): Promise<boolean> {
+async function sendEmail(to: string, subject: string, html: string): Promise<{ success: boolean; error?: string }> {
   const resendApiKey = Deno.env.get("RESEND_API_KEY");
   if (!resendApiKey) {
     console.error("RESEND_API_KEY not configured");
-    return false;
+    return { success: false, error: "RESEND_API_KEY not configured" };
   }
 
   const fromAddress = Deno.env.get("EMAIL_FROM_ADDRESS") || "onboarding@resend.dev";
@@ -461,16 +461,18 @@ async function sendEmail(to: string, subject: string, html: string): Promise<boo
       }),
     });
 
+    const responseData = await response.json();
+
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Resend API error:", errorData);
-      return false;
+      console.error("Resend API error:", JSON.stringify(responseData));
+      return { success: false, error: `Resend error ${response.status}: ${JSON.stringify(responseData)}` };
     }
 
-    return true;
-  } catch (error) {
+    console.log("Email sent successfully to:", to, "id:", responseData.id);
+    return { success: true };
+  } catch (error: any) {
     console.error("Email sending error:", error);
-    return false;
+    return { success: false, error: error.message };
   }
 }
 
@@ -490,11 +492,11 @@ Deno.serve(async (req: Request) => {
     }
 
     const { subject, html } = generateEmailHtml(template, data || {});
-    const success = await sendEmail(to, subject, html);
+    const result = await sendEmail(to, subject, html);
 
-    if (!success) {
+    if (!result.success) {
       return new Response(
-        JSON.stringify({ success: false, error: "Failed to send email" }),
+        JSON.stringify({ success: false, error: result.error || "Failed to send email" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
