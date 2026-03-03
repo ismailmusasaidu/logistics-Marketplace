@@ -363,6 +363,31 @@ export default function RiderHome() {
         .update({ active_orders: (riderStats?.total_deliveries || 0) + 1 })
         .eq('id', riderId);
 
+      const { data: orderData } = await supabase
+        .from('orders')
+        .select(`
+          order_number,
+          total,
+          pickup_address,
+          delivery_address,
+          recipient_name,
+          customer:profiles!orders_customer_id_fkey(full_name, email)
+        `)
+        .eq('id', orderId)
+        .maybeSingle();
+
+      if (orderData && orderData.customer?.email) {
+        sendLogisticsOrderStatusEmail('confirmed', {
+          orderNumber: orderData.order_number,
+          customerEmail: orderData.customer.email,
+          customerName: orderData.customer.full_name || 'Customer',
+          totalAmount: orderData.total || undefined,
+          pickupAddress: orderData.pickup_address || undefined,
+          deliveryAddress: orderData.delivery_address || undefined,
+          recipientName: orderData.recipient_name || undefined,
+        });
+      }
+
       showToast('Order accepted! Start your delivery.', 'success');
       loadPendingAssignments();
       loadOrders();
