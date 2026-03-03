@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, M
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Bike, Package, CheckCircle, Clock, AlertCircle, Phone, User, X, Bell, Check, XCircle, Power, ArrowRight, Truck, Search, History, MapPin, RefreshCw, Info, Scale, Zap, CreditCard, Calendar } from 'lucide-react-native';
+import { Bike, Package, CircleCheck as CheckCircle, Clock, CircleAlert as AlertCircle, Phone, User, X, Bell, Check, Circle as XCircle, Power, ArrowRight, Truck, Search, History, MapPin, RefreshCw, Info, Scale, Zap, CreditCard, Calendar } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Fonts } from '@/constants/fonts';
