@@ -444,6 +444,8 @@ async function sendEmail(to: string, subject: string, html: string): Promise<boo
     return false;
   }
 
+  const fromAddress = Deno.env.get("EMAIL_FROM_ADDRESS") || "onboarding@resend.dev";
+
   try {
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -452,7 +454,7 @@ async function sendEmail(to: string, subject: string, html: string): Promise<boo
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "notifications@resend.dev",
+        from: fromAddress,
         to: [to],
         subject,
         html,
