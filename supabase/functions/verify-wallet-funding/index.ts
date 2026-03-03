@@ -10,9 +10,13 @@ const corsHeaders = {
 async function sendEmailNotification(template: string, to: string, data: Record<string, any>) {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const response = await fetch(`${supabaseUrl}/functions/v1/send-email`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${serviceRoleKey}`,
+      },
       body: JSON.stringify({ template, to, data }),
     });
     if (!response.ok) {
