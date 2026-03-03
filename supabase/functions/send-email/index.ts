@@ -444,7 +444,7 @@ async function sendEmail(to: string, subject: string, html: string): Promise<{ s
     return { success: false, error: "RESEND_API_KEY not configured" };
   }
 
-  const fromAddress = Deno.env.get("EMAIL_FROM_ADDRESS") || "onboarding@resend.dev";
+  const fromAddress = Deno.env.get("EMAIL_FROM_ADDRESS") || "noreply@danhausalogistics.com";
 
   try {
     const response = await fetch("https://api.resend.com/emails", {
