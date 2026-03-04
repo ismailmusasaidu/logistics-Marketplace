@@ -115,6 +115,7 @@ export default function Hub() {
           ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          style={styles.scrollView}
         >
           <View style={[styles.inner, maxContentWidth ? { maxWidth: maxContentWidth, width: '100%' } : undefined]}>
 
@@ -246,6 +247,11 @@ const styles = StyleSheet.create({
   },
   bgGradient: {
     flex: 1,
+    backgroundColor: '#111111',
+  },
+  scrollView: {
+    flex: 1,
+    backgroundColor: 'transparent',
   },
   scrollContent: {
     flexGrow: 1,
