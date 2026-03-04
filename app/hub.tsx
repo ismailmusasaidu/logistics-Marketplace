@@ -248,13 +248,11 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 24,
+    paddingVertical: 40,
   },
   inner: {
-    flex: 1,
-    justifyContent: 'center',
+    flexGrow: 1,
   },
   header: {
     alignItems: 'center',
