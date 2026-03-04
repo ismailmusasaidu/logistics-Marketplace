@@ -17,6 +17,7 @@ import { calculateDistanceBetweenAddresses } from '@/lib/geocoding';
 import { PaymentMethod, walletService } from '@/lib/wallet';
 import { getUserFriendlyError } from '@/lib/errorHandler';
 import { matchAddressToZone } from '@/lib/zoneMatching';
+import { sendLogisticsOrderStatusEmail } from '@/lib/emailService';
 import { Fonts } from '@/constants/fonts';
 import LogisticsBannerSlider from '@/components/logistics/BannerSlider';
 import LogisticsAdModal from '@/components/logistics/AdModal';
@@ -465,6 +466,18 @@ export default function CustomerHome() {
         assignRiderToOrder(orderData.id);
       }
 
+      if (profile?.email && orderData) {
+        sendLogisticsOrderStatusEmail('confirmed', {
+          orderNumber: orderData.order_number,
+          customerEmail: profile.email,
+          customerName: profile.full_name || 'Customer',
+          totalAmount: orderData.delivery_fee || undefined,
+          pickupAddress: orderData.pickup_address || undefined,
+          deliveryAddress: orderData.delivery_address || undefined,
+          recipientName: orderData.recipient_name || undefined,
+        });
+      }
+
       return true;
     } catch (error: any) {
       console.error('Payment verification error:', error);
@@ -595,6 +608,18 @@ export default function CustomerHome() {
       }
 
       showToast(paymentMsg, toastType);
+
+      if (profile?.email && orderData) {
+        sendLogisticsOrderStatusEmail('confirmed', {
+          orderNumber: orderData.order_number,
+          customerEmail: profile.email,
+          customerName: profile.full_name || 'Customer',
+          totalAmount: orderData.delivery_fee || undefined,
+          pickupAddress: orderData.pickup_address || undefined,
+          deliveryAddress: orderData.delivery_address || undefined,
+          recipientName: orderData.recipient_name || undefined,
+        });
+      }
 
       setModalVisible(false);
       setCheckoutModalVisible(false);
