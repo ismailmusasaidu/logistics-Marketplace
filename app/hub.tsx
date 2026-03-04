@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, useWindowDimensions, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,11 +7,23 @@ import { Truck, ShoppingBag, ArrowRight, LogOut, Shield, ChevronRight } from 'lu
 import { Fonts } from '@/constants/fonts';
 import { LinearGradient } from 'expo-linear-gradient';
 
-const { width } = Dimensions.get('window');
-
 export default function Hub() {
   const router = useRouter();
   const { profile, signOut } = useAuth();
+  const { width } = useWindowDimensions();
+
+  const isSmall = width < 380;
+  const isTablet = width >= 768;
+  const isWide = width >= 600;
+
+  const cardPadding = isSmall ? 18 : isTablet ? 32 : 24;
+  const greetingSize = isSmall ? 26 : isTablet ? 40 : 32;
+  const subtitleSize = isSmall ? 13 : isTablet ? 17 : 15;
+  const cardTitleSize = isSmall ? 18 : isTablet ? 26 : 22;
+  const cardDescSize = isSmall ? 12 : 13;
+  const iconSize = isTablet ? 64 : 56;
+  const iconInnerSize = isTablet ? 30 : 26;
+  const maxContentWidth = isTablet ? 640 : undefined;
 
   useEffect(() => {
     if (!profile) return;
@@ -96,119 +108,132 @@ export default function Hub() {
       style={styles.bgGradient}
     >
       <SafeAreaView style={styles.container}>
-        <View style={styles.scrollContent}>
+        <ScrollView
+          contentContainerStyle={[
+            styles.scrollContent,
+            isTablet && { alignItems: 'center' },
+          ]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={[styles.inner, maxContentWidth ? { maxWidth: maxContentWidth, width: '100%' } : undefined]}>
 
-          <View style={styles.header}>
-            <View style={styles.roleBadge}>
-              <Shield size={11} color="#f97316" />
-              <Text style={styles.roleBadgeText}>{getRoleLabel()}</Text>
+            <View style={styles.header}>
+              <View style={styles.roleBadge}>
+                <Shield size={11} color="#f97316" />
+                <Text style={styles.roleBadgeText}>{getRoleLabel()}</Text>
+              </View>
+
+              <Text style={[styles.greeting, { fontSize: greetingSize }]}>
+                {firstName ? `Hey, ${firstName}` : 'Welcome back'}
+              </Text>
+              <Text style={[styles.subtitle, { fontSize: subtitleSize }]}>{getSubtitle()}</Text>
             </View>
 
-            <Text style={styles.greeting}>
-              {firstName ? `Hey, ${firstName}` : 'Welcome back'}
-            </Text>
-            <Text style={styles.subtitle}>{getSubtitle()}</Text>
-          </View>
-
-          <View style={[styles.cardsContainer, isSingleOption && styles.cardsContainerSingle]}>
-            {showLogistics && (
-              <TouchableOpacity
-                style={[styles.card, isSingleOption && styles.cardSingle]}
-                onPress={handleLogistics}
-                activeOpacity={0.88}
-              >
-                <LinearGradient
-                  colors={['#0f2744', '#0c3461', '#0a4080']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1.2 }}
-                  style={styles.cardGradient}
+            <View style={[
+              styles.cardsContainer,
+              isSingleOption && styles.cardsContainerSingle,
+              isWide && !isSingleOption && styles.cardsContainerRow,
+            ]}>
+              {showLogistics && (
+                <TouchableOpacity
+                  style={[styles.card, isSingleOption && styles.cardSingle, isWide && !isSingleOption && styles.cardHalf]}
+                  onPress={handleLogistics}
+                  activeOpacity={0.88}
                 >
-                  <View style={styles.cardDecorCircle1} />
-                  <View style={styles.cardDecorCircle2} />
+                  <LinearGradient
+                    colors={['#0f2744', '#0c3461', '#0a4080']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1.2 }}
+                    style={[styles.cardGradient, { padding: cardPadding }]}
+                  >
+                    <View style={styles.cardDecorCircle1} />
+                    <View style={styles.cardDecorCircle2} />
 
-                  <View style={styles.cardTop}>
-                    <View style={styles.iconWrap}>
-                      <LinearGradient
-                        colors={['#2563eb', '#1d4ed8']}
-                        style={styles.iconGradient}
-                      >
-                        <Truck size={26} color="#ffffff" strokeWidth={1.8} />
-                      </LinearGradient>
+                    <View style={styles.cardTop}>
+                      <View style={styles.iconWrap}>
+                        <LinearGradient
+                          colors={['#2563eb', '#1d4ed8']}
+                          style={[styles.iconGradient, { width: iconSize, height: iconSize }]}
+                        >
+                          <Truck size={iconInnerSize} color="#ffffff" strokeWidth={1.8} />
+                        </LinearGradient>
+                      </View>
+                      <View style={styles.cardChevronWrap}>
+                        <ChevronRight size={18} color="rgba(255,255,255,0.35)" />
+                      </View>
                     </View>
-                    <View style={styles.cardChevronWrap}>
-                      <ChevronRight size={18} color="rgba(255,255,255,0.35)" />
+
+                    <View style={styles.cardBody}>
+                      <Text style={[styles.cardTitle, { fontSize: cardTitleSize }]}>{getLogisticsTitle()}</Text>
+                      <Text style={[styles.cardDescription, { fontSize: cardDescSize }]}>{getLogisticsDescription()}</Text>
                     </View>
-                  </View>
 
-                  <View style={styles.cardBody}>
-                    <Text style={styles.cardTitle}>{getLogisticsTitle()}</Text>
-                    <Text style={styles.cardDescription}>{getLogisticsDescription()}</Text>
-                  </View>
-
-                  <View style={styles.cardFooter}>
-                    <View style={styles.cardCta}>
-                      <Text style={styles.cardCtaText}>
-                        {profile?.role === 'admin' ? 'Open Management' : profile?.role === 'rider' ? 'Open Dashboard' : 'Open Logistics'}
-                      </Text>
-                      <ArrowRight size={14} color="#60a5fa" strokeWidth={2.5} />
+                    <View style={styles.cardFooter}>
+                      <View style={styles.cardCta}>
+                        <Text style={styles.cardCtaText}>
+                          {profile?.role === 'admin' ? 'Open Management' : profile?.role === 'rider' ? 'Open Dashboard' : 'Open Logistics'}
+                        </Text>
+                        <ArrowRight size={14} color="#60a5fa" strokeWidth={2.5} />
+                      </View>
                     </View>
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
-            )}
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
 
-            {showMarketplace && (
-              <TouchableOpacity
-                style={[styles.card, isSingleOption && styles.cardSingle]}
-                onPress={handleMarketplace}
-                activeOpacity={0.88}
-              >
-                <LinearGradient
-                  colors={['#1f1200', '#2d1800', '#3d2000']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1.2 }}
-                  style={styles.cardGradient}
+              {showMarketplace && (
+                <TouchableOpacity
+                  style={[styles.card, isSingleOption && styles.cardSingle, isWide && !isSingleOption && styles.cardHalf]}
+                  onPress={handleMarketplace}
+                  activeOpacity={0.88}
                 >
-                  <View style={[styles.cardDecorCircle1, { backgroundColor: 'rgba(249,115,22,0.08)' }]} />
-                  <View style={[styles.cardDecorCircle2, { backgroundColor: 'rgba(249,115,22,0.05)' }]} />
+                  <LinearGradient
+                    colors={['#1f1200', '#2d1800', '#3d2000']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1.2 }}
+                    style={[styles.cardGradient, { padding: cardPadding }]}
+                  >
+                    <View style={[styles.cardDecorCircle1, { backgroundColor: 'rgba(249,115,22,0.08)' }]} />
+                    <View style={[styles.cardDecorCircle2, { backgroundColor: 'rgba(249,115,22,0.05)' }]} />
 
-                  <View style={styles.cardTop}>
-                    <View style={styles.iconWrap}>
-                      <LinearGradient
-                        colors={['#f97316', '#ea580c']}
-                        style={styles.iconGradient}
-                      >
-                        <ShoppingBag size={26} color="#ffffff" strokeWidth={1.8} />
-                      </LinearGradient>
+                    <View style={styles.cardTop}>
+                      <View style={styles.iconWrap}>
+                        <LinearGradient
+                          colors={['#f97316', '#ea580c']}
+                          style={[styles.iconGradient, { width: iconSize, height: iconSize }]}
+                        >
+                          <ShoppingBag size={iconInnerSize} color="#ffffff" strokeWidth={1.8} />
+                        </LinearGradient>
+                      </View>
+                      <View style={styles.cardChevronWrap}>
+                        <ChevronRight size={18} color="rgba(255,255,255,0.35)" />
+                      </View>
                     </View>
-                    <View style={styles.cardChevronWrap}>
-                      <ChevronRight size={18} color="rgba(255,255,255,0.35)" />
-                    </View>
-                  </View>
 
-                  <View style={styles.cardBody}>
-                    <Text style={styles.cardTitle}>{getMarketplaceTitle()}</Text>
-                    <Text style={styles.cardDescription}>{getMarketplaceDescription()}</Text>
-                  </View>
-
-                  <View style={styles.cardFooter}>
-                    <View style={styles.cardCta}>
-                      <Text style={[styles.cardCtaText, { color: '#fb923c' }]}>
-                        {profile?.role === 'admin' ? 'Open Management' : profile?.role === 'vendor' ? 'Open Dashboard' : 'Open Marketplace'}
-                      </Text>
-                      <ArrowRight size={14} color="#fb923c" strokeWidth={2.5} />
+                    <View style={styles.cardBody}>
+                      <Text style={[styles.cardTitle, { fontSize: cardTitleSize }]}>{getMarketplaceTitle()}</Text>
+                      <Text style={[styles.cardDescription, { fontSize: cardDescSize }]}>{getMarketplaceDescription()}</Text>
                     </View>
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
-            )}
+
+                    <View style={styles.cardFooter}>
+                      <View style={styles.cardCta}>
+                        <Text style={[styles.cardCtaText, { color: '#fb923c' }]}>
+                          {profile?.role === 'admin' ? 'Open Management' : profile?.role === 'vendor' ? 'Open Dashboard' : 'Open Marketplace'}
+                        </Text>
+                        <ArrowRight size={14} color="#fb923c" strokeWidth={2.5} />
+                      </View>
+                    </View>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut} activeOpacity={0.7}>
+              <LogOut size={16} color="#52525b" strokeWidth={2} />
+              <Text style={styles.signOutText}>Sign Out</Text>
+            </TouchableOpacity>
           </View>
-
-          <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut} activeOpacity={0.7}>
-            <LogOut size={16} color="#52525b" strokeWidth={2} />
-            <Text style={styles.signOutText}>Sign Out</Text>
-          </TouchableOpacity>
-        </View>
+        </ScrollView>
       </SafeAreaView>
     </LinearGradient>
   );
@@ -222,14 +247,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    flex: 1,
-    paddingHorizontal: 20,
+    flexGrow: 1,
     justifyContent: 'center',
-    paddingBottom: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+  },
+  inner: {
+    flex: 1,
+    justifyContent: 'center',
   },
   header: {
     alignItems: 'center',
-    marginBottom: 36,
+    marginBottom: 32,
   },
   roleBadge: {
     flexDirection: 'row',
@@ -251,7 +280,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   greeting: {
-    fontSize: 32,
     fontFamily: Fonts.bold,
     color: '#f4f4f5',
     textAlign: 'center',
@@ -259,7 +287,6 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 15,
     fontFamily: Fonts.regular,
     color: '#71717a',
     textAlign: 'center',
@@ -271,6 +298,10 @@ const styles = StyleSheet.create({
   },
   cardsContainerSingle: {
     alignItems: 'center',
+  },
+  cardsContainerRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
   },
   card: {
     borderRadius: 24,
@@ -287,11 +318,14 @@ const styles = StyleSheet.create({
     maxWidth: 480,
     width: '100%',
   },
+  cardHalf: {
+    flex: 1,
+  },
   cardGradient: {
-    padding: 24,
     borderRadius: 24,
     overflow: 'hidden',
     position: 'relative',
+    flex: 1,
   },
   cardDecorCircle1: {
     position: 'absolute',
@@ -344,13 +378,11 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   cardTitle: {
-    fontSize: 22,
     fontFamily: Fonts.bold,
     color: '#f4f4f5',
     letterSpacing: -0.3,
   },
   cardDescription: {
-    fontSize: 13,
     fontFamily: Fonts.regular,
     color: 'rgba(255,255,255,0.5)',
     lineHeight: 20,
