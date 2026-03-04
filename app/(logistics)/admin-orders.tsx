@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Modal, TextInput, Platform } from 'react-native';
-import { Package, MapPin, Clock, Filter, Edit2, Trash2, X, Search, User, Receipt, Bike, CheckCircle, AlertCircle, Calendar } from 'lucide-react-native';
+import { Package, MapPin, Clock, ListFilter as Filter, CreditCard as Edit2, Trash2, X, Search, User, Receipt, Bike, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Calendar } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { Toast } from '@/components/Toast';
