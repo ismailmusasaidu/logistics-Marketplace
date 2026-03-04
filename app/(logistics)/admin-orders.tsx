@@ -109,6 +109,8 @@ const TIMELINE_STEPS = [
   { key: 'cancelled_at',         label: 'Cancelled',        color: '#ef4444' },
 ];
 
+const PAGE_SIZE = 20;
+
 export default function AdminOrders() {
   const insets = useSafeAreaInsets();
   const [orders, setOrders] = useState<LogisticsOrder[]>([]);
@@ -126,6 +128,10 @@ export default function AdminOrders() {
   const [confirmDialog, setConfirmDialog] = useState<{ visible: boolean; title: string; message: string; onConfirm: () => void }>({ visible: false, title: '', message: '', onConfirm: () => {} });
   const [receiptModalVisible, setReceiptModalVisible] = useState(false);
   const [selectedOrderForReceipt, setSelectedOrderForReceipt] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'success') => {
     setToast({ visible: true, message, type });
@@ -137,7 +143,7 @@ export default function AdminOrders() {
   };
 
   useEffect(() => {
-    loadOrders();
+    loadOrders(true);
     loadRiders();
   }, []);
 
@@ -151,17 +157,19 @@ export default function AdminOrders() {
         order.delivery_address?.toLowerCase().includes(query) ||
         order.customer?.full_name?.toLowerCase().includes(query) ||
         order.customer?.email?.toLowerCase().includes(query) ||
-        order.customer?.phone?.toLowerCase().includes(query) ||
-        order.vendor?.full_name?.toLowerCase().includes(query) ||
-        order.vendor?.business_name?.toLowerCase().includes(query)
+        order.customer?.phone?.toLowerCase().includes(query)
       );
     }
     setFilteredOrders(filtered);
   }, [filter, orders, searchQuery]);
 
-  const loadOrders = async () => {
+  const loadOrders = async (reset = false) => {
     try {
-      const { data, error } = await supabase
+      const currentPage = reset ? 0 : page;
+      const from = currentPage * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+
+      const { data, error, count } = await supabase
         .from('orders')
         .select(`
           *,
@@ -174,16 +182,37 @@ export default function AdminOrders() {
             id, vehicle_type, status,
             user:profiles!riders_user_id_fkey(full_name, phone)
           )
-        `)
+        `, { count: 'exact' })
         .eq('order_source', 'logistics')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(from, to);
+
       if (error) throw error;
-      setOrders(data || []);
+
+      const newOrders = data || [];
+      if (reset) {
+        setOrders(newOrders);
+        setPage(1);
+      } else {
+        setOrders(prev => [...prev, ...newOrders]);
+        setPage(currentPage + 1);
+      }
+
+      const total = count ?? 0;
+      setTotalCount(total);
+      setHasMore(from + newOrders.length < total);
     } catch (error) {
       showToast('Failed to load orders', 'error');
     } finally {
       setRefreshing(false);
+      setLoadingMore(false);
     }
+  };
+
+  const loadMore = async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    await loadOrders(false);
   };
 
   const loadRiders = async () => {
@@ -256,7 +285,7 @@ export default function AdminOrders() {
       setEditModalVisible(false);
       setSelectedOrder(null);
       showToast('Order updated successfully!', 'success');
-      loadOrders();
+      loadOrders(true);
     } catch (error) {
       showToast('Failed to update order', 'error');
     }
@@ -272,7 +301,7 @@ export default function AdminOrders() {
           const { error } = await supabase.from('orders').delete().eq('id', orderId);
           if (error) throw error;
           showToast('Order deleted successfully', 'success');
-          loadOrders();
+          loadOrders(true);
         } catch (error) {
           showToast('Failed to delete order', 'error');
         }
@@ -303,7 +332,7 @@ export default function AdminOrders() {
         <View style={styles.headerBadge}>
           <Package size={14} color="#f97316" />
           <Text style={styles.headerBadgeText}>
-            {searchQuery || filter !== 'all' ? `${filteredOrders.length} / ${orders.length}` : orders.length}
+            {searchQuery || filter !== 'all' ? `${filteredOrders.length} / ${totalCount}` : `${orders.length} / ${totalCount}`}
           </Text>
         </View>
       </View>
@@ -345,7 +374,7 @@ export default function AdminOrders() {
         style={styles.scroll}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom, 24) }]}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadOrders(); }} tintColor="#f97316" />}>
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadOrders(true); }} tintColor="#f97316" />}>
 
         {filteredOrders.length === 0 ? (
           <View style={styles.emptyState}>
@@ -603,6 +632,26 @@ export default function AdminOrders() {
             );
           })
         )}
+        {filteredOrders.length > 0 && hasMore && !searchQuery && filter === 'all' && (
+          <TouchableOpacity
+            style={styles.loadMoreBtn}
+            onPress={loadMore}
+            activeOpacity={0.8}
+            disabled={loadingMore}>
+            {loadingMore ? (
+              <Text style={styles.loadMoreText}>Loading...</Text>
+            ) : (
+              <Text style={styles.loadMoreText}>Load More Orders ({orders.length} of {totalCount})</Text>
+            )}
+          </TouchableOpacity>
+        )}
+
+        {filteredOrders.length > 0 && !hasMore && orders.length > 0 && !searchQuery && filter === 'all' && (
+          <View style={styles.allLoadedBanner}>
+            <Text style={styles.allLoadedText}>All {totalCount} orders loaded</Text>
+          </View>
+        )}
+
         <View style={{ height: 32 }} />
       </ScrollView>
 
@@ -1206,4 +1255,36 @@ const styles = StyleSheet.create({
     backgroundColor: '#f97316',
   },
   saveBtnText: { fontSize: 15, fontFamily: Fonts.bold, color: '#ffffff' },
+
+  loadMoreBtn: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    paddingVertical: 14,
+    borderRadius: 14,
+    backgroundColor: '#fff7ed',
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadMoreText: {
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
+    color: '#f97316',
+  },
+  allLoadedBanner: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    paddingVertical: 12,
+    borderRadius: 14,
+    backgroundColor: '#f0fdf4',
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+    alignItems: 'center',
+  },
+  allLoadedText: {
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
+    color: '#15803d',
+  },
 });
