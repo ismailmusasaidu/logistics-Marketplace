@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Modal, TextInput, Platform, Linking, ActivityIndicator, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Package, MapPin, Clock, Plus, X, User, Phone, ChevronDown, ChevronUp, Layers, Navigation, Search, Tag, Receipt, Star, ArrowDown, Truck, CheckCircle2, CircleDot, RefreshCw, Calendar } from 'lucide-react-native';
+import { Package, MapPin, Clock, Plus, X, User, Phone, ChevronDown, ChevronUp, Layers, Navigation, Search, Tag, Receipt, Star, ArrowDown, Truck, CircleCheck as CheckCircle2, CircleDot, RefreshCw, Calendar } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { Order } from '@/lib/supabase';
 import { coreBackend } from '@/lib/coreBackend';
