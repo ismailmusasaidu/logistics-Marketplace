@@ -452,19 +452,34 @@ export default function RiderHome() {
 
       if (error) throw error;
 
-      if (selectedOrder && ['out_for_delivery', 'delivered'].includes(newStatus) && selectedOrder.customer?.email) {
-        sendLogisticsOrderStatusEmail(
-          newStatus as 'out_for_delivery' | 'delivered',
-          {
-            orderNumber: selectedOrder.order_number,
-            customerEmail: selectedOrder.customer.email,
-            customerName: selectedOrder.customer.full_name || 'Customer',
-            totalAmount: selectedOrder.total || undefined,
-            pickupAddress: selectedOrder.pickup_address || undefined,
-            deliveryAddress: selectedOrder.delivery_address || undefined,
-            recipientName: selectedOrder.recipient_name || undefined,
-          }
-        );
+      if (['out_for_delivery', 'delivered', 'cancelled'].includes(newStatus)) {
+        const { data: orderData } = await supabase
+          .from('orders')
+          .select(`
+            order_number,
+            total,
+            pickup_address,
+            delivery_address,
+            recipient_name,
+            customer:profiles!orders_customer_id_fkey(full_name, email)
+          `)
+          .eq('id', orderId)
+          .maybeSingle();
+
+        if (orderData && orderData.customer?.email) {
+          sendLogisticsOrderStatusEmail(
+            newStatus as 'out_for_delivery' | 'delivered' | 'cancelled',
+            {
+              orderNumber: orderData.order_number,
+              customerEmail: orderData.customer.email,
+              customerName: orderData.customer.full_name || 'Customer',
+              totalAmount: orderData.total || undefined,
+              pickupAddress: orderData.pickup_address || undefined,
+              deliveryAddress: orderData.delivery_address || undefined,
+              recipientName: orderData.recipient_name || undefined,
+            }
+          );
+        }
       }
 
       showToast('Order status updated!', 'success');
