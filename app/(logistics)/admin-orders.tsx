@@ -223,19 +223,34 @@ export default function AdminOrders() {
         .eq('id', selectedOrder.id);
       if (error) throw error;
 
-      if (previousStatus !== editStatus && ['confirmed', 'cancelled'].includes(editStatus) && selectedOrder.customer?.email) {
-        sendLogisticsOrderStatusEmail(
-          editStatus as 'confirmed' | 'cancelled',
-          {
-            orderNumber: selectedOrder.order_number,
-            customerEmail: selectedOrder.customer.email,
-            customerName: selectedOrder.customer.full_name || 'Customer',
-            totalAmount: selectedOrder.total,
-            pickupAddress: selectedOrder.pickup_address || undefined,
-            deliveryAddress: selectedOrder.delivery_address || undefined,
-            recipientName: selectedOrder.recipient_name || undefined,
-          }
-        );
+      if (previousStatus !== editStatus && ['confirmed', 'out_for_delivery', 'delivered', 'cancelled'].includes(editStatus)) {
+        const { data: freshOrder } = await supabase
+          .from('orders')
+          .select(`
+            order_number,
+            total,
+            pickup_address,
+            delivery_address,
+            recipient_name,
+            customer:profiles!orders_customer_id_fkey(full_name, email)
+          `)
+          .eq('id', selectedOrder.id)
+          .maybeSingle();
+
+        if (freshOrder && freshOrder.customer?.email) {
+          sendLogisticsOrderStatusEmail(
+            editStatus as 'confirmed' | 'out_for_delivery' | 'delivered' | 'cancelled',
+            {
+              orderNumber: freshOrder.order_number,
+              customerEmail: freshOrder.customer.email,
+              customerName: freshOrder.customer.full_name || 'Customer',
+              totalAmount: freshOrder.total,
+              pickupAddress: freshOrder.pickup_address || undefined,
+              deliveryAddress: freshOrder.delivery_address || undefined,
+              recipientName: freshOrder.recipient_name || undefined,
+            }
+          );
+        }
       }
 
       setEditModalVisible(false);
