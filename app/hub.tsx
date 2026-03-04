@@ -103,11 +103,11 @@ export default function Hub() {
   const firstName = profile?.full_name?.split(' ')[0];
 
   return (
-    <LinearGradient
-      colors={['#0f0f0f', '#1a1a1a', '#111111']}
-      style={styles.bgGradient}
-    >
-      <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
+      <LinearGradient
+        colors={['#0f0f0f', '#1a1a1a', '#111111']}
+        style={styles.bgGradient}
+      >
         <ScrollView
           contentContainerStyle={[
             styles.scrollContent,
@@ -234,16 +234,17 @@ export default function Hub() {
             </TouchableOpacity>
           </View>
         </ScrollView>
-      </SafeAreaView>
-    </LinearGradient>
+      </LinearGradient>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  bgGradient: {
+  safeArea: {
     flex: 1,
+    backgroundColor: '#0f0f0f',
   },
-  container: {
+  bgGradient: {
     flex: 1,
   },
   scrollContent: {
