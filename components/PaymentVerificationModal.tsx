@@ -136,8 +136,15 @@ export function PaymentVerificationModal({
               <>
                 <TouchableOpacity
                   style={styles.retryButton}
-                  onPress={() => setError(null)}>
-                  <Text style={styles.retryButtonText}>Try Again</Text>
+                  onPress={() => {
+                    setError(null);
+                    if (paymentMethod === 'online') {
+                      onClose();
+                    }
+                  }}>
+                  <Text style={styles.retryButtonText}>
+                    {paymentMethod === 'online' ? 'Try Different Card' : 'Try Again'}
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.cancelButton}
