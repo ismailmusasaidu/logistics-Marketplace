@@ -482,8 +482,7 @@ export default function CustomerHome() {
     } catch (error: any) {
       setVerifyingPayment(false);
       setPendingPaymentData(null);
-      showToast(getUserFriendlyError(error), 'error');
-      return false;
+      throw error;
     }
   };
 
@@ -493,7 +492,9 @@ export default function CustomerHome() {
       console.log('Scheduling verification in 100ms');
       setTimeout(() => {
         console.log('Now calling verifyAndCreateOrder');
-        verifyAndCreateOrder(pendingPaymentData.reference, pendingPaymentData.orderDetails);
+        verifyAndCreateOrder(pendingPaymentData.reference, pendingPaymentData.orderDetails).catch((err: any) => {
+          showToast(getUserFriendlyError(err), 'error');
+        });
       }, 100);
     }
   }, [pendingPaymentData]);
@@ -642,7 +643,7 @@ export default function CustomerHome() {
         assignRiderToOrder(orderData.id);
       }
     } catch (error: any) {
-      showToast(getUserFriendlyError(error), 'error');
+      throw error;
     }
   };
 

@@ -236,6 +236,7 @@ export function CheckoutModal({ visible, onClose, onConfirm, pricing, userId, us
     } else {
       await onConfirm('transfer', reference, scheduledDateTime);
     }
+
     setShowVerificationModal(false);
     onClose();
   };
