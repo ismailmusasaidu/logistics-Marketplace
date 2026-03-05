@@ -117,6 +117,7 @@ export default function RootLayout() {
             <Stack.Screen name="auth/forgot-password" />
             <Stack.Screen name="auth/reset-password" />
             <Stack.Screen name="auth/vendor-pending" />
+            <Stack.Screen name="auth/confirm" />
             <Stack.Screen name="(logistics)" />
             <Stack.Screen name="(marketplace)" />
             <Stack.Screen name="checkout" />
