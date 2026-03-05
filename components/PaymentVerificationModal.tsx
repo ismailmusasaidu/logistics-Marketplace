@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ActivityIndicator, TextInput, Alert, ScrollView } from 'react-native';
-import { X, CheckCircle, Upload, AlertCircle } from 'lucide-react-native';
+import { X, CircleCheck as CheckCircle, Upload, CircleAlert as AlertCircle } from 'lucide-react-native';
 import { PaymentMethod } from '@/lib/wallet';
 
 type PaymentVerificationModalProps = {
