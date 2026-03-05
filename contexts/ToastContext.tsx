@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, Animated, Platform, Modal } from 'react-native';
-import { CheckCircle, XCircle, AlertCircle, Info } from 'lucide-react-native';
+import { CircleCheck as CheckCircle, Circle as XCircle, CircleAlert as AlertCircle, Info } from 'lucide-react-native';
 
 type ToastType = 'success' | 'error' | 'warning' | 'info';
 
