@@ -231,18 +231,13 @@ export function CheckoutModal({ visible, onClose, onConfirm, pricing, userId, us
       ? new Date(`${scheduledDate}T${scheduledTime}`)
       : undefined;
 
-    try {
-      if (verificationPaymentMethod === 'online') {
-        await onConfirm('online', paystackRef, scheduledDateTime);
-      } else {
-        await onConfirm('transfer', reference, scheduledDateTime);
-      }
-      setShowVerificationModal(false);
-      onClose();
-    } catch (err: any) {
-      setShowVerificationModal(false);
-      setError(getOrderError(err));
+    if (verificationPaymentMethod === 'online') {
+      await onConfirm('online', paystackRef, scheduledDateTime);
+    } else {
+      await onConfirm('transfer', reference, scheduledDateTime);
     }
+    setShowVerificationModal(false);
+    onClose();
   };
 
   const paymentOptions = [
