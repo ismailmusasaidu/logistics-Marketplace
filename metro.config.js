@@ -4,7 +4,7 @@ const path = require('path');
 const config = getDefaultConfig(__dirname);
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {
-  if (moduleName === 'react-native-worklets' && platform === 'web') {
+  if (moduleName === 'react-native-worklets') {
     return {
       filePath: path.resolve(__dirname, 'lib/worklets-web-stub.js'),
       type: 'sourceFile',
