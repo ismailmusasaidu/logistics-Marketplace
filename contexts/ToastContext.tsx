@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, Animated, Platform } from 'react-native';
+import { View, Text, StyleSheet, Animated, Platform, Modal } from 'react-native';
 import { CheckCircle, XCircle, AlertCircle, Info } from 'lucide-react-native';
 
 type ToastType = 'success' | 'error' | 'warning' | 'info';
@@ -71,23 +71,33 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <View style={styles.toastContainer}>
-        {toasts.map(toast => {
-          const { backgroundColor, Icon } = getToastStyles(toast.type);
-          return (
-            <Animated.View
-              key={toast.id}
-              style={[
-                styles.toast,
-                { backgroundColor, opacity: toast.opacity }
-              ]}
-            >
-              <Icon size={20} color="#ffffff" />
-              <Text style={styles.toastText}>{toast.message}</Text>
-            </Animated.View>
-          );
-        })}
-      </View>
+      {toasts.length > 0 && (
+        <Modal
+          transparent
+          visible
+          animationType="none"
+          statusBarTranslucent
+          pointerEvents="box-none"
+        >
+          <View style={styles.toastContainer} pointerEvents="box-none">
+            {toasts.map(toast => {
+              const { backgroundColor, Icon } = getToastStyles(toast.type);
+              return (
+                <Animated.View
+                  key={toast.id}
+                  style={[
+                    styles.toast,
+                    { backgroundColor, opacity: toast.opacity }
+                  ]}
+                >
+                  <Icon size={20} color="#ffffff" />
+                  <Text style={styles.toastText}>{toast.message}</Text>
+                </Animated.View>
+              );
+            })}
+          </View>
+        </Modal>
+      )}
     </ToastContext.Provider>
   );
 };
