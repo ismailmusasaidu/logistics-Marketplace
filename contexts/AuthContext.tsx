@@ -109,12 +109,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password,
       });
-      if (error) throw error;
+      if (error) {
+        isSigningIn.current = false;
+        throw error;
+      }
       if (data?.session && data?.user) {
         setSession(data.session);
         setUser(data.user);
         await loadProfile(data.user.id, true);
       }
+    } catch (err) {
+      isSigningIn.current = false;
+      throw err;
     } finally {
       isSigningIn.current = false;
     }
