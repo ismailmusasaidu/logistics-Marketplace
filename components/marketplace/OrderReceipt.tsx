@@ -507,6 +507,13 @@ export default function OrderReceipt({
       <View style={styles.overlay}>
         <View style={styles.container}>
           <View style={[styles.header, Platform.OS !== 'web' && { paddingTop: insets.top + 20 }]}>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={onClose}
+              activeOpacity={0.7}
+            >
+              <X size={22} color="#6b7280" />
+            </TouchableOpacity>
             <Text style={styles.headerTitle}>Order Receipt</Text>
             <View style={styles.headerActions}>
               {Platform.OS === 'web' ? (
@@ -535,16 +542,9 @@ export default function OrderReceipt({
                   activeOpacity={0.7}
                 >
                   <Download size={20} color="#ff8c00" />
-                  <Text style={styles.downloadText}>Download PDF</Text>
+                  <Text style={styles.downloadText}>PDF</Text>
                 </TouchableOpacity>
               )}
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={onClose}
-                activeOpacity={0.7}
-              >
-                <X size={24} color="#6b7280" />
-              </TouchableOpacity>
             </View>
           </View>
 
@@ -751,23 +751,25 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
     backgroundColor: '#f8fafc',
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
+    gap: 10,
   },
   headerTitle: {
-    fontSize: 20,
+    flex: 1,
+    fontSize: 18,
     fontFamily: Fonts.headingBold,
     color: '#111827',
+    textAlign: 'center',
   },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
   },
   downloadButton: {
     flexDirection: 'row',
