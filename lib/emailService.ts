@@ -17,6 +17,7 @@ export type EmailTemplate =
   | 'marketplace_order_delivered'
   | 'marketplace_order_cancelled'
   | 'marketplace_payment_received'
+  | 'logistics_order_placed'
   | 'logistics_order_confirmed'
   | 'logistics_out_for_delivery'
   | 'logistics_order_delivered'
@@ -128,6 +129,25 @@ export async function sendMarketplacePaymentReceivedEmail(order: {
     customerName: order.customerName,
     orderNumber: order.orderNumber,
     totalAmount: order.totalAmount,
+  });
+}
+
+export async function sendLogisticsOrderPlacedEmail(order: {
+  orderNumber: string;
+  customerEmail: string;
+  customerName: string;
+  totalAmount?: number;
+  pickupAddress?: string;
+  deliveryAddress?: string;
+  recipientName?: string;
+}) {
+  return sendTransactionalEmail('logistics_order_placed', order.customerEmail, {
+    customerName: order.customerName,
+    orderNumber: order.orderNumber,
+    totalAmount: order.totalAmount,
+    pickupAddress: order.pickupAddress,
+    deliveryAddress: order.deliveryAddress,
+    recipientName: order.recipientName,
   });
 }
 

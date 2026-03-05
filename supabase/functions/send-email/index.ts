@@ -23,6 +23,7 @@ type EmailTemplate =
   | "marketplace_order_delivered"
   | "marketplace_order_cancelled"
   | "marketplace_payment_received"
+  | "logistics_order_placed"
   | "logistics_order_confirmed"
   | "logistics_out_for_delivery"
   | "logistics_order_delivered"
@@ -364,6 +365,25 @@ function generateEmailHtml(template: EmailTemplate, data: EmailData): { subject:
           <tr><td class="detail-label">Order Number</td><td class="detail-value" style="text-align:right;">${data.orderNumber || "N/A"}</td></tr>
         </table>
       `, `Payment Confirmed - #${data.orderNumber}`);
+
+    case "logistics_order_placed":
+      return wrapper(`
+        <div class="header"><div class="logo">Logistics</div></div>
+        <h1>Delivery Booking Received!</h1>
+        <p class="content">Hi ${data.customerName || "Customer"},</p>
+        <p class="content">We've received your delivery booking. A rider will be assigned shortly and you'll get a confirmation once your order is accepted.</p>
+        <div class="highlight">
+          <span class="status-badge status-pending">Pending Assignment</span>
+        </div>
+        <table width="100%" style="margin-top:24px;">
+          <tr><td class="detail-label">Order Number</td><td class="detail-value" style="text-align:right;">${data.orderNumber || "N/A"}</td></tr>
+          ${data.pickupAddress ? `<tr><td class="detail-label">Pickup</td><td class="detail-value" style="text-align:right;">${data.pickupAddress}</td></tr>` : ""}
+          ${data.deliveryAddress ? `<tr><td class="detail-label">Delivery</td><td class="detail-value" style="text-align:right;">${data.deliveryAddress}</td></tr>` : ""}
+          ${data.recipientName ? `<tr><td class="detail-label">Recipient</td><td class="detail-value" style="text-align:right;">${data.recipientName}</td></tr>` : ""}
+          <tr><td class="detail-label">Delivery Fee</td><td class="detail-value" style="text-align:right;">${formatCurrency(data.totalAmount)}</td></tr>
+        </table>
+        <p class="content" style="margin-top:24px;">You'll receive another email once a rider confirms your order.</p>
+      `, `Delivery Booking Received - #${data.orderNumber}`);
 
     case "logistics_order_confirmed":
       return wrapper(`

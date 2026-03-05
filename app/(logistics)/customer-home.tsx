@@ -17,7 +17,7 @@ import { calculateDistanceBetweenAddresses } from '@/lib/geocoding';
 import { PaymentMethod, walletService } from '@/lib/wallet';
 import { getUserFriendlyError } from '@/lib/errorHandler';
 import { matchAddressToZone } from '@/lib/zoneMatching';
-import { sendLogisticsOrderStatusEmail } from '@/lib/emailService';
+import { sendLogisticsOrderPlacedEmail, sendLogisticsOrderStatusEmail } from '@/lib/emailService';
 import { Fonts } from '@/constants/fonts';
 import LogisticsBannerSlider from '@/components/logistics/BannerSlider';
 import LogisticsAdModal from '@/components/logistics/AdModal';
@@ -467,7 +467,7 @@ export default function CustomerHome() {
       }
 
       if (profile?.email && orderData) {
-        sendLogisticsOrderStatusEmail('confirmed', {
+        sendLogisticsOrderPlacedEmail({
           orderNumber: orderData.order_number,
           customerEmail: profile.email,
           customerName: profile.full_name || 'Customer',
@@ -610,7 +610,7 @@ export default function CustomerHome() {
       showToast(paymentMsg, toastType);
 
       if (profile?.email && orderData) {
-        sendLogisticsOrderStatusEmail('confirmed', {
+        sendLogisticsOrderPlacedEmail({
           orderNumber: orderData.order_number,
           customerEmail: profile.email,
           customerName: profile.full_name || 'Customer',
