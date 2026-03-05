@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Platform, Dimensions, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { X, Download, Package, MapPin, CreditCard, Calendar, CheckCircle, Share2, Printer } from 'lucide-react-native';
+import { X, Download, Package, MapPin, CreditCard, Calendar, CircleCheck as CheckCircle, Share2, Printer } from 'lucide-react-native';
 import { Order, OrderItem, Product } from '@/types/database';
 import { Fonts } from '@/constants/fonts';
 import * as Print from 'expo-print';
