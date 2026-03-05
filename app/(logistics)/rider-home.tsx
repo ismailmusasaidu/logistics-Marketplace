@@ -358,9 +358,15 @@ export default function RiderHome() {
 
       if (error) throw error;
 
+      const { data: currentRider } = await supabase
+        .from('riders')
+        .select('active_orders')
+        .eq('id', riderId)
+        .maybeSingle();
+
       await supabase
         .from('riders')
-        .update({ active_orders: (riderStats?.total_deliveries || 0) + 1 })
+        .update({ active_orders: (currentRider?.active_orders || 0) + 1 })
         .eq('id', riderId);
 
       const { data: orderData } = await supabase

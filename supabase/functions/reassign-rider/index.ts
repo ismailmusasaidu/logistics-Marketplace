@@ -107,7 +107,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select('id, pickup_zone_id, pickup_address, assignment_status, assigned_rider_id')
+      .select('id, pickup_zone_id, pickup_address, assignment_status, assigned_rider_id, rejected_rider_ids')
       .eq('id', order_id)
       .maybeSingle();
 
@@ -125,7 +125,20 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const excludeRiderId = order.assigned_rider_id;
+    // Build the full exclusion list: all riders who have previously rejected + current assigned rider
+    const previouslyRejected: string[] = order.rejected_rider_ids || [];
+    const currentAssigned = order.assigned_rider_id;
+    const excludeRiderIds = currentAssigned
+      ? [...new Set([...previouslyRejected, currentAssigned])]
+      : previouslyRejected;
+
+    // Persist the updated rejected list before searching for a new rider
+    if (currentAssigned && !previouslyRejected.includes(currentAssigned)) {
+      await supabase
+        .from('orders')
+        .update({ rejected_rider_ids: excludeRiderIds })
+        .eq('id', order_id);
+    }
 
     const { data: allZones, error: zonesError } = await supabase
       .from('zones')
@@ -176,9 +189,9 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Try each zone in distance order until a rider is found
+    // Try each zone in distance order until a rider is found (excluding all rejected riders)
     for (const zone of orderedZones) {
-      console.log(`Searching for riders in zone: ${zone.name} (${zone.id})`);
+      console.log(`Searching for riders in zone: ${zone.name} (${zone.id}), excluding ${excludeRiderIds.length} rejected rider(s)`);
 
       let query = supabase
         .from('riders')
@@ -189,8 +202,9 @@ Deno.serve(async (req: Request) => {
         .order('active_orders', { ascending: true })
         .limit(1);
 
-      if (excludeRiderId) {
-        query = query.neq('id', excludeRiderId);
+      // Exclude ALL previously rejected riders for this order
+      if (excludeRiderIds.length > 0) {
+        query = query.not('id', 'in', `(${excludeRiderIds.join(',')})`);
       }
 
       const { data: riders, error: ridersError } = await query;
@@ -243,7 +257,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // All zones exhausted — reset order to pending
+    // All zones exhausted — reset order to pending and clear rejected list for a fresh start later
     await supabase
       .from('orders')
       .update({
@@ -251,13 +265,14 @@ Deno.serve(async (req: Request) => {
         assignment_status: 'pending',
         assigned_at: null,
         assignment_timeout_at: null,
+        rejected_rider_ids: [],
       })
       .eq('id', order_id);
 
     return new Response(
       JSON.stringify({
         success: false,
-        message: 'No available riders found in any zone. Order reset to pending.',
+        message: 'No available riders found in any zone. Order reset to pending for retry.',
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
