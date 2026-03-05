@@ -13,9 +13,10 @@ import {
 } from 'react-native';
 import { Link, router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
+import { coreBackend } from '@/lib/coreBackend';
 import { Fonts } from '@/constants/fonts';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Eye, EyeOff, Layers } from 'lucide-react-native';
+import { Eye, EyeOff, Layers, Mail } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function LoginScreen() {
@@ -25,6 +26,9 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [emailUnconfirmed, setEmailUnconfirmed] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
   const { signIn, profile, session } = useAuth();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -74,12 +78,40 @@ export default function LoginScreen() {
 
     setLoading(true);
     setError('');
+    setEmailUnconfirmed(false);
+    setResendSuccess(false);
 
     try {
       await signIn(email, password);
     } catch (err: any) {
-      setError(err.message || 'Failed to sign in');
+      const msg: string = err.message || '';
+      if (msg.toLowerCase().includes('email not confirmed') || msg.toLowerCase().includes('email_not_confirmed')) {
+        setEmailUnconfirmed(true);
+      } else {
+        setError(msg || 'Failed to sign in');
+      }
       setLoading(false);
+    }
+  };
+
+  const handleResendConfirmation = async () => {
+    if (!email) {
+      setError('Please enter your email address first');
+      return;
+    }
+    setResendLoading(true);
+    setResendSuccess(false);
+    try {
+      const { error: resendError } = await coreBackend.auth.resend({
+        type: 'signup',
+        email,
+      });
+      if (resendError) throw resendError;
+      setResendSuccess(true);
+    } catch (err: any) {
+      setError(err.message || 'Failed to resend confirmation email');
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -133,6 +165,33 @@ export default function LoginScreen() {
             <Text style={styles.welcomeTitle}>Welcome Back</Text>
             <Text style={styles.welcomeAccent}>Good to see you again</Text>
             <Text style={styles.welcomeSubtitle}>Sign in to continue your journey</Text>
+
+            {emailUnconfirmed && (
+              <View style={styles.confirmBox}>
+                <View style={styles.confirmBoxHeader}>
+                  <Mail size={20} color="#d97706" />
+                  <Text style={styles.confirmBoxTitle}>Email Not Confirmed</Text>
+                </View>
+                <Text style={styles.confirmBoxText}>
+                  Please check your inbox and click the confirmation link before signing in.
+                </Text>
+                {resendSuccess ? (
+                  <Text style={styles.confirmBoxSent}>Confirmation email sent! Check your inbox.</Text>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.resendButton}
+                    onPress={handleResendConfirmation}
+                    disabled={resendLoading}
+                  >
+                    {resendLoading ? (
+                      <ActivityIndicator size="small" color="#d97706" />
+                    ) : (
+                      <Text style={styles.resendButtonText}>Resend Confirmation Email</Text>
+                    )}
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
 
             {error ? (
               <View style={styles.errorBox}>
@@ -329,6 +388,52 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
     color: '#999',
     marginBottom: 28,
+  },
+  confirmBox: {
+    backgroundColor: '#fffbeb',
+    borderWidth: 1,
+    borderColor: '#fde68a',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 20,
+    gap: 8,
+  },
+  confirmBoxHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  confirmBoxTitle: {
+    color: '#92400e',
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
+  },
+  confirmBoxText: {
+    color: '#78350f',
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    lineHeight: 18,
+  },
+  confirmBoxSent: {
+    color: '#15803d',
+    fontSize: 13,
+    fontFamily: Fonts.medium,
+  },
+  resendButton: {
+    alignSelf: 'flex-start',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: '#fef3c7',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#fcd34d',
+    minWidth: 48,
+    alignItems: 'center',
+  },
+  resendButtonText: {
+    color: '#d97706',
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
   },
   errorBox: {
     backgroundColor: '#fef2f2',

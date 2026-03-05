@@ -24,6 +24,8 @@ import {
   User,
   Briefcase,
   Bike,
+  Mail,
+  CircleCheck,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -44,6 +46,7 @@ export default function RegisterScreen() {
   const [businessLicense, setBusinessLicense] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [registered, setRegistered] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -139,7 +142,7 @@ export default function RegisterScreen() {
           setError('');
           router.replace('/auth/vendor-pending');
         } else {
-          router.replace('/hub');
+          setRegistered(true);
         }
       }
     } catch (err: any) {
@@ -148,6 +151,56 @@ export default function RegisterScreen() {
       setLoading(false);
     }
   };
+
+  if (registered) {
+    return (
+      <View style={[styles.container, styles.confirmContainer]}>
+        <LinearGradient
+          colors={['#1a1a1a', '#2d1a00', '#3d2200']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.headerGradient, { paddingTop: insets.top + 24 }]}
+        >
+          <View style={styles.decorCircle1} />
+          <View style={styles.decorCircle2} />
+          <View style={styles.logoSection}>
+            <View style={styles.logoIcon}>
+              <Layers size={28} color="#f97316" strokeWidth={2.5} />
+            </View>
+            <Text style={styles.brandName}>Danhausa</Text>
+            <Text style={styles.brandTagline}>Logistics & Marketplace</Text>
+          </View>
+        </LinearGradient>
+
+        <View style={styles.confirmCard}>
+          <View style={styles.confirmIconWrap}>
+            <Mail size={48} color="#f97316" />
+          </View>
+          <Text style={styles.confirmTitle}>Check Your Email</Text>
+          <Text style={styles.confirmBody}>
+            We sent a confirmation link to{'\n'}
+            <Text style={styles.confirmEmail}>{email}</Text>
+          </Text>
+          <Text style={styles.confirmHint}>
+            Click the link in the email to activate your account, then come back and sign in.
+          </Text>
+          <TouchableOpacity
+            style={styles.confirmSignInBtn}
+            onPress={() => router.replace('/auth/login')}
+          >
+            <LinearGradient
+              colors={['#f97316', '#e85d04']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.confirmSignInGradient}
+            >
+              <Text style={styles.confirmSignInText}>Go to Sign In</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -537,6 +590,80 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8f5f0',
+  },
+  confirmContainer: {
+    flex: 1,
+  },
+  confirmCard: {
+    flex: 1,
+    margin: 24,
+    marginTop: -16,
+    backgroundColor: '#ffffff',
+    borderRadius: 24,
+    padding: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 3,
+  },
+  confirmIconWrap: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: '#fff7ed',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  confirmTitle: {
+    fontSize: 26,
+    fontFamily: Fonts.playfairBold,
+    color: '#1a1a1a',
+    textAlign: 'center',
+  },
+  confirmBody: {
+    fontSize: 15,
+    fontFamily: Fonts.regular,
+    color: '#555',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  confirmEmail: {
+    fontFamily: Fonts.semiBold,
+    color: '#f97316',
+  },
+  confirmHint: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: '#888',
+    textAlign: 'center',
+    lineHeight: 19,
+  },
+  confirmSignInBtn: {
+    width: '100%',
+    borderRadius: 14,
+    overflow: 'hidden',
+    marginTop: 8,
+    shadowColor: '#f97316',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  confirmSignInGradient: {
+    paddingVertical: 16,
+    alignItems: 'center',
+    borderRadius: 14,
+  },
+  confirmSignInText: {
+    color: '#ffffff',
+    fontSize: 17,
+    fontFamily: Fonts.headingBold,
+    letterSpacing: 0.5,
   },
   headerGradient: {
     paddingBottom: 32,
