@@ -650,10 +650,11 @@ Order ID: ${order.id}
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Order Receipt</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <X size={24} color="#6b7280" />
+              <X size={22} color="#6b7280" />
             </TouchableOpacity>
+            <Text style={styles.headerTitle}>Order Receipt</Text>
+            <View style={styles.headerSpacer} />
           </View>
 
           <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
@@ -853,19 +854,30 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
+    gap: 10,
   },
   headerTitle: {
-    fontSize: 20,
+    flex: 1,
+    fontSize: 18,
     fontFamily: Fonts.bold,
     color: '#111827',
+    textAlign: 'center',
+  },
+  headerSpacer: {
+    width: 38,
   },
   closeButton: {
-    padding: 4,
+    width: 38,
+    height: 38,
+    backgroundColor: '#f3f4f6',
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   scrollView: {
     flex: 1,
