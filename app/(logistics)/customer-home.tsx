@@ -480,11 +480,10 @@ export default function CustomerHome() {
 
       return true;
     } catch (error: any) {
-      console.error('Payment verification error:', error);
       setVerifyingPayment(false);
       setPendingPaymentData(null);
-
-      throw new Error(getUserFriendlyError(error));
+      showToast(getUserFriendlyError(error), 'error');
+      return false;
     }
   };
 
@@ -540,11 +539,9 @@ export default function CustomerHome() {
 
         const verified = await verifyAndCreateOrder(paystackReference, orderDetails);
 
-        if (!verified) {
-          throw new Error('Payment verification failed');
+        if (verified) {
+          setCheckoutModalVisible(false);
         }
-
-        setCheckoutModalVisible(false);
         return;
       }
 
@@ -645,8 +642,7 @@ export default function CustomerHome() {
         assignRiderToOrder(orderData.id);
       }
     } catch (error: any) {
-      console.error('Order creation error:', error);
-      throw error;
+      showToast(getUserFriendlyError(error), 'error');
     }
   };
 
