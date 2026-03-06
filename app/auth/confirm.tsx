@@ -1,63 +1,56 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Platform,
-  Dimensions,
+  Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CircleCheck, CircleX, Loader, Mail } from 'lucide-react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withSpring,
-  withDelay,
-  Easing,
-} from 'react-native-reanimated';
 import { coreBackend } from '@/lib/coreBackend';
 
 type ConfirmState = 'loading' | 'success' | 'error' | 'expired';
-
-const { width } = Dimensions.get('window');
 
 export default function ConfirmPage() {
   const router = useRouter();
   const [state, setState] = useState<ConfirmState>('loading');
   const [errorMessage, setErrorMessage] = useState('');
 
-  const opacity = useSharedValue(0);
-  const translateY = useSharedValue(30);
-  const iconScale = useSharedValue(0);
-
-  const containerStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ translateY: translateY.value }],
-  }));
-
-  const iconStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: iconScale.value }],
-  }));
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(30)).current;
+  const iconScale = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    opacity.value = withTiming(1, { duration: 500, easing: Easing.out(Easing.quad) });
-    translateY.value = withTiming(0, { duration: 500, easing: Easing.out(Easing.quad) });
+    Animated.parallel([
+      Animated.timing(opacity, { toValue: 1, duration: 500, useNativeDriver: true }),
+      Animated.timing(translateY, { toValue: 0, duration: 500, useNativeDriver: true }),
+    ]).start();
 
     handleEmailConfirmation();
   }, []);
+
+  const animateIcon = () => {
+    setTimeout(() => {
+      Animated.spring(iconScale, {
+        toValue: 1,
+        damping: 12,
+        stiffness: 200,
+        useNativeDriver: true,
+      }).start();
+    }, 200);
+  };
 
   const handleEmailConfirmation = async () => {
     try {
       if (Platform.OS !== 'web') {
         setState('success');
-        iconScale.value = withDelay(200, withSpring(1, { damping: 12, stiffness: 200 }));
+        animateIcon();
         return;
       }
 
-      const url = window.location.href;
       const hashParams = new URLSearchParams(window.location.hash.replace('#', ''));
       const searchParams = new URLSearchParams(window.location.search);
 
@@ -76,7 +69,7 @@ export default function ConfirmPage() {
           setState('error');
           setErrorMessage(desc);
         }
-        iconScale.value = withDelay(200, withSpring(1, { damping: 12, stiffness: 200 }));
+        animateIcon();
         return;
       }
 
@@ -96,7 +89,7 @@ export default function ConfirmPage() {
         } else {
           setState('success');
         }
-        iconScale.value = withDelay(200, withSpring(1, { damping: 12, stiffness: 200 }));
+        animateIcon();
         return;
       }
 
@@ -112,17 +105,17 @@ export default function ConfirmPage() {
         } else {
           setState('success');
         }
-        iconScale.value = withDelay(200, withSpring(1, { damping: 12, stiffness: 200 }));
+        animateIcon();
         return;
       }
 
       setState('error');
       setErrorMessage('No confirmation token found in the link.');
-      iconScale.value = withDelay(200, withSpring(1, { damping: 12, stiffness: 200 }));
+      animateIcon();
     } catch (err: any) {
       setState('error');
       setErrorMessage('Something went wrong. Please try again.');
-      iconScale.value = withDelay(200, withSpring(1, { damping: 12, stiffness: 200 }));
+      animateIcon();
     }
   };
 
@@ -134,7 +127,7 @@ export default function ConfirmPage() {
     if (state === 'loading') {
       return (
         <>
-          <Animated.View style={[styles.iconContainer, styles.iconLoading, iconStyle]}>
+          <Animated.View style={[styles.iconContainer, styles.iconLoading, { transform: [{ scale: iconScale }] }]}>
             <Loader size={40} color="#f97316" strokeWidth={2} />
           </Animated.View>
           <Text style={styles.title}>Verifying your email...</Text>
@@ -146,7 +139,7 @@ export default function ConfirmPage() {
     if (state === 'success') {
       return (
         <>
-          <Animated.View style={[styles.iconContainer, styles.iconSuccess, iconStyle]}>
+          <Animated.View style={[styles.iconContainer, styles.iconSuccess, { transform: [{ scale: iconScale }] }]}>
             <CircleCheck size={48} color="#16a34a" strokeWidth={2} />
           </Animated.View>
           <Text style={styles.title}>Email Confirmed!</Text>
@@ -170,7 +163,7 @@ export default function ConfirmPage() {
     if (state === 'expired') {
       return (
         <>
-          <Animated.View style={[styles.iconContainer, styles.iconWarning, iconStyle]}>
+          <Animated.View style={[styles.iconContainer, styles.iconWarning, { transform: [{ scale: iconScale }] }]}>
             <Mail size={48} color="#d97706" strokeWidth={2} />
           </Animated.View>
           <Text style={styles.title}>Link Expired</Text>
@@ -193,7 +186,7 @@ export default function ConfirmPage() {
 
     return (
       <>
-        <Animated.View style={[styles.iconContainer, styles.iconError, iconStyle]}>
+        <Animated.View style={[styles.iconContainer, styles.iconError, { transform: [{ scale: iconScale }] }]}>
           <CircleX size={48} color="#dc2626" strokeWidth={2} />
         </Animated.View>
         <Text style={styles.title}>Confirmation Failed</Text>
@@ -227,7 +220,7 @@ export default function ConfirmPage() {
       </LinearGradient>
 
       <View style={styles.body}>
-        <Animated.View style={[styles.card, containerStyle]}>
+        <Animated.View style={[styles.card, { opacity, transform: [{ translateY }] }]}>
           {renderContent()}
         </Animated.View>
 
