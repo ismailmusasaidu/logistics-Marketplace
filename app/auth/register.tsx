@@ -102,10 +102,18 @@ export default function RegisterScreen() {
     try {
       const needsApproval = accountType === 'vendor' || accountType === 'rider';
 
+      let emailRedirectTo: string;
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        emailRedirectTo = `${window.location.origin}/auth/confirm`;
+      } else {
+        emailRedirectTo = 'myapp://auth/confirm';
+      }
+
       const { data: authData, error: authError } = await coreBackend.auth.signUp({
         email,
         password,
         options: {
+          emailRedirectTo,
           data: {
             full_name: fullName,
             role: accountType,
