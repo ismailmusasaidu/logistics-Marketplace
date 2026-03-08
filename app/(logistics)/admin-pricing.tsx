@@ -96,10 +96,23 @@ type OrderTypeAdjustment = {
   updated_at: string;
 };
 
+type OrderSizePricing = {
+  id: string;
+  size: 'medium' | 'large';
+  label: string;
+  description: string | null;
+  additional_fee: number;
+  is_active: boolean;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
 const TAB_CONFIG = [
   { key: 'zones',       label: 'Zones',        icon: Navigation },
   { key: 'pricing',     label: 'Pricing',      icon: DollarSign },
   { key: 'order_types', label: 'Order Types',  icon: Layers },
+  { key: 'order_sizes', label: 'Order Sizes',  icon: Truck },
   { key: 'promotions',  label: 'Promos',       icon: Tag },
   { key: 'banks',       label: 'Banks',        icon: Building2 },
   { key: 'areas',       label: 'Areas',        icon: MapPin },
@@ -165,6 +178,14 @@ export default function AdminPricing() {
   const [otValue, setOtValue] = useState('');
   const [otActive, setOtActive] = useState(true);
 
+  const [orderSizePricing, setOrderSizePricing] = useState<OrderSizePricing[]>([]);
+  const [showOrderSizeModal, setShowOrderSizeModal] = useState(false);
+  const [editingOrderSize, setEditingOrderSize] = useState<OrderSizePricing | null>(null);
+  const [osLabel, setOsLabel] = useState('');
+  const [osDescription, setOsDescription] = useState('');
+  const [osFee, setOsFee] = useState('');
+  const [osActive, setOsActive] = useState(true);
+
   const [areas, setAreas] = useState<Zone[]>([]);
   const [riders, setRiders] = useState<Rider[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -188,7 +209,7 @@ export default function AdminPricing() {
   }, [profile]);
 
   const loadAllData = async () => {
-    await Promise.all([loadDeliveryZones(), loadPricing(), loadPromotions(), loadBankAccounts(), loadAreas(), loadRiders(), loadOrderTypeAdjustments()]);
+    await Promise.all([loadDeliveryZones(), loadPricing(), loadPromotions(), loadBankAccounts(), loadAreas(), loadRiders(), loadOrderTypeAdjustments(), loadOrderSizePricing()]);
   };
 
   const onRefresh = async () => { setRefreshing(true); await loadAllData(); setRefreshing(false); };
@@ -227,6 +248,44 @@ export default function AdminPricing() {
   const loadOrderTypeAdjustments = async () => {
     const { data, error } = await supabase.from('order_type_adjustments').select('*').order('adjustment_name');
     if (!error && data) setOrderTypeAdjustments(data);
+  };
+
+  const loadOrderSizePricing = async () => {
+    const { data, error } = await supabase.from('order_size_pricing').select('*').order('display_order');
+    if (!error && data) setOrderSizePricing(data);
+  };
+
+  const handleSaveOrderSize = async () => {
+    if (!osLabel.trim() || !osFee) { showToast('Please fill in the label and fee', 'error'); return; }
+    const numFee = parseFloat(osFee);
+    if (isNaN(numFee) || numFee < 0) { showToast('Invalid fee amount', 'error'); return; }
+    if (!editingOrderSize) { showToast('No size selected to edit', 'error'); return; }
+    try {
+      const { error } = await supabase.from('order_size_pricing').update({
+        label: osLabel.trim(),
+        description: osDescription.trim() || null,
+        additional_fee: numFee,
+        is_active: osActive,
+      }).eq('id', editingOrderSize.id);
+      if (error) throw error;
+      showToast('Order size updated', 'success');
+      setShowOrderSizeModal(false);
+      loadOrderSizePricing();
+    } catch (err: any) { showToast(err.message || 'Failed to save', 'error'); }
+  };
+
+  const handleToggleOrderSize = async (item: OrderSizePricing) => {
+    const { error } = await supabase.from('order_size_pricing').update({ is_active: !item.is_active }).eq('id', item.id);
+    if (!error) loadOrderSizePricing();
+  };
+
+  const openEditOrderSize = (item: OrderSizePricing) => {
+    setEditingOrderSize(item);
+    setOsLabel(item.label);
+    setOsDescription(item.description || '');
+    setOsFee(item.additional_fee.toString());
+    setOsActive(item.is_active);
+    setShowOrderSizeModal(true);
   };
 
   const handleSaveOrderType = async () => {
@@ -729,6 +788,83 @@ export default function AdminPricing() {
     </View>
   );
 
+  const renderOrderSizes = () => (
+    <View style={styles.section}>
+      <View style={styles.sectionHeader}>
+        <View>
+          <Text style={styles.sectionTitle}>Order Size Charges</Text>
+          <Text style={styles.sectionSubtitle}>Extra fees added based on package size</Text>
+        </View>
+      </View>
+
+      <View style={styles.orderTypeInfoBox}>
+        <Truck size={15} color="#0369a1" />
+        <Text style={styles.orderTypeInfoText}>
+          Small packages have no extra fee. Set surcharges for Medium and Large packages to cover handling costs. Customers see these fees when selecting their package size.
+        </Text>
+      </View>
+
+      <View style={[styles.dataCard, { marginBottom: 12 }]}>
+        <View style={styles.dataCardTop}>
+          <View style={styles.dataCardTitleRow}>
+            <View style={[styles.dataCardIconWrap, { backgroundColor: '#f0fdf4' }]}>
+              <Truck size={16} color="#16a34a" />
+            </View>
+            <View style={styles.dataCardTitleBlock}>
+              <Text style={styles.dataCardTitle}>Small Package</Text>
+              <Text style={styles.dataCardMeta}>Default size — no extra charge</Text>
+            </View>
+          </View>
+          <View style={[styles.statusChip, styles.statusChipActive]}>
+            <Text style={[styles.statusChipText, styles.statusChipTextActive]}>Free</Text>
+          </View>
+        </View>
+      </View>
+
+      {orderSizePricing.length === 0 ? (
+        <View style={styles.emptyState}>
+          <View style={styles.emptyIconWrap}><Truck size={32} color="#d1d5db" /></View>
+          <Text style={styles.emptyTitle}>Loading sizes...</Text>
+        </View>
+      ) : orderSizePricing.map((item) => (
+        <View key={item.id} style={[styles.dataCard, !item.is_active && styles.dataCardInactive]}>
+          <View style={styles.dataCardTop}>
+            <View style={styles.dataCardTitleRow}>
+              <View style={[styles.dataCardIconWrap, { backgroundColor: '#fff7ed' }]}>
+                <Truck size={16} color="#f97316" />
+              </View>
+              <View style={styles.dataCardTitleBlock}>
+                <Text style={styles.dataCardTitle}>{item.label || item.size.charAt(0).toUpperCase() + item.size.slice(1)}</Text>
+                {item.description ? <Text style={styles.dataCardMeta}>{item.description}</Text> : null}
+              </View>
+            </View>
+            <View style={styles.dataCardActions}>
+              <TouchableOpacity style={styles.iconBtn} onPress={() => handleToggleOrderSize(item)}>
+                {item.is_active ? <CheckCircle size={18} color="#10b981" /> : <XCircle size={18} color="#9ca3af" />}
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.iconBtn, styles.iconBtnBlue]} onPress={() => openEditOrderSize(item)}>
+                <Edit2 size={15} color="#3b82f6" />
+              </TouchableOpacity>
+            </View>
+          </View>
+          <View style={styles.orderTypeCardBody}>
+            <View style={styles.orderTypeCharge}>
+              <Text style={styles.orderTypeChargeLabel}>Extra Charge</Text>
+              <Text style={styles.orderTypeChargeValue}>
+                {item.additional_fee === 0 ? 'Free' : `+ ₦${item.additional_fee.toLocaleString()}`}
+              </Text>
+            </View>
+            <View style={[styles.statusChip, item.is_active ? styles.statusChipActive : styles.statusChipInactive]}>
+              <Text style={[styles.statusChipText, item.is_active ? styles.statusChipTextActive : styles.statusChipTextInactive]}>
+                {item.is_active ? 'Active' : 'Inactive'}
+              </Text>
+            </View>
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+
   const renderAreas = () => (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
@@ -850,6 +986,7 @@ export default function AdminPricing() {
         {activeTab === 'zones'       && renderDeliveryZones()}
         {activeTab === 'pricing'     && renderPricing()}
         {activeTab === 'order_types' && renderOrderTypes()}
+        {activeTab === 'order_sizes' && renderOrderSizes()}
         {activeTab === 'promotions'  && renderPromotions()}
         {activeTab === 'banks'       && renderBanks()}
         {activeTab === 'areas'       && renderAreas()}
@@ -1049,6 +1186,45 @@ export default function AdminPricing() {
             <View style={styles.sheetFooter}>
               <TouchableOpacity style={styles.cancelBtn2} onPress={() => setShowOrderTypeModal(false)}><Text style={styles.cancelBtn2Text}>Cancel</Text></TouchableOpacity>
               <TouchableOpacity style={styles.saveBtn2} onPress={handleSaveOrderType}><CheckCircle size={16} color="#fff" /><Text style={styles.saveBtn2Text}>{editingOrderType ? 'Update' : 'Add Type'}</Text></TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={showOrderSizeModal} animationType="slide" transparent onRequestClose={() => setShowOrderSizeModal(false)}>
+        <View style={styles.sheetOverlay}>
+          <View style={styles.sheet}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>Edit {editingOrderSize?.size.charAt(0).toUpperCase()}{editingOrderSize?.size.slice(1)} Package Charge</Text>
+              <TouchableOpacity style={styles.sheetClose} onPress={() => setShowOrderSizeModal(false)}><X size={20} color="#6b7280" /></TouchableOpacity>
+            </View>
+            <ScrollView style={styles.sheetBody} showsVerticalScrollIndicator={false}>
+              <View style={[styles.orderTypeInfoBox, { marginBottom: 16 }]}>
+                <Truck size={14} color="#0369a1" />
+                <Text style={styles.orderTypeInfoText}>
+                  Size: <Text style={{ fontWeight: '700', textTransform: 'capitalize' }}>{editingOrderSize?.size}</Text> — this fee is added on top of the base delivery charge when a customer selects this package size.
+                </Text>
+              </View>
+              <Text style={styles.inputLabel}>Display Label *</Text>
+              <TextInput style={styles.input} value={osLabel} onChangeText={setOsLabel} placeholder="e.g., Medium Package" placeholderTextColor="#9ca3af" />
+              <Text style={styles.inputLabel}>Description (Optional)</Text>
+              <TextInput style={[styles.input, styles.textArea]} value={osDescription} onChangeText={setOsDescription} placeholder="Describe this package size" placeholderTextColor="#9ca3af" multiline numberOfLines={3} />
+              <Text style={styles.inputLabel}>Extra Charge (₦)</Text>
+              <TextInput style={styles.input} value={osFee} onChangeText={setOsFee} placeholder="e.g., 500" keyboardType="decimal-pad" placeholderTextColor="#9ca3af" />
+              <Text style={[styles.dataCardMeta, { marginBottom: 16 }]}>Enter 0 for no extra charge on this size.</Text>
+              <TouchableOpacity style={styles.toggleRow} onPress={() => setOsActive(!osActive)}>
+                <View style={styles.toggleRowLeft}>
+                  {osActive ? <CheckCircle size={18} color="#10b981" /> : <XCircle size={18} color="#ef4444" />}
+                  <Text style={styles.toggleRowLabel}>{osActive ? 'Active' : 'Inactive'}</Text>
+                </View>
+                <Text style={styles.toggleRowHint}>{osActive ? 'Fee applied to customer orders' : 'Fee not applied'}</Text>
+              </TouchableOpacity>
+              <View style={{ height: 8 }} />
+            </ScrollView>
+            <View style={styles.sheetFooter}>
+              <TouchableOpacity style={styles.cancelBtn2} onPress={() => setShowOrderSizeModal(false)}><Text style={styles.cancelBtn2Text}>Cancel</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.saveBtn2} onPress={handleSaveOrderSize}><CheckCircle size={16} color="#fff" /><Text style={styles.saveBtn2Text}>Update</Text></TouchableOpacity>
             </View>
           </View>
         </View>

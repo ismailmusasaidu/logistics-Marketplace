@@ -75,6 +75,7 @@ export default function CustomerHome() {
   const [activeAdvert, setActiveAdvert] = useState<any>(null);
 
   const [orderTypeOptions, setOrderTypeOptions] = useState<string[]>([]);
+  const [orderSizeFees, setOrderSizeFees] = useState<Record<string, number>>({});
   const [fieldErrors, setFieldErrors] = useState<{
     pickupAddress?: string;
     deliveryAddress?: string;
@@ -91,6 +92,7 @@ export default function CustomerHome() {
   useEffect(() => {
     fetchModalAdvert();
     fetchOrderTypeOptions();
+    fetchOrderSizeFees();
   }, []);
 
   const fetchOrderTypeOptions = async () => {
@@ -102,6 +104,22 @@ export default function CustomerHome() {
         .order('adjustment_name');
       if (!error && data) {
         setOrderTypeOptions(data.map((r: { adjustment_name: string }) => r.adjustment_name));
+      }
+    } catch {}
+  };
+
+  const fetchOrderSizeFees = async () => {
+    try {
+      const { data } = await coreSupabase
+        .from('order_size_pricing')
+        .select('size, additional_fee')
+        .eq('is_active', true);
+      if (data) {
+        const fees: Record<string, number> = {};
+        data.forEach((row: { size: string; additional_fee: number }) => {
+          fees[row.size] = row.additional_fee;
+        });
+        setOrderSizeFees(fees);
       }
     } catch {}
   };
@@ -1290,24 +1308,35 @@ export default function CustomerHome() {
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Order Size <Text style={styles.requiredLabel}>*</Text></Text>
                   <View style={styles.orderTypesContainer}>
-                    {['small', 'medium', 'large'].map((size) => (
-                      <TouchableOpacity
-                        key={size}
-                        style={[
-                          styles.orderTypeChip,
-                          newOrder.orderSize === size && styles.orderTypeChipActive,
-                          fieldErrors.orderSize && !newOrder.orderSize && styles.orderTypeChipError,
-                        ]}
-                        onPress={() => { setNewOrder({ ...newOrder, orderSize: size as 'small' | 'medium' | 'large' }); setFieldErrors(e => ({ ...e, orderSize: undefined })); }}>
-                        <Text
+                    {(['small', 'medium', 'large'] as const).map((size) => {
+                      const fee = size === 'small' ? 0 : (orderSizeFees[size] ?? null);
+                      return (
+                        <TouchableOpacity
+                          key={size}
                           style={[
-                            styles.orderTypeChipText,
-                            newOrder.orderSize === size && styles.orderTypeChipTextActive,
-                          ]}>
-                          {size.charAt(0).toUpperCase() + size.slice(1)}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                            styles.orderTypeChip,
+                            newOrder.orderSize === size && styles.orderTypeChipActive,
+                            fieldErrors.orderSize && !newOrder.orderSize && styles.orderTypeChipError,
+                          ]}
+                          onPress={() => { setNewOrder({ ...newOrder, orderSize: size }); setFieldErrors(e => ({ ...e, orderSize: undefined })); }}>
+                          <Text
+                            style={[
+                              styles.orderTypeChipText,
+                              newOrder.orderSize === size && styles.orderTypeChipTextActive,
+                            ]}>
+                            {size.charAt(0).toUpperCase() + size.slice(1)}
+                          </Text>
+                          {fee !== null && (
+                            <Text style={[
+                              styles.orderTypeChipFee,
+                              newOrder.orderSize === size && styles.orderTypeChipFeeActive,
+                            ]}>
+                              {fee === 0 ? 'Free' : `+₦${fee.toLocaleString()}`}
+                            </Text>
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
                   {fieldErrors.orderSize && <Text style={styles.fieldError}>{fieldErrors.orderSize}</Text>}
                 </View>
@@ -2171,6 +2200,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e5e7eb',
     backgroundColor: '#f9fafb',
+    alignItems: 'center',
   },
   orderTypeChipActive: {
     backgroundColor: '#d1fae5',
@@ -2187,6 +2217,15 @@ const styles = StyleSheet.create({
   orderTypeChipError: {
     borderColor: '#ef4444',
     backgroundColor: '#fef2f2',
+  },
+  orderTypeChipFee: {
+    fontSize: 11,
+    fontFamily: Fonts.poppinsRegular,
+    color: '#9ca3af',
+    marginTop: 2,
+  },
+  orderTypeChipFeeActive: {
+    color: '#f97316',
   },
   requiredLabel: {
     fontSize: 14,
