@@ -7,13 +7,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CartIconWithBadge from '@/components/marketplace/CartIconWithBadge';
 import WishlistIconWithBadge from '@/components/marketplace/WishlistIconWithBadge';
 
-const hubListener = {
-  tabPress: (e: any) => {
-    e.preventDefault();
-    router.navigate('/hub');
-  },
-};
-
 export default function TabLayout() {
   const { session, loading, profile } = useAuth();
   const insets = useSafeAreaInsets();
@@ -78,7 +71,12 @@ export default function TabLayout() {
           tabBarIcon: ({ size }) => <ArrowLeft size={size} color="#94a3b8" />,
           href: isVendor ? null : '/(marketplace)/back-to-hub',
         }}
-        listeners={hubListener}
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault();
+            router.navigate('/hub');
+          },
+        }}
       />
 
       <Tabs.Screen
