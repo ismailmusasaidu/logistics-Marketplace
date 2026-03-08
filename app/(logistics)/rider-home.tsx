@@ -180,47 +180,43 @@ export default function RiderHome() {
   };
 
   useEffect(() => {
-    if (pendingAssignments.length > 0) {
-      const newCountdowns: Record<string, number> = {};
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+    }
+
+    if (pendingAssignments.length === 0) return;
+
+    const recalculate = () => {
+      const now = Date.now();
+      const updated: Record<string, number> = {};
+      const justExpired: string[] = [];
+
       pendingAssignments.forEach(assignment => {
         const timeoutAt = new Date(assignment.assignment_timeout_at).getTime();
-        const now = Date.now();
-        const remaining = Math.max(0, Math.floor((timeoutAt - now) / 1000));
-        newCountdowns[assignment.id] = remaining;
+        const remaining = Math.floor((timeoutAt - now) / 1000);
+        if (remaining > 0) {
+          updated[assignment.id] = remaining;
+        } else {
+          updated[assignment.id] = 0;
+          justExpired.push(assignment.id);
+        }
       });
-      setCountdowns(newCountdowns);
 
+      setCountdowns(updated);
+
+      if (justExpired.length > 0) {
+        justExpired.forEach(id => handleTimeoutExpired(id));
+      }
+    };
+
+    recalculate();
+    countdownIntervalRef.current = setInterval(recalculate, 1000);
+
+    return () => {
       if (countdownIntervalRef.current) {
         clearInterval(countdownIntervalRef.current);
       }
-
-      countdownIntervalRef.current = setInterval(() => {
-        setCountdowns(prev => {
-          const updated: Record<string, number> = {};
-          const justExpired: string[] = [];
-
-          Object.entries(prev).forEach(([id, seconds]) => {
-            if (seconds > 0) {
-              updated[id] = seconds - 1;
-            } else {
-              justExpired.push(id);
-            }
-          });
-
-          if (justExpired.length > 0) {
-            justExpired.forEach(id => handleTimeoutExpired(id));
-          }
-
-          return updated;
-        });
-      }, 1000);
-
-      return () => {
-        if (countdownIntervalRef.current) {
-          clearInterval(countdownIntervalRef.current);
-        }
-      };
-    }
+    };
   }, [pendingAssignments]);
 
   const loadRiderId = async () => {
