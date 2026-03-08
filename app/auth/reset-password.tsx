@@ -67,6 +67,9 @@ export default function ResetPasswordScreen() {
     const initialize = async () => {
       if (Platform.OS === 'web' && typeof window !== 'undefined') {
         const hash = window.location.hash || window.location.search;
+        console.log('[ResetPassword] Platform: web');
+        console.log('[ResetPassword] window.location.href:', window.location.href);
+        console.log('[ResetPassword] hash/search:', hash);
         if (hash) {
           if (hash.includes('error=')) {
             if (mounted) setChecking(false);
@@ -82,6 +85,8 @@ export default function ResetPasswordScreen() {
         }
       } else {
         const initialUrl = await Linking.getInitialURL();
+        console.log('[ResetPassword] Platform:', Platform.OS);
+        console.log('[ResetPassword] initialUrl:', initialUrl);
         if (initialUrl) {
           const ok = await trySetSessionFromUrl(initialUrl);
           if (mounted && ok) {

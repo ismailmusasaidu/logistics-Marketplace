@@ -109,6 +109,9 @@ export default function RegisterScreen() {
         emailRedirectTo = 'myapp://auth/confirm';
       }
 
+      console.log('[Register] Platform:', Platform.OS);
+      console.log('[Register] emailRedirectTo (confirm email):', emailRedirectTo);
+
       const { data: authData, error: authError } = await coreBackend.auth.signUp({
         email,
         password,
