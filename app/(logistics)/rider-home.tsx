@@ -152,6 +152,33 @@ export default function RiderHome() {
     }
   }, [riderId]);
 
+  const handleTimeoutExpired = async (orderId: string) => {
+    try {
+      const apiUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/reassign-rider`;
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+
+      await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
+        },
+        body: JSON.stringify({
+          order_id: orderId,
+          rejecting_rider_id: riderId,
+          reason: 'Assignment timed out — no rider response',
+        }),
+      });
+
+      loadPendingAssignments();
+    } catch (error) {
+      console.error('Error handling timeout:', error);
+      loadPendingAssignments();
+    }
+  };
+
   useEffect(() => {
     if (pendingAssignments.length > 0) {
       const newCountdowns: Record<string, number> = {};
@@ -170,18 +197,18 @@ export default function RiderHome() {
       countdownIntervalRef.current = setInterval(() => {
         setCountdowns(prev => {
           const updated: Record<string, number> = {};
-          let hasExpired = false;
+          const justExpired: string[] = [];
 
           Object.entries(prev).forEach(([id, seconds]) => {
             if (seconds > 0) {
               updated[id] = seconds - 1;
             } else {
-              hasExpired = true;
+              justExpired.push(id);
             }
           });
 
-          if (hasExpired) {
-            loadPendingAssignments();
+          if (justExpired.length > 0) {
+            justExpired.forEach(id => handleTimeoutExpired(id));
           }
 
           return updated;
