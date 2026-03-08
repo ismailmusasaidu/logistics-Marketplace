@@ -205,7 +205,7 @@ Deno.serve(async (req: Request) => {
 
       // Exclude ALL previously rejected riders for this order
       if (excludeRiderIds.length > 0) {
-        query = query.not('id', 'in', `(${excludeRiderIds.map(id => `"${id}"`).join(',')})`);
+        query = query.not('id', 'in', `(${excludeRiderIds.join(',')})`);
       }
 
       const { data: riders, error: ridersError } = await query;
