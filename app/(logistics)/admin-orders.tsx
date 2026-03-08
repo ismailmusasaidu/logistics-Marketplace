@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Modal, TextInput, Platform } from 'react-native';
-import { Package, MapPin, Clock, ListFilter as Filter, CreditCard as Edit2, Trash2, X, Search, User, Receipt, Bike, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Calendar } from 'lucide-react-native';
+import { Package, MapPin, Clock, ListFilter as Filter, CreditCard as Edit2, Trash2, X, Search, User, Receipt, Bike, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Calendar, Loader } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { Toast } from '@/components/Toast';
@@ -130,6 +130,7 @@ export default function AdminOrders() {
   const [confirmDialog, setConfirmDialog] = useState<{ visible: boolean; title: string; message: string; onConfirm: () => void }>({ visible: false, title: '', message: '', onConfirm: () => {} });
   const [receiptModalVisible, setReceiptModalVisible] = useState(false);
   const [selectedOrderForReceipt, setSelectedOrderForReceipt] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -166,6 +167,7 @@ export default function AdminOrders() {
   }, [filter, orders, searchQuery]);
 
   const loadOrders = async (reset = false) => {
+    if (reset) setLoading(true);
     try {
       const currentPage = reset ? 0 : page;
       const from = currentPage * PAGE_SIZE;
@@ -206,6 +208,7 @@ export default function AdminOrders() {
     } catch (error) {
       showToast('Failed to load orders', 'error');
     } finally {
+      setLoading(false);
       setRefreshing(false);
       setLoadingMore(false);
     }
@@ -405,7 +408,21 @@ export default function AdminOrders() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadOrders(true); }} tintColor="#f97316" />}>
 
-        {filteredOrders.length === 0 ? (
+        {loading ? (
+          <View style={styles.loadingState}>
+            {[1, 2, 3].map((i) => (
+              <View key={i} style={styles.skeletonCard}>
+                <View style={styles.skeletonTopBar}>
+                  <View style={styles.skeletonPill} />
+                  <View style={styles.skeletonActions} />
+                </View>
+                <View style={styles.skeletonLine} />
+                <View style={[styles.skeletonLine, { width: '60%' }]} />
+                <View style={[styles.skeletonLine, { width: '80%', marginTop: 12 }]} />
+              </View>
+            ))}
+          </View>
+        ) : filteredOrders.length === 0 ? (
           <View style={styles.emptyState}>
             <View style={styles.emptyIconWrap}>
               <Package size={36} color="#d1d5db" />
@@ -1479,5 +1496,42 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: Fonts.semiBold,
     color: '#15803d',
+  },
+
+  loadingState: { paddingTop: 8, gap: 16 },
+  skeletonCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  skeletonTopBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  skeletonPill: {
+    width: 100,
+    height: 26,
+    borderRadius: 20,
+    backgroundColor: '#f3f4f6',
+  },
+  skeletonActions: {
+    width: 72,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: '#f3f4f6',
+  },
+  skeletonLine: {
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#f3f4f6',
+    marginBottom: 8,
+    width: '100%',
   },
 });
