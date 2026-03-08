@@ -12,7 +12,7 @@ import {
   Clipboard,
   ScrollView,
 } from 'react-native';
-import { X, Wallet, AlertCircle, CheckCircle2, Copy, Building2, CreditCard } from 'lucide-react-native';
+import { X, Wallet, CircleAlert as AlertCircle, CircleCheck as CheckCircle2, Copy, Building2, CreditCard } from 'lucide-react-native';
 import { walletService } from '@/lib/wallet';
 import { coreBackend, CORE_URL } from '@/lib/coreBackend';
 
