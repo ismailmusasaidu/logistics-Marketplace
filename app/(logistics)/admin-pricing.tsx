@@ -3,10 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal,
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import {
-  DollarSign, Plus, Edit2, Trash2, X, CheckCircle, XCircle,
-  Building2, MapPin, Users, Search, Tag, Truck, Zap, BarChart2, Navigation, Layers,
-} from 'lucide-react-native';
+import { DollarSign, Plus, CreditCard as Edit2, Trash2, X, CircleCheck as CheckCircle, Circle as XCircle, Building2, MapPin, Users, Search, Tag, Truck, Zap, ChartBar as BarChart2, Navigation, Layers } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { getUserFriendlyError } from '@/lib/errorHandler';
 import { Toast } from '@/components/Toast';
