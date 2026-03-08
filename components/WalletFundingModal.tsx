@@ -41,6 +41,7 @@ export function WalletFundingModal({ visible, onClose, onSuccess }: WalletFundin
   const [loadingAccount, setLoadingAccount] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [fundingMethod, setFundingMethod] = useState<'transfer' | 'card'>('transfer');
+  const [virtualAccountUnavailable, setVirtualAccountUnavailable] = useState(false);
   const verificationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const verificationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -51,6 +52,7 @@ export function WalletFundingModal({ visible, onClose, onSuccess }: WalletFundin
       setPendingReference(null);
       setVerifying(false);
       setLoading(false);
+      setVirtualAccountUnavailable(false);
       fetchOrCreateVirtualAccount();
     } else {
       clearVerificationPolling();
@@ -61,7 +63,13 @@ export function WalletFundingModal({ visible, onClose, onSuccess }: WalletFundin
     setLoadingAccount(true);
     setError('');
     try {
-      const { data: existingAccount, error: fetchError } = await supabase
+      const { data: { session } } = await coreBackend.auth.getSession();
+
+      if (!session?.access_token) {
+        throw new Error('Not authenticated');
+      }
+
+      const { data: existingAccount } = await coreBackend
         .from('virtual_accounts')
         .select('account_number, account_name, bank_name, bank_code')
         .eq('is_active', true)
@@ -73,13 +81,7 @@ export function WalletFundingModal({ visible, onClose, onSuccess }: WalletFundin
       }
 
       const apiUrl = `${CORE_URL}/functions/v1/create-virtual-account`;
-      const { data: { session } } = await coreBackend.auth.getSession();
 
-      if (!session?.access_token) {
-        throw new Error('Not authenticated');
-      }
-
-      console.log('Creating virtual account...');
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
@@ -89,7 +91,6 @@ export function WalletFundingModal({ visible, onClose, onSuccess }: WalletFundin
       });
 
       const result = await response.json();
-      console.log('Virtual account response:', result);
 
       if (!response.ok) {
         throw new Error(result.error || 'Failed to create virtual account');
@@ -107,7 +108,7 @@ export function WalletFundingModal({ visible, onClose, onSuccess }: WalletFundin
       }
     } catch (err: any) {
       console.error('Error fetching virtual account:', err);
-      setError(err.message || 'Failed to load virtual account. Please try again.');
+      setVirtualAccountUnavailable(true);
     } finally {
       setLoadingAccount(false);
     }
@@ -355,10 +356,18 @@ export function WalletFundingModal({ visible, onClose, onSuccess }: WalletFundin
               </View>
             )}
 
-            {fundingMethod === 'transfer' && !virtualAccount && !loadingAccount && error && (
-              <View style={styles.errorContainer}>
-                <AlertCircle size={16} color="#dc2626" />
-                <Text style={styles.errorText}>{error}</Text>
+            {fundingMethod === 'transfer' && !virtualAccount && !loadingAccount && virtualAccountUnavailable && (
+              <View style={styles.unavailableContainer}>
+                <View style={styles.unavailableIconWrap}>
+                  <Wallet size={36} color="#2563eb" />
+                </View>
+                <Text style={styles.unavailableTitle}>Bank Transfer Coming Soon</Text>
+                <Text style={styles.unavailableMessage}>
+                  Dedicated bank account funding is not yet available. Please use card payment to fund your wallet, or check back later.
+                </Text>
+                <TouchableOpacity style={styles.unavailableExitButton} onPress={onClose}>
+                  <Text style={styles.unavailableExitText}>Close</Text>
+                </TouchableOpacity>
               </View>
             )}
 
@@ -802,6 +811,44 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6b7280',
     fontWeight: '500',
+  },
+  unavailableContainer: {
+    alignItems: 'center',
+    padding: 32,
+    gap: 12,
+  },
+  unavailableIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#eff6ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  unavailableTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+    textAlign: 'center',
+  },
+  unavailableMessage: {
+    fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  unavailableExitButton: {
+    marginTop: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 10,
+    backgroundColor: '#2563eb',
+  },
+  unavailableExitText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#ffffff',
   },
   closeButton: {
     flex: 1,
