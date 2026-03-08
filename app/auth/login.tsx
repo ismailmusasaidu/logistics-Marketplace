@@ -23,13 +23,13 @@ export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [emailUnconfirmed, setEmailUnconfirmed] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
-  const { signIn, profile, session } = useAuth();
+  const { signIn, signOut, profile, session, loading } = useAuth();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -57,7 +57,15 @@ export default function LoginScreen() {
   }, []);
 
   useEffect(() => {
-    if (!session || !profile) return;
+    if (!session) return;
+    if (loading) return;
+
+    if (!profile) {
+      signOut().then(() => {
+        setError('This account no longer exists. Please register again.');
+      });
+      return;
+    }
 
     const needsApproval =
       (profile.role === 'vendor' || profile.role === 'rider') &&
@@ -68,7 +76,7 @@ export default function LoginScreen() {
     } else {
       router.replace('/hub');
     }
-  }, [session, profile]);
+  }, [session, profile, loading]);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -76,7 +84,7 @@ export default function LoginScreen() {
       return;
     }
 
-    setLoading(true);
+    setSigningIn(true);
     setError('');
     setEmailUnconfirmed(false);
     setResendSuccess(false);
@@ -90,7 +98,7 @@ export default function LoginScreen() {
       } else {
         setError(msg || 'Failed to sign in');
       }
-      setLoading(false);
+      setSigningIn(false);
     }
   };
 
@@ -243,18 +251,18 @@ export default function LoginScreen() {
             </Link>
 
             <TouchableOpacity
-              style={[styles.signInButton, loading && styles.signInButtonDisabled]}
+              style={[styles.signInButton, signingIn && styles.signInButtonDisabled]}
               onPress={handleLogin}
-              disabled={loading}
+              disabled={signingIn}
               activeOpacity={0.85}
             >
               <LinearGradient
-                colors={loading ? ['#ccc', '#bbb'] : ['#f97316', '#e85d04']}
+                colors={signingIn ? ['#ccc', '#bbb'] : ['#f97316', '#e85d04']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.signInGradient}
               >
-                {loading ? (
+                {signingIn ? (
                   <ActivityIndicator color="#ffffff" />
                 ) : (
                   <Text style={styles.signInText}>Sign In</Text>
