@@ -130,16 +130,7 @@ export default function TabLayout() {
             paddingTop: 8,
           },
         }}>
-        <Tabs.Screen
-          name="back-to-hub"
-          options={{
-            title: 'Hub',
-            tabBarIcon: ({ size }) => (
-              <ArrowLeft size={size} color="#6b7280" />
-            ),
-          }}
-          listeners={hubListener}
-        />
+        <Tabs.Screen name="back-to-hub" options={{ href: null }} />
         <Tabs.Screen
           name="rider-home"
           options={{

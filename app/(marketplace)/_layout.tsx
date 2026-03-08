@@ -76,6 +76,7 @@ export default function TabLayout() {
         options={{
           title: 'Hub',
           tabBarIcon: ({ size }) => <ArrowLeft size={size} color="#94a3b8" />,
+          href: isVendor ? null : '/(marketplace)/back-to-hub',
         }}
         listeners={hubListener}
       />
