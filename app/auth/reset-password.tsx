@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import * as Linking from 'expo-linking';
 import { coreBackend } from '@/lib/coreBackend';
 import { LinearGradient } from 'expo-linear-gradient';
-import { CheckCircle } from 'lucide-react-native';
+import { CircleCheck as CheckCircle } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 function extractParamsFromUrl(url: string): Record<string, string> {
