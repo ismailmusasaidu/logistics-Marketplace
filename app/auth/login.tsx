@@ -98,6 +98,7 @@ export default function LoginScreen() {
       } else {
         setError(msg || 'Failed to sign in');
       }
+    } finally {
       setSigningIn(false);
     }
   };
