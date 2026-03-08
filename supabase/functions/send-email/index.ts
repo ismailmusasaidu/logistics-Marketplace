@@ -27,7 +27,8 @@ type EmailTemplate =
   | "logistics_order_confirmed"
   | "logistics_out_for_delivery"
   | "logistics_order_delivered"
-  | "logistics_order_cancelled";
+  | "logistics_order_cancelled"
+  | "logistics_payment_received";
 
 interface EmailData {
   customerName?: string;
@@ -448,6 +449,24 @@ function generateEmailHtml(template: EmailTemplate, data: EmailData): { subject:
         </table>
         <p class="content" style="margin-top:24px;">If you have any questions, please contact our support team.</p>
       `, `Delivery Cancelled - #${data.orderNumber}`);
+
+    case "logistics_payment_received":
+      return wrapper(`
+        <div class="header"><div class="logo">Logistics</div></div>
+        <h1>Payment Confirmed</h1>
+        <p class="content">Hi ${data.customerName || "Customer"},</p>
+        <p class="content">Your payment has been received and confirmed. Your delivery order is now being processed.</p>
+        <div class="highlight highlight-success">
+          <p style="margin:0 0 8px 0;color:#065f46;font-size:13px;">Payment Received</p>
+          <p class="amount amount-success" style="margin:0;">${formatCurrency(data.totalAmount)}</p>
+        </div>
+        <table width="100%" style="margin-top:24px;">
+          <tr><td class="detail-label">Order Number</td><td class="detail-value" style="text-align:right;">${data.orderNumber || "N/A"}</td></tr>
+          ${data.pickupAddress ? `<tr><td class="detail-label">Pickup</td><td class="detail-value" style="text-align:right;">${data.pickupAddress}</td></tr>` : ""}
+          ${data.deliveryAddress ? `<tr><td class="detail-label">Delivery</td><td class="detail-value" style="text-align:right;">${data.deliveryAddress}</td></tr>` : ""}
+        </table>
+        <p class="content" style="margin-top:24px;">A rider will be assigned shortly and you'll receive a confirmation once your order is accepted.</p>
+      `, `Payment Confirmed - #${data.orderNumber}`);
 
     default:
       return wrapper(`
