@@ -1,6 +1,6 @@
 import { Tabs, router } from 'expo-router';
 import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
-import { Home, Package, Users, User, ArrowLeft } from 'lucide-react-native';
+import { Hop as Home, Package, Users, User, ArrowLeft } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffect } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
