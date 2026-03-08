@@ -33,6 +33,10 @@ export default function Hub() {
 
     if (needsApproval) {
       router.replace('/auth/vendor-pending');
+    } else if (profile.role === 'vendor') {
+      router.replace('/(marketplace)');
+    } else if (profile.role === 'rider') {
+      router.replace('/(logistics)/rider-home');
     }
   }, [profile]);
 

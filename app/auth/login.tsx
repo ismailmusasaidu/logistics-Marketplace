@@ -73,6 +73,10 @@ export default function LoginScreen() {
 
     if (needsApproval) {
       router.replace('/auth/vendor-pending');
+    } else if (profile.role === 'vendor') {
+      router.replace('/(marketplace)');
+    } else if (profile.role === 'rider') {
+      router.replace('/(logistics)/rider-home');
     } else {
       router.replace('/hub');
     }
