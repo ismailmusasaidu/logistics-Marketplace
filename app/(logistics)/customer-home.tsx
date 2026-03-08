@@ -565,6 +565,7 @@ export default function CustomerHome() {
         notes: notes,
         order_source: 'logistics',
         scheduled_delivery_time: scheduledTime ? scheduledTime.toISOString() : null,
+        transfer_reference: paymentMethod === 'transfer' ? (paystackReference || null) : null,
       };
 
       const { data: orderData, error: orderError } = await coreBackend

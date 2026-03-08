@@ -7,7 +7,7 @@ import { Toast } from '@/components/Toast';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { OrderReceiptModal } from '@/components/OrderReceiptModal';
 import { Fonts } from '@/constants/fonts';
-import { sendLogisticsOrderStatusEmail } from '@/lib/emailService';
+import { sendLogisticsOrderStatusEmail, sendLogisticsPaymentReceivedEmail } from '@/lib/emailService';
 
 const formatRelativeTime = (timestamp: string | null): string => {
   if (!timestamp) return 'Not yet';
@@ -52,6 +52,7 @@ type LogisticsOrder = {
   rider_id: string | null;
   assigned_rider_id: string | null;
   assignment_status: string | null;
+  transfer_reference: string | null;
   scheduled_delivery_time: string | null;
   confirmed_at: string | null;
   preparing_at: string | null;
@@ -124,6 +125,7 @@ export default function AdminOrders() {
   const [editStatus, setEditStatus] = useState<string>('pending');
   const [editNotes, setEditNotes] = useState('');
   const [editRiderId, setEditRiderId] = useState<string>('');
+  const [markingPaid, setMarkingPaid] = useState(false);
   const [toast, setToast] = useState<{ visible: boolean; message: string; type: 'success' | 'error' | 'info' | 'warning' }>({ visible: false, message: '', type: 'success' });
   const [confirmDialog, setConfirmDialog] = useState<{ visible: boolean; title: string; message: string; onConfirm: () => void }>({ visible: false, title: '', message: '', onConfirm: () => {} });
   const [receiptModalVisible, setReceiptModalVisible] = useState(false);
@@ -307,6 +309,33 @@ export default function AdminOrders() {
         }
       },
     });
+  };
+
+  const markAsPaid = async (order: LogisticsOrder) => {
+    setMarkingPaid(true);
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ payment_status: 'completed' })
+        .eq('id', order.id);
+      if (error) throw error;
+
+      if (order.customer?.email) {
+        sendLogisticsPaymentReceivedEmail({
+          orderNumber: order.order_number,
+          customerEmail: order.customer.email,
+          customerName: order.customer.full_name || 'Customer',
+          totalAmount: order.total || order.delivery_fee || 0,
+        });
+      }
+
+      showToast('Payment marked as received. Customer notified.', 'success');
+      loadOrders(true);
+    } catch {
+      showToast('Failed to mark as paid', 'error');
+    } finally {
+      setMarkingPaid(false);
+    }
   };
 
   const filters = [
@@ -578,6 +607,32 @@ export default function AdminOrders() {
                   </View>
                 )}
 
+                {order.payment_method === 'transfer' && (
+                  <View style={styles.transferRefBox}>
+                    <View style={styles.transferRefHeader}>
+                      <Text style={styles.transferRefLabel}>Transfer Reference</Text>
+                      {order.payment_status === 'completed' ? (
+                        <View style={styles.paidBadge}>
+                          <CheckCircle size={12} color="#059669" />
+                          <Text style={styles.paidBadgeText}>Paid</Text>
+                        </View>
+                      ) : (
+                        <TouchableOpacity
+                          style={[styles.markPaidBtn, markingPaid && { opacity: 0.5 }]}
+                          onPress={() => markAsPaid(order)}
+                          disabled={markingPaid}
+                          activeOpacity={0.8}>
+                          <CheckCircle size={13} color="#fff" />
+                          <Text style={styles.markPaidBtnText}>Mark as Paid</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                    <Text style={styles.transferRefValue}>
+                      {order.transfer_reference || 'Not provided by customer'}
+                    </Text>
+                  </View>
+                )}
+
                 <View style={styles.timelineSection}>
                   <Text style={styles.timelineTitle}>Timeline</Text>
                   <View style={styles.timelineList}>
@@ -686,6 +741,37 @@ export default function AdminOrders() {
                   </View>
                   <Text style={styles.editSummaryTotal}>₦{selectedOrder.total.toLocaleString()}</Text>
                 </View>
+              )}
+
+              {selectedOrder?.payment_method === 'transfer' && (
+                <>
+                  <Text style={styles.modalSectionLabel}>Transfer Payment</Text>
+                  <View style={styles.modalTransferRefBox}>
+                    <Text style={styles.modalTransferRefLabel}>Customer Ref:</Text>
+                    <Text style={styles.modalTransferRefValue}>
+                      {selectedOrder.transfer_reference || 'Not provided'}
+                    </Text>
+                    {selectedOrder.payment_status !== 'completed' && (
+                      <TouchableOpacity
+                        style={[styles.modalMarkPaidBtn, markingPaid && { opacity: 0.5 }]}
+                        onPress={() => {
+                          markAsPaid(selectedOrder);
+                          setEditModalVisible(false);
+                        }}
+                        disabled={markingPaid}
+                        activeOpacity={0.8}>
+                        <CheckCircle size={14} color="#fff" />
+                        <Text style={styles.modalMarkPaidBtnText}>Mark as Paid & Notify Customer</Text>
+                      </TouchableOpacity>
+                    )}
+                    {selectedOrder.payment_status === 'completed' && (
+                      <View style={styles.modalPaidConfirmed}>
+                        <CheckCircle size={14} color="#059669" />
+                        <Text style={styles.modalPaidConfirmedText}>Payment confirmed</Text>
+                      </View>
+                    )}
+                  </View>
+                </>
               )}
 
               <Text style={styles.modalSectionLabel}>Order Status</Text>
@@ -1059,6 +1145,113 @@ const styles = StyleSheet.create({
   },
   notesLabel: { fontSize: 11, fontFamily: Fonts.bold, color: '#92400e', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
   notesText: { fontSize: 13, fontFamily: Fonts.regular, color: '#78350f', lineHeight: 18 },
+
+  transferRefBox: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: '#fff7ed',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+  },
+  transferRefHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  transferRefLabel: {
+    fontSize: 11,
+    fontFamily: Fonts.bold,
+    color: '#92400e',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  transferRefValue: {
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
+    color: '#1a1a1a',
+    letterSpacing: 0.3,
+  },
+  paidBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#d1fae5',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  paidBadgeText: {
+    fontSize: 11,
+    fontFamily: Fonts.bold,
+    color: '#059669',
+  },
+  markPaidBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#f97316',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  markPaidBtnText: {
+    fontSize: 11,
+    fontFamily: Fonts.bold,
+    color: '#ffffff',
+  },
+  modalTransferRefBox: {
+    backgroundColor: '#fff7ed',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+    gap: 8,
+  },
+  modalTransferRefLabel: {
+    fontSize: 12,
+    fontFamily: Fonts.semiBold,
+    color: '#92400e',
+  },
+  modalTransferRefValue: {
+    fontSize: 15,
+    fontFamily: Fonts.bold,
+    color: '#1a1a1a',
+    letterSpacing: 0.3,
+  },
+  modalMarkPaidBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#059669',
+    paddingVertical: 12,
+    borderRadius: 10,
+    marginTop: 4,
+  },
+  modalMarkPaidBtnText: {
+    fontSize: 14,
+    fontFamily: Fonts.bold,
+    color: '#ffffff',
+  },
+  modalPaidConfirmed: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#d1fae5',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginTop: 4,
+  },
+  modalPaidConfirmedText: {
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
+    color: '#059669',
+  },
 
   timelineSection: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4 },
   timelineTitle: { fontSize: 12, fontFamily: Fonts.bold, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 },

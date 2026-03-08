@@ -21,7 +21,8 @@ export type EmailTemplate =
   | 'logistics_order_confirmed'
   | 'logistics_out_for_delivery'
   | 'logistics_order_delivered'
-  | 'logistics_order_cancelled';
+  | 'logistics_order_cancelled'
+  | 'logistics_payment_received';
 
 export interface EmailData {
   customerName?: string;
@@ -177,5 +178,18 @@ export async function sendLogisticsOrderStatusEmail(
     pickupAddress: order.pickupAddress,
     deliveryAddress: order.deliveryAddress,
     recipientName: order.recipientName,
+  });
+}
+
+export async function sendLogisticsPaymentReceivedEmail(order: {
+  orderNumber: string;
+  customerEmail: string;
+  customerName: string;
+  totalAmount: number;
+}) {
+  return sendTransactionalEmail('logistics_payment_received', order.customerEmail, {
+    customerName: order.customerName,
+    orderNumber: order.orderNumber,
+    totalAmount: order.totalAmount,
   });
 }
