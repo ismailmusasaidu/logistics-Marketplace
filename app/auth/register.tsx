@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { Link, router } from 'expo-router';
+import * as Linking from 'expo-linking';
 import { coreBackend } from '@/lib/coreBackend';
 import { UserRole } from '@/types/database';
 import { Fonts } from '@/constants/fonts';
@@ -106,11 +107,8 @@ export default function RegisterScreen() {
       if (Platform.OS === 'web' && typeof window !== 'undefined') {
         emailRedirectTo = `${window.location.origin}/auth/confirm`;
       } else {
-        emailRedirectTo = 'myapp://auth/confirm';
+        emailRedirectTo = Linking.createURL('/auth/confirm');
       }
-
-      console.log('[Register] Platform:', Platform.OS);
-      console.log('[Register] emailRedirectTo (confirm email):', emailRedirectTo);
 
       const { data: authData, error: authError } = await coreBackend.auth.signUp({
         email,
