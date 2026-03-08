@@ -165,11 +165,12 @@ Deno.serve(async (req: Request) => {
 
       if (otherZones.length > 0) {
         const ranked = await rankZonesByDistance(order.pickup_address, otherZones);
-        orderedZones = orderedZones.concat(ranked.map(r => r.zone));
+        const rankedZones = ranked.length > 0 ? ranked.map(r => r.zone) : otherZones;
+        orderedZones = orderedZones.concat(rankedZones);
       }
     } else {
       const ranked = await rankZonesByDistance(order.pickup_address, allZones);
-      orderedZones = ranked.map(r => r.zone);
+      orderedZones = ranked.length > 0 ? ranked.map(r => r.zone) : allZones;
     }
 
     if (orderedZones.length === 0) {

@@ -150,24 +150,14 @@ Deno.serve(async (req: Request) => {
 
       if (otherZones.length > 0) {
         const ranked = await rankZonesByDistance(order.pickup_address, otherZones);
-        orderedZones = orderedZones.concat(ranked.map(r => r.zone));
+        const rankedZones = ranked.length > 0 ? ranked.map(r => r.zone) : otherZones;
+        orderedZones = orderedZones.concat(rankedZones);
       }
     } else {
       // No zone set — rank all zones by distance
       console.log('No zone assigned, ranking all zones by distance...');
       const ranked = await rankZonesByDistance(order.pickup_address, allZones);
-
-      if (ranked.length === 0) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            message: 'Could not determine closest zone. Please check Google Maps API configuration.',
-          }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      orderedZones = ranked.map(r => r.zone);
+      orderedZones = ranked.length > 0 ? ranked.map(r => r.zone) : allZones;
 
       // Persist the closest zone on the order
       const closestZoneId = orderedZones[0].id;
