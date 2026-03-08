@@ -253,7 +253,8 @@ export default function AdminPricing() {
   };
 
   const handleSaveOrderSize = async () => {
-    if (!osLabel.trim() || !osFee) { showToast('Please fill in the label and fee', 'error'); return; }
+    if (!osLabel.trim()) { showToast('Please fill in the label', 'error'); return; }
+    if (osFee === '' || osFee === undefined) { showToast('Please enter a fee amount (use 0 for free)', 'error'); return; }
     const numFee = parseFloat(osFee);
     if (isNaN(numFee) || numFee < 0) { showToast('Invalid fee amount', 'error'); return; }
     if (!editingOrderSize) { showToast('No size selected to edit', 'error'); return; }
@@ -263,6 +264,7 @@ export default function AdminPricing() {
         description: osDescription.trim() || null,
         additional_fee: numFee,
         is_active: osActive,
+        updated_at: new Date().toISOString(),
       }).eq('id', editingOrderSize.id);
       if (error) throw error;
       showToast('Order size updated', 'success');
@@ -272,8 +274,11 @@ export default function AdminPricing() {
   };
 
   const handleToggleOrderSize = async (item: OrderSizePricing) => {
-    const { error } = await supabase.from('order_size_pricing').update({ is_active: !item.is_active }).eq('id', item.id);
-    if (!error) loadOrderSizePricing();
+    try {
+      const { error } = await supabase.from('order_size_pricing').update({ is_active: !item.is_active, updated_at: new Date().toISOString() }).eq('id', item.id);
+      if (error) throw error;
+      loadOrderSizePricing();
+    } catch (err: any) { showToast(err.message || 'Failed to update', 'error'); }
   };
 
   const openEditOrderSize = (item: OrderSizePricing) => {
