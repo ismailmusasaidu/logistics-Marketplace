@@ -106,7 +106,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select('id, pickup_zone_id, pickup_address, assignment_status, assigned_rider_id')
+      .select('id, pickup_zone_id, pickup_address, assignment_status, assigned_rider_id, rejected_rider_ids')
       .eq('id', order_id)
       .maybeSingle();
 
@@ -169,11 +169,13 @@ Deno.serve(async (req: Request) => {
       console.log(`Updated order ${order_id} with closest zone: ${orderedZones[0].name}`);
     }
 
+    const excludeRiderIds: string[] = order.rejected_rider_ids || [];
+
     // Try each zone in distance order until a rider is found
     for (const zone of orderedZones) {
-      console.log(`Searching for riders in zone: ${zone.name} (${zone.id})`);
+      console.log(`Searching for riders in zone: ${zone.name} (${zone.id}), excluding ${excludeRiderIds.length} rejected rider(s)`);
 
-      const { data: riders, error: ridersError } = await supabase
+      let query = supabase
         .from('riders')
         .select('id, active_orders, zone_id')
         .eq('status', 'online')
@@ -181,6 +183,12 @@ Deno.serve(async (req: Request) => {
         .lt('active_orders', 10)
         .order('active_orders', { ascending: true })
         .limit(1);
+
+      if (excludeRiderIds.length > 0) {
+        query = query.not('id', 'in', `(${excludeRiderIds.join(',')})`);
+      }
+
+      const { data: riders, error: ridersError } = await query;
 
       if (ridersError) {
         console.error(`Error fetching riders for zone ${zone.name}:`, ridersError);
