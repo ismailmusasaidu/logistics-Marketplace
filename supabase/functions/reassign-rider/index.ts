@@ -8,6 +8,7 @@ const corsHeaders = {
 
 interface ReassignRiderRequest {
   order_id: string;
+  rejecting_rider_id?: string;
   reason?: string;
 }
 
@@ -96,7 +97,7 @@ Deno.serve(async (req: Request) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { order_id, reason }: ReassignRiderRequest = await req.json();
+    const { order_id, rejecting_rider_id, reason }: ReassignRiderRequest = await req.json();
 
     if (!order_id) {
       return new Response(
@@ -125,15 +126,18 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Build the full exclusion list: all riders who have previously rejected + current assigned rider
+    // Build the full exclusion list: all riders who have previously rejected + current/rejecting rider
     const previouslyRejected: string[] = order.rejected_rider_ids || [];
     const currentAssigned = order.assigned_rider_id;
-    const excludeRiderIds = currentAssigned
-      ? [...new Set([...previouslyRejected, currentAssigned])]
+    // Use assigned_rider_id if set, otherwise fall back to the rejecting_rider_id sent by the client
+    // (the timeout trigger may have already cleared assigned_rider_id before the rider taps reject)
+    const rejectingRider = currentAssigned || rejecting_rider_id || null;
+    const excludeRiderIds = rejectingRider
+      ? [...new Set([...previouslyRejected, rejectingRider])]
       : previouslyRejected;
 
     // Persist the updated rejected list before searching for a new rider
-    if (currentAssigned && !previouslyRejected.includes(currentAssigned)) {
+    if (rejectingRider && !previouslyRejected.includes(rejectingRider)) {
       await supabase
         .from('orders')
         .update({ rejected_rider_ids: excludeRiderIds })

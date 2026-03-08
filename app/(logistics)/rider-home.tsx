@@ -422,6 +422,7 @@ export default function RiderHome() {
         },
         body: JSON.stringify({
           order_id: orderId,
+          rejecting_rider_id: riderId,
           reason: 'Rider rejected the assignment',
         }),
       });
