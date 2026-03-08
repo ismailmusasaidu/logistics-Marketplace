@@ -7,47 +7,40 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { CircleCheck as CheckCircle } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-function extractParamsFromUrl(url: string): Record<string, string> {
-  const params: Record<string, string> = {};
+async function tryEstablishSession(url: string): Promise<boolean> {
   try {
-    const hashIndex = url.indexOf('#');
-    if (hashIndex !== -1) {
-      const hash = url.substring(hashIndex + 1);
-      hash.split('&').forEach((pair) => {
-        const [key, value] = pair.split('=');
-        if (key && value) {
-          params[decodeURIComponent(key)] = decodeURIComponent(value);
-        }
+    const hashParams = new URLSearchParams(url.includes('#') ? url.split('#')[1] : '');
+    const queryParams = new URLSearchParams(url.includes('?') ? url.split('?')[1].split('#')[0] : '');
+
+    const tokenHash = hashParams.get('token_hash') || queryParams.get('token_hash');
+    const type = hashParams.get('type') || queryParams.get('type');
+    const accessToken = hashParams.get('access_token') || queryParams.get('access_token');
+    const refreshToken = hashParams.get('refresh_token') || queryParams.get('refresh_token');
+    const errorParam = hashParams.get('error') || queryParams.get('error');
+
+    if (errorParam) return false;
+
+    if (tokenHash && (type === 'recovery' || type === 'email')) {
+      const { error } = await coreBackend.auth.verifyOtp({
+        token_hash: tokenHash,
+        type: 'recovery',
       });
+      return !error;
     }
-    const queryIndex = url.indexOf('?');
-    if (queryIndex !== -1) {
-      const queryEnd = hashIndex !== -1 ? hashIndex : url.length;
-      const query = url.substring(queryIndex + 1, queryEnd);
-      query.split('&').forEach((pair) => {
-        const [key, value] = pair.split('=');
-        if (key && value) {
-          params[decodeURIComponent(key)] = decodeURIComponent(value);
-        }
+
+    if (accessToken && refreshToken && type === 'recovery') {
+      const { error } = await coreBackend.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken,
       });
+      return !error;
+    }
+
+    if (accessToken && refreshToken) {
+      const { data: { session } } = await coreBackend.auth.getSession();
+      return !!session;
     }
   } catch {}
-  return params;
-}
-
-async function trySetSessionFromUrl(url: string): Promise<boolean> {
-  const params = extractParamsFromUrl(url);
-  const type = params['type'];
-  const accessToken = params['access_token'];
-  const refreshToken = params['refresh_token'];
-
-  if (type === 'recovery' && accessToken && refreshToken) {
-    const { error } = await coreBackend.auth.setSession({
-      access_token: accessToken,
-      refresh_token: refreshToken,
-    });
-    return !error;
-  }
   return false;
 }
 
@@ -65,35 +58,16 @@ export default function ResetPasswordScreen() {
     let mounted = true;
 
     const initialize = async () => {
-      if (Platform.OS === 'web' && typeof window !== 'undefined') {
-        const hash = window.location.hash || window.location.search;
-        console.log('[ResetPassword] Platform: web');
-        console.log('[ResetPassword] window.location.href:', window.location.href);
-        console.log('[ResetPassword] hash/search:', hash);
-        if (hash) {
-          if (hash.includes('error=')) {
-            if (mounted) setChecking(false);
-            return;
-          }
-          const fakeUrl = `https://placeholder${hash}`;
-          const ok = await trySetSessionFromUrl(fakeUrl);
-          if (mounted && ok) {
-            setIsValidSession(true);
-            setChecking(false);
-            return;
-          }
-        }
-      } else {
-        const initialUrl = await Linking.getInitialURL();
-        console.log('[ResetPassword] Platform:', Platform.OS);
-        console.log('[ResetPassword] initialUrl:', initialUrl);
-        if (initialUrl) {
-          const ok = await trySetSessionFromUrl(initialUrl);
-          if (mounted && ok) {
-            setIsValidSession(true);
-            setChecking(false);
-            return;
-          }
+      const currentUrl = Platform.OS === 'web' && typeof window !== 'undefined'
+        ? window.location.href
+        : await Linking.getInitialURL();
+
+      if (currentUrl) {
+        const ok = await tryEstablishSession(currentUrl);
+        if (mounted && ok) {
+          setIsValidSession(true);
+          setChecking(false);
+          return;
         }
       }
 
@@ -104,24 +78,22 @@ export default function ResetPasswordScreen() {
         return;
       }
 
-      if (mounted) {
-        setChecking(false);
-      }
+      if (mounted) setChecking(false);
     };
-
-    initialize();
 
     const { data: { subscription } } = coreBackend.auth.onAuthStateChange((event, session) => {
       if (!mounted) return;
-      if ((event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') && session) {
+      if (event === 'PASSWORD_RECOVERY' && session) {
         setIsValidSession(true);
         setChecking(false);
       }
     });
 
+    initialize();
+
     const linkingSub = Linking.addEventListener('url', async ({ url }) => {
       if (!mounted) return;
-      const ok = await trySetSessionFromUrl(url);
+      const ok = await tryEstablishSession(url);
       if (ok) {
         setIsValidSession(true);
         setChecking(false);
@@ -130,7 +102,7 @@ export default function ResetPasswordScreen() {
 
     const timer = setTimeout(() => {
       if (mounted) setChecking(false);
-    }, 5000);
+    }, 6000);
 
     return () => {
       mounted = false;
@@ -145,12 +117,10 @@ export default function ResetPasswordScreen() {
       setError('Please fill in all fields');
       return;
     }
-
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       return;
     }
-
     if (password.length < 6) {
       setError('Password must be at least 6 characters');
       return;
@@ -160,16 +130,10 @@ export default function ResetPasswordScreen() {
     setError('');
 
     try {
-      const { error: updateError } = await coreBackend.auth.updateUser({
-        password: password,
-      });
-
+      const { error: updateError } = await coreBackend.auth.updateUser({ password });
       if (updateError) throw updateError;
-
       setSuccess(true);
-      setTimeout(() => {
-        router.replace('/auth/login');
-      }, 2000);
+      setTimeout(() => router.replace('/auth/login'), 2000);
     } catch (err: any) {
       setError(err.message || 'Failed to reset password');
     } finally {
@@ -179,10 +143,7 @@ export default function ResetPasswordScreen() {
 
   if (checking) {
     return (
-      <LinearGradient
-        colors={['#ff8c00', '#ff6b00', '#ff4500']}
-        style={styles.container}
-      >
+      <LinearGradient colors={['#ff8c00', '#ff6b00', '#ff4500']} style={styles.container}>
         <View style={[styles.content, { paddingTop: insets.top }]}>
           <ActivityIndicator size="large" color="#ffffff" />
           <Text style={styles.checkingText}>Verifying reset link...</Text>
@@ -193,10 +154,7 @@ export default function ResetPasswordScreen() {
 
   if (!isValidSession) {
     return (
-      <LinearGradient
-        colors={['#ff8c00', '#ff6b00', '#ff4500']}
-        style={styles.container}
-      >
+      <LinearGradient colors={['#ff8c00', '#ff6b00', '#ff4500']} style={styles.container}>
         <View style={[styles.content, { paddingTop: insets.top }]}>
           <View style={styles.errorContainer}>
             <Text style={styles.errorTitle}>Invalid or Expired Link</Text>
@@ -217,23 +175,15 @@ export default function ResetPasswordScreen() {
 
   if (success) {
     return (
-      <LinearGradient
-        colors={['#ff8c00', '#ff6b00', '#ff4500']}
-        style={styles.container}
-      >
+      <LinearGradient colors={['#ff8c00', '#ff6b00', '#ff4500']} style={styles.container}>
         <View style={[styles.content, { paddingTop: insets.top }]}>
           <View style={styles.successContainer}>
             <View style={styles.iconContainer}>
               <CheckCircle size={64} color="#ffffff" strokeWidth={2} />
             </View>
-
             <Text style={styles.successTitle}>Password Reset!</Text>
-            <Text style={styles.successMessage}>
-              Your password has been successfully reset
-            </Text>
-            <Text style={styles.successSubtext}>
-              Redirecting to sign in...
-            </Text>
+            <Text style={styles.successMessage}>Your password has been successfully reset</Text>
+            <Text style={styles.successSubtext}>Redirecting to sign in...</Text>
           </View>
         </View>
       </LinearGradient>
@@ -241,15 +191,10 @@ export default function ResetPasswordScreen() {
   }
 
   return (
-    <LinearGradient
-      colors={['#ff8c00', '#ff6b00', '#ff4500']}
-      style={styles.container}
-    >
+    <LinearGradient colors={['#ff8c00', '#ff6b00', '#ff4500']} style={styles.container}>
       <View style={styles.content}>
         <Text style={styles.title}>Set New Password</Text>
-        <Text style={styles.subtitle}>
-          Please enter your new password
-        </Text>
+        <Text style={styles.subtitle}>Please enter your new password</Text>
 
         <View style={styles.form}>
           {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -291,9 +236,7 @@ export default function ResetPasswordScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   content: {
     flex: 1,
     justifyContent: 'center',
