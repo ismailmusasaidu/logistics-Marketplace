@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Tabs, router } from 'expo-router';
 import { Package, User, LayoutDashboard, Bike, Users, DollarSign, Headphones, ArrowLeft } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
-import { Platform } from 'react-native';
+import { Platform, View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Fonts } from '@/constants/fonts';
 
@@ -29,7 +29,11 @@ export default function TabLayout() {
   }, [profile]);
 
   if (!profile) {
-    return null;
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#f97316" />
+      </View>
+    );
   }
 
   if (profile.role === 'customer') {
@@ -286,3 +290,12 @@ export default function TabLayout() {
 
   return null;
 }
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+  },
+});

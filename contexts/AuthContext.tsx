@@ -66,7 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (session?.user) {
         setSession(session);
         setUser(session.user);
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        if (event === 'TOKEN_REFRESHED') {
           (async () => {
             await loadProfile(session.user.id);
           })();
