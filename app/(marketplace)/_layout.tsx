@@ -1,5 +1,5 @@
 import { Tabs, router } from 'expo-router';
-import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Platform, TouchableOpacity } from 'react-native';
 import { Hop as Home, Package, Users, User, ArrowLeft } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffect } from 'react';
@@ -69,13 +69,12 @@ export default function TabLayout() {
         options={{
           title: 'Hub',
           tabBarIcon: ({ size }) => <ArrowLeft size={size} color="#94a3b8" />,
-          href: isVendor ? null : '/(marketplace)/back-to-hub',
-        }}
-        listeners={{
-          tabPress: (e) => {
-            e.preventDefault();
-            router.navigate('/hub');
-          },
+          tabBarButton: (props) => (
+            <TouchableOpacity
+              {...props}
+              onPress={() => router.navigate('/hub')}
+            />
+          ),
         }}
       />
 
