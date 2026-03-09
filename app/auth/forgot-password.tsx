@@ -71,7 +71,7 @@ export default function ForgotPasswordScreen() {
       if (Platform.OS === 'web' && typeof window !== 'undefined') {
         redirectTo = `${window.location.origin}/auth/reset-password`;
       } else {
-        redirectTo = 'danhausa://auth/reset-password';
+        redirectTo = 'https://uutsoqjcbsiplwhkgstz.supabase.co/functions/v1/password-reset-redirect';
       }
 
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
