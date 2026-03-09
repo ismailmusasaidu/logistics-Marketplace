@@ -7,38 +7,41 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { CircleCheck as CheckCircle } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+function parseUrlParams(url: string) {
+  const hashStr = url.includes('#') ? url.split('#')[1] : '';
+  const queryStr = url.includes('?') ? url.split('?')[1]?.split('#')[0] : '';
+  const hash = new URLSearchParams(hashStr);
+  const query = new URLSearchParams(queryStr);
+  const get = (key: string) => hash.get(key) || query.get(key) || null;
+  return {
+    tokenHash: get('token_hash'),
+    type: get('type'),
+    accessToken: get('access_token'),
+    refreshToken: get('refresh_token'),
+    error: get('error'),
+  };
+}
+
 async function tryEstablishSession(url: string): Promise<boolean> {
   try {
-    const hashParams = new URLSearchParams(url.includes('#') ? url.split('#')[1] : '');
-    const queryParams = new URLSearchParams(url.includes('?') ? url.split('?')[1].split('#')[0] : '');
+    const { tokenHash, type, accessToken, refreshToken, error } = parseUrlParams(url);
 
-    const tokenHash = hashParams.get('token_hash') || queryParams.get('token_hash');
-    const type = hashParams.get('type') || queryParams.get('type');
-    const accessToken = hashParams.get('access_token') || queryParams.get('access_token');
-    const refreshToken = hashParams.get('refresh_token') || queryParams.get('refresh_token');
-    const errorParam = hashParams.get('error') || queryParams.get('error');
+    if (error) return false;
 
-    if (errorParam) return false;
-
-    if (tokenHash && (type === 'recovery' || type === 'email')) {
-      const { error } = await coreBackend.auth.verifyOtp({
-        token_hash: tokenHash,
-        type: 'recovery',
-      });
-      return !error;
-    }
-
-    if (accessToken && refreshToken && type === 'recovery') {
-      const { error } = await coreBackend.auth.setSession({
+    if (accessToken && refreshToken) {
+      const { error: sessionError } = await coreBackend.auth.setSession({
         access_token: accessToken,
         refresh_token: refreshToken,
       });
-      return !error;
+      if (!sessionError) return true;
     }
 
-    if (accessToken && refreshToken) {
-      const { data: { session } } = await coreBackend.auth.getSession();
-      return !!session;
+    if (tokenHash) {
+      const { error: otpError } = await coreBackend.auth.verifyOtp({
+        token_hash: tokenHash,
+        type: (type === 'recovery' ? 'recovery' : 'recovery') as 'recovery',
+      });
+      return !otpError;
     }
   } catch {}
   return false;
