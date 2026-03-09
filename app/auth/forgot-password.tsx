@@ -68,10 +68,11 @@ export default function ForgotPasswordScreen() {
 
     try {
       let redirectTo: string;
+      const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
       if (Platform.OS === 'web' && typeof window !== 'undefined') {
-        redirectTo = `${window.location.origin}/auth/reset-password`;
+        const webUrl = encodeURIComponent(`${window.location.origin}/auth/reset-password`);
+        redirectTo = `https://uutsoqjcbsiplwhkgstz.supabase.co/functions/v1/password-reset-redirect?apikey=${anonKey}&web_url=${webUrl}`;
       } else {
-        const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
         redirectTo = `https://uutsoqjcbsiplwhkgstz.supabase.co/functions/v1/password-reset-redirect?apikey=${anonKey}`;
       }
 

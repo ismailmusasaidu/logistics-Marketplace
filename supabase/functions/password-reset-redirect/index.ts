@@ -19,6 +19,7 @@ Deno.serve(async (req: Request) => {
     const token = url.searchParams.get("token");
     const tokenHash = url.searchParams.get("token_hash");
     const type = url.searchParams.get("type");
+    const webUrl = url.searchParams.get("web_url");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -49,6 +50,15 @@ Deno.serve(async (req: Request) => {
 
     const { access_token, refresh_token } = data.session;
     const deepLinkPath = `/auth/reset-password#access_token=${access_token}&refresh_token=${refresh_token}&type=recovery`;
+
+    if (webUrl) {
+      const decodedWebUrl = decodeURIComponent(webUrl);
+      const webRedirect = `${decodedWebUrl}#access_token=${access_token}&refresh_token=${refresh_token}&type=recovery`;
+      return new Response(null, {
+        status: 302,
+        headers: { ...corsHeaders, Location: webRedirect },
+      });
+    }
 
     const appDeepLink = `${APP_SCHEME}:/${deepLinkPath}`;
     const expoGoDeepLink = `${EXPO_GO_SCHEME}://u.expo.dev/--${deepLinkPath}`;
