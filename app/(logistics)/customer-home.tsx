@@ -928,7 +928,52 @@ export default function CustomerHome() {
                   </View>
                 )}
 
-                {order.notes && (
+                {(order.recipient_name || order.recipient_phone || order.package_description || order.order_size) ? (
+                  <View style={styles.notesCard}>
+                    <View style={styles.notesCardHeader}>
+                      <Package size={13} color="#f97316" />
+                      <Text style={styles.notesCardTitle}>Package Info{order.bulk_order_id ? ' (Bulk)' : ''}</Text>
+                    </View>
+                    {order.recipient_name ? (
+                      <View style={styles.notesInfoRow}>
+                        <Text style={styles.notesInfoLabel}>Recipient</Text>
+                        <Text style={styles.notesInfoValue}>{order.recipient_name}</Text>
+                      </View>
+                    ) : null}
+                    {order.recipient_phone ? (
+                      <View style={styles.notesInfoRow}>
+                        <Text style={styles.notesInfoLabel}>Phone</Text>
+                        <Text style={styles.notesInfoValue}>{order.recipient_phone}</Text>
+                      </View>
+                    ) : null}
+                    {order.package_description ? (
+                      <View style={styles.notesInfoRow}>
+                        <Text style={styles.notesInfoLabel}>Package</Text>
+                        <Text style={styles.notesInfoValue}>{order.package_description}</Text>
+                      </View>
+                    ) : null}
+                    {order.order_size ? (
+                      <View style={styles.notesInfoRow}>
+                        <Text style={styles.notesInfoLabel}>Size</Text>
+                        <Text style={[styles.notesInfoValue, styles.sizeBadgeText]}>
+                          {order.order_size.charAt(0).toUpperCase() + order.order_size.slice(1)}
+                        </Text>
+                      </View>
+                    ) : null}
+                    {order.order_types && order.order_types.length > 0 ? (
+                      <View style={styles.notesInfoRow}>
+                        <Text style={styles.notesInfoLabel}>Type</Text>
+                        <Text style={styles.notesInfoValue}>{order.order_types.join(', ')}</Text>
+                      </View>
+                    ) : null}
+                    {order.notes && !order.recipient_name && parseOrderNotes(order.notes).map((item, i) => (
+                      <View key={i} style={styles.notesInfoRow}>
+                        <Text style={styles.notesInfoLabel}>{item.label}</Text>
+                        <Text style={styles.notesInfoValue}>{item.value}</Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : order.notes ? (
                   <View style={styles.notesCard}>
                     <View style={styles.notesCardHeader}>
                       <Package size={13} color="#f97316" />
@@ -941,7 +986,7 @@ export default function CustomerHome() {
                       </View>
                     ))}
                   </View>
-                )}
+                ) : null}
 
                 <View style={styles.orderCardFooter}>
                   <View style={styles.feeBox}>
@@ -1092,6 +1137,43 @@ export default function CustomerHome() {
                             <Text style={styles.historyFee}>₦{order.delivery_fee.toLocaleString('en-NG')}</Text>
                           </View>
                         </View>
+
+                        {(order.recipient_name || order.recipient_phone || order.package_description || order.order_size) ? (
+                          <View style={styles.historyPackageInfo}>
+                            <View style={styles.historyPackageHeader}>
+                              <Package size={12} color="#f97316" />
+                              <Text style={styles.historyPackageTitle}>Package Info{order.bulk_order_id ? ' (Bulk)' : ''}</Text>
+                            </View>
+                            <View style={styles.historyPackageRows}>
+                              {order.recipient_name ? (
+                                <View style={styles.historyPackageRow}>
+                                  <User size={11} color="#9ca3af" />
+                                  <Text style={styles.historyPackageText}>{order.recipient_name}</Text>
+                                </View>
+                              ) : null}
+                              {order.recipient_phone ? (
+                                <View style={styles.historyPackageRow}>
+                                  <Phone size={11} color="#9ca3af" />
+                                  <Text style={styles.historyPackageText}>{order.recipient_phone}</Text>
+                                </View>
+                              ) : null}
+                              {order.package_description ? (
+                                <View style={styles.historyPackageRow}>
+                                  <Package size={11} color="#9ca3af" />
+                                  <Text style={styles.historyPackageText} numberOfLines={1}>{order.package_description}</Text>
+                                </View>
+                              ) : null}
+                              {order.order_size ? (
+                                <View style={styles.historyPackageRow}>
+                                  <Layers size={11} color="#9ca3af" />
+                                  <Text style={styles.historyPackageText}>
+                                    {order.order_size.charAt(0).toUpperCase() + order.order_size.slice(1)}
+                                  </Text>
+                                </View>
+                              ) : null}
+                            </View>
+                          </View>
+                        ) : null}
 
                         <View style={styles.historyCardFooter}>
                           <TouchableOpacity
@@ -1803,6 +1885,45 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.poppinsMedium,
     color: '#111827',
     flexWrap: 'wrap',
+  },
+  sizeBadgeText: {
+    color: '#f97316',
+    fontFamily: Fonts.poppinsSemiBold,
+  },
+  historyPackageInfo: {
+    backgroundColor: '#fff7ed',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+  },
+  historyPackageHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 6,
+  },
+  historyPackageTitle: {
+    fontSize: 10,
+    fontFamily: Fonts.poppinsBold,
+    color: '#f97316',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  historyPackageRows: {
+    gap: 4,
+  },
+  historyPackageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  historyPackageText: {
+    fontSize: 12,
+    fontFamily: Fonts.poppinsMedium,
+    color: '#374151',
+    flex: 1,
   },
   orderCardFooter: {
     flexDirection: 'row',

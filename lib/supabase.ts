@@ -58,4 +58,10 @@ export type Order = {
   assigned_rider_id: string | null;
   pickup_address: string | null;
   order_source: string | null;
+  recipient_name: string | null;
+  recipient_phone: string | null;
+  package_description: string | null;
+  order_size: string | null;
+  bulk_order_id: string | null;
+  order_types: string[] | null;
 };
