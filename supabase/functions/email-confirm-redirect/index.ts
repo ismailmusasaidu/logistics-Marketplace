@@ -7,7 +7,6 @@ const corsHeaders = {
 };
 
 const APP_SCHEME = "danhausa";
-const EXPO_GO_SCHEME = "exp";
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -16,9 +15,9 @@ Deno.serve(async (req: Request) => {
 
   try {
     const url = new URL(req.url);
-    const token = url.searchParams.get("token");
     const tokenHash = url.searchParams.get("token_hash");
-    const type = url.searchParams.get("type");
+    const token = url.searchParams.get("token");
+    const type = url.searchParams.get("type") || "email";
     const webUrl = url.searchParams.get("web_url");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -29,31 +28,33 @@ Deno.serve(async (req: Request) => {
 
     const resolvedToken = tokenHash || token;
 
-    if (!resolvedToken || type !== "recovery") {
-      return new Response(buildErrorPage("Invalid or missing reset token."), {
+    if (!resolvedToken) {
+      return new Response(buildErrorPage("Invalid or missing confirmation token."), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "text/html" },
       });
     }
 
+    const otpType = type === "recovery" ? "recovery" : "email";
+
     const { data, error } = await supabase.auth.verifyOtp({
       token_hash: resolvedToken,
-      type: "recovery",
+      type: otpType as "email" | "recovery",
     });
 
     if (error || !data.session) {
-      return new Response(buildErrorPage("This password reset link has expired or already been used. Please request a new one."), {
+      return new Response(buildErrorPage("This confirmation link has expired or already been used. Please request a new one."), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "text/html" },
       });
     }
 
     const { access_token, refresh_token } = data.session;
-    const deepLinkPath = `/auth/reset-password#access_token=${access_token}&refresh_token=${refresh_token}&type=recovery`;
+    const deepLinkPath = `/auth/confirm#access_token=${access_token}&refresh_token=${refresh_token}&type=${otpType}`;
 
     if (webUrl) {
       const decodedWebUrl = decodeURIComponent(webUrl);
-      const webRedirect = `${decodedWebUrl}#access_token=${access_token}&refresh_token=${refresh_token}&type=recovery`;
+      const webRedirect = `${decodedWebUrl}#access_token=${access_token}&refresh_token=${refresh_token}&type=${otpType}`;
       return new Response(null, {
         status: 302,
         headers: { ...corsHeaders, Location: webRedirect },
@@ -61,33 +62,31 @@ Deno.serve(async (req: Request) => {
     }
 
     const appDeepLink = `${APP_SCHEME}:/${deepLinkPath}`;
-    const expoGoDeepLink = `${EXPO_GO_SCHEME}://u.expo.dev/--${deepLinkPath}`;
 
-    return new Response(buildRedirectPage(appDeepLink, expoGoDeepLink), {
+    return new Response(buildRedirectPage(appDeepLink), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "text/html" },
     });
   } catch (err) {
-    return new Response(buildErrorPage("Something went wrong. Please request a new reset link."), {
+    return new Response(buildErrorPage("Something went wrong. Please try again."), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "text/html" },
     });
   }
 });
 
-function buildRedirectPage(appDeepLink: string, _expoGoDeepLink: string): string {
-  const deepPath = appDeepLink.replace(`${APP_SCHEME}:/`, "");
+function buildRedirectPage(appDeepLink: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Opening Danhausa...</title>
+  <title>Email Confirmed - Danhausa</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #ff8c00, #ff4500);
+      background: linear-gradient(135deg, #1a1a1a, #3d2200);
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -101,11 +100,11 @@ function buildRedirectPage(appDeepLink: string, _expoGoDeepLink: string): string
       max-width: 400px;
       width: 100%;
       text-align: center;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
     }
     .icon {
       width: 72px; height: 72px;
-      background: #fff7ed;
+      background: #f0fdf4;
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -157,39 +156,34 @@ function buildRedirectPage(appDeepLink: string, _expoGoDeepLink: string): string
       vertical-align: middle;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .status { font-size: 13px; color: #9ca3af; margin-top: 16px; }
   </style>
 </head>
 <body>
   <div class="card">
-    <div class="icon">🔐</div>
-    <h1>Reset Your Password</h1>
-    <p>Opening the Danhausa app to let you set a new password...</p>
+    <div class="icon">✅</div>
+    <h1>Email Confirmed!</h1>
+    <p>Your email has been verified. Opening the Danhausa app...</p>
     <a href="${appDeepLink}" class="btn" id="openBtn">
       <span class="spinner"></span> Opening App...
     </a>
-    <p class="status" id="status">If the app doesn't open automatically, tap the button above.</p>
     <div class="expogo-section">
-      <p class="expogo-label">Testing with Expo Go? Enter your computer's local IP:</p>
+      <p class="expogo-label">Testing with Expo Go? Enter your local IP:</p>
       <input class="expogo-input" id="ipInput" placeholder="e.g. 192.168.1.5" />
       <button class="btn btn-secondary" onclick="openExpoGo()">Open in Expo Go</button>
     </div>
   </div>
   <script>
-    (function() {
-      var appLink = "${appDeepLink}";
-      var deepPath = "${deepPath}";
-      window.location.href = appLink;
-      setTimeout(function() {
-        document.getElementById('openBtn').textContent = 'Open Danhausa App';
-        document.getElementById('status').textContent = 'App did not open automatically. Tap the button above.';
-      }, 2500);
-      window.openExpoGo = function() {
-        var ip = document.getElementById('ipInput').value.trim();
-        if (!ip) { alert('Please enter your local IP address'); return; }
-        window.location.href = 'exp://' + ip + ':8081/--' + deepPath;
-      };
-    })();
+    var appLink = "${appDeepLink}";
+    var deepPath = appLink.replace("${APP_SCHEME}:/", "");
+    window.location.href = appLink;
+    setTimeout(function() {
+      document.getElementById('openBtn').textContent = 'Open Danhausa App';
+    }, 2500);
+    function openExpoGo() {
+      var ip = document.getElementById('ipInput').value.trim();
+      if (!ip) { alert('Please enter your local IP address'); return; }
+      window.location.href = 'exp://' + ip + ':8081/--' + deepPath;
+    }
   </script>
 </body>
 </html>`;
@@ -201,12 +195,12 @@ function buildErrorPage(message: string): string {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Reset Link Error</title>
+  <title>Confirmation Error - Danhausa</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #ff8c00, #ff4500);
+      background: linear-gradient(135deg, #1a1a1a, #3d2200);
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -220,7 +214,7 @@ function buildErrorPage(message: string): string {
       max-width: 400px;
       width: 100%;
       text-align: center;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
     }
     .icon { font-size: 48px; margin-bottom: 20px; }
     h1 { font-size: 22px; color: #1a1a1a; margin-bottom: 10px; font-weight: 700; }

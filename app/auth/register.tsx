@@ -12,7 +12,6 @@ import {
   Platform,
 } from 'react-native';
 import { Link, router } from 'expo-router';
-import * as Linking from 'expo-linking';
 import { coreBackend } from '@/lib/coreBackend';
 import { UserRole } from '@/types/database';
 import { Fonts } from '@/constants/fonts';
@@ -104,10 +103,13 @@ export default function RegisterScreen() {
       const needsApproval = accountType === 'vendor' || accountType === 'rider';
 
       let emailRedirectTo: string;
+      const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
       if (Platform.OS === 'web' && typeof window !== 'undefined') {
-        emailRedirectTo = `${window.location.origin}/auth/confirm`;
+        const webUrl = encodeURIComponent(`${window.location.origin}/auth/confirm`);
+        emailRedirectTo = `${supabaseUrl}/functions/v1/email-confirm-redirect?apikey=${anonKey}&web_url=${webUrl}`;
       } else {
-        emailRedirectTo = Linking.createURL('/auth/confirm');
+        emailRedirectTo = `${supabaseUrl}/functions/v1/email-confirm-redirect?apikey=${anonKey}`;
       }
 
       const { data: authData, error: authError } = await coreBackend.auth.signUp({
