@@ -112,43 +112,33 @@ export default function RegisterScreen() {
         emailRedirectTo = `${supabaseUrl}/functions/v1/email-confirm-redirect?apikey=${anonKey}`;
       }
 
+      const signUpMetadata: Record<string, string> = {
+        full_name: fullName,
+        role: accountType,
+        phone: phone || '',
+        vendor_status: needsApproval ? 'pending' : 'approved',
+      };
+
+      if (accountType === 'vendor') {
+        signUpMetadata.business_name = businessName;
+        if (businessDescription) signUpMetadata.business_description = businessDescription;
+        signUpMetadata.business_address = businessAddress;
+        signUpMetadata.business_phone = businessPhone;
+        if (businessLicense) signUpMetadata.business_license = businessLicense;
+      }
+
       const { data: authData, error: authError } = await coreBackend.auth.signUp({
         email,
         password,
         options: {
           emailRedirectTo,
-          data: {
-            full_name: fullName,
-            role: accountType,
-            phone: phone || '',
-          },
+          data: signUpMetadata,
         },
       });
 
       if (authError) throw authError;
 
       if (authData.user) {
-        const updateData: any = {
-          vendor_status: needsApproval ? 'pending' : 'approved',
-        };
-
-        if (accountType === 'vendor') {
-          updateData.business_name = businessName;
-          updateData.business_description = businessDescription || null;
-          updateData.business_address = businessAddress;
-          updateData.business_phone = businessPhone;
-          updateData.business_license = businessLicense || null;
-        }
-
-        const { error: profileError } = await coreBackend
-          .from('profiles')
-          .update(updateData)
-          .eq('id', authData.user.id);
-
-        if (profileError) throw profileError;
-
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
         if (needsApproval) {
           setError('');
           router.replace('/auth/vendor-pending');
