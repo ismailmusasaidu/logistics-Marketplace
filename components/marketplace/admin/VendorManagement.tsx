@@ -9,28 +9,41 @@ import {
   TextInput,
   Modal,
   ScrollView,
+  Image,
 } from 'react-native';
-import {
-  Clock,
-  CheckCircle,
-  XCircle,
-  ChevronRight,
-  ArrowLeft,
-  Search,
-  X,
-  Store,
-  Mail,
-  Phone,
-  MapPin,
-  FileText,
-  Award,
-  ShoppingBag,
-  RotateCcw,
-} from 'lucide-react-native';
+import { Clock, CircleCheck as CheckCircle, Circle as XCircle, ChevronRight, ArrowLeft, Search, X, Store, Mail, Phone, MapPin, FileText, Award, ShoppingBag, RotateCcw, Truck, CreditCard, Share2, Info, Settings } from 'lucide-react-native';
 import { supabase } from '@/lib/marketplace/supabase';
 import { Profile } from '@/types/database';
 import { Fonts } from '@/constants/fonts';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+interface VendorStoreData {
+  vendor: {
+    id: string;
+    business_name: string | null;
+    description: string | null;
+    logo_url: string | null;
+    address: string | null;
+    city: string | null;
+    state: string | null;
+    is_verified: boolean;
+    is_active: boolean;
+    rating: number | null;
+    total_sales: number;
+  } | null;
+  settings: {
+    delivery_radius: number | null;
+    minimum_order: number | null;
+    accepts_online_payment: boolean;
+    accepts_cash_on_delivery: boolean;
+    store_banner_url: string | null;
+    store_hours: Record<string, { open: string; close: string; closed: boolean }> | null;
+    social_media: { facebook?: string; instagram?: string; twitter?: string; whatsapp?: string } | null;
+    is_setup_complete: boolean;
+  } | null;
+}
+
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 interface VendorManagementProps {
   onBack?: () => void;
@@ -60,6 +73,9 @@ export default function VendorManagement({ onBack }: VendorManagementProps) {
   const [processing, setProcessing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
+  const [modalTab, setModalTab] = useState<'info' | 'store'>('info');
+  const [storeData, setStoreData] = useState<VendorStoreData | null>(null);
+  const [loadingStore, setLoadingStore] = useState(false);
 
   useEffect(() => {
     fetchVendors();
@@ -105,6 +121,38 @@ export default function VendorManagement({ onBack }: VendorManagementProps) {
       console.error('Error fetching vendors:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchStoreData = async (profileId: string) => {
+    try {
+      setLoadingStore(true);
+      setStoreData(null);
+
+      const { data: vendorRow, error: vendorErr } = await supabase
+        .from('vendors')
+        .select('id, business_name, description, logo_url, address, city, state, is_verified, is_active, rating, total_sales')
+        .eq('user_id', profileId)
+        .maybeSingle();
+
+      if (vendorErr) throw vendorErr;
+
+      let settingsRow = null;
+      if (vendorRow) {
+        const { data: sData } = await supabase
+          .from('vendor_settings')
+          .select('delivery_radius, minimum_order, accepts_online_payment, accepts_cash_on_delivery, store_banner_url, store_hours, social_media, is_setup_complete')
+          .eq('vendor_id', vendorRow.id)
+          .maybeSingle();
+        settingsRow = sData;
+      }
+
+      setStoreData({ vendor: vendorRow, settings: settingsRow });
+    } catch (err) {
+      console.error('Error fetching store data:', err);
+      setStoreData({ vendor: null, settings: null });
+    } finally {
+      setLoadingStore(false);
     }
   };
 
@@ -288,6 +336,8 @@ export default function VendorManagement({ onBack }: VendorManagementProps) {
               style={styles.vendorCard}
               onPress={() => {
                 setSelectedVendor(item);
+                setModalTab('info');
+                setStoreData(null);
                 setShowModal(true);
               }}
               activeOpacity={0.7}
@@ -365,10 +415,38 @@ export default function VendorManagement({ onBack }: VendorManagementProps) {
                       setShowModal(false);
                       setSelectedVendor(null);
                       setRejectionReason('');
+                      setModalTab('info');
+                      setStoreData(null);
                     }}
                     style={styles.closeBtn}
                   >
                     <X size={22} color="#8b909a" />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.modalTabRow}>
+                  <TouchableOpacity
+                    style={[styles.modalTabBtn, modalTab === 'info' && styles.modalTabBtnActive]}
+                    onPress={() => setModalTab('info')}
+                    activeOpacity={0.7}
+                  >
+                    <Info size={14} color={modalTab === 'info' ? '#ff8c00' : '#8b909a'} />
+                    <Text style={[styles.modalTabText, modalTab === 'info' && styles.modalTabTextActive]}>
+                      Business Info
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modalTabBtn, modalTab === 'store' && styles.modalTabBtnActive]}
+                    onPress={() => {
+                      setModalTab('store');
+                      if (!storeData) fetchStoreData(selectedVendor.id);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Settings size={14} color={modalTab === 'store' ? '#ff8c00' : '#8b909a'} />
+                    <Text style={[styles.modalTabText, modalTab === 'store' && styles.modalTabTextActive]}>
+                      Store Settings
+                    </Text>
                   </TouchableOpacity>
                 </View>
 
@@ -377,141 +455,147 @@ export default function VendorManagement({ onBack }: VendorManagementProps) {
                   showsVerticalScrollIndicator={false}
                   contentContainerStyle={styles.modalScrollContent}
                 >
-                  <View style={styles.modalVendorHeader}>
-                    <View style={styles.modalAvatarWrap}>
-                      <Store size={24} color="#ff8c00" />
-                    </View>
-                    <View style={styles.modalVendorInfo}>
-                      <Text style={styles.modalVendorName}>
-                        {selectedVendor.business_name || 'N/A'}
-                      </Text>
-                      <Text style={styles.modalVendorOwner}>{selectedVendor.full_name}</Text>
-                    </View>
-                    {(() => {
-                      const config = statusConfig[selectedVendor.vendor_status] || statusConfig.pending;
-                      const Icon = config.icon;
-                      return (
-                        <View style={[styles.modalStatusBadge, { backgroundColor: config.bg }]}>
-                          <Icon size={14} color={config.color} />
-                          <Text style={[styles.modalStatusText, { color: config.color }]}>
-                            {config.label}
-                          </Text>
+                  {modalTab === 'info' ? (
+                    <>
+                      <View style={styles.modalVendorHeader}>
+                        <View style={styles.modalAvatarWrap}>
+                          <Store size={24} color="#ff8c00" />
                         </View>
-                      );
-                    })()}
-                  </View>
-
-                  <View style={styles.detailsCard}>
-                    <DetailItem icon={Mail} label="Email" value={selectedVendor.email} />
-                    <DetailItem icon={Phone} label="Phone" value={selectedVendor.business_phone || 'Not provided'} />
-                    <DetailItem icon={MapPin} label="Address" value={selectedVendor.business_address || 'Not provided'} />
-                    <DetailItem icon={FileText} label="Description" value={selectedVendor.business_description || 'Not provided'} />
-                    <DetailItem icon={Award} label="License" value={selectedVendor.business_license || 'Not provided'} last />
-                  </View>
-
-                  {selectedVendor.vendor_status === 'pending' && (
-                    <View style={styles.actionsSection}>
-                      <Text style={styles.actionsSectionLabel}>Review Application</Text>
-
-                      <TextInput
-                        style={styles.reasonInput}
-                        placeholder="Rejection reason (required for rejection)"
-                        placeholderTextColor="#8b909a"
-                        value={rejectionReason}
-                        onChangeText={setRejectionReason}
-                        multiline
-                        numberOfLines={3}
-                      />
-
-                      <View style={styles.actionButtons}>
-                        <TouchableOpacity
-                          style={styles.approveButton}
-                          onPress={() => handleApprove(selectedVendor.id)}
-                          disabled={processing}
-                          activeOpacity={0.7}
-                        >
-                          {processing ? (
-                            <ActivityIndicator color="#ffffff" size="small" />
-                          ) : (
-                            <>
-                              <CheckCircle size={18} color="#ffffff" />
-                              <Text style={styles.approveButtonText}>Approve</Text>
-                            </>
-                          )}
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          style={[
-                            styles.rejectButton,
-                            !rejectionReason.trim() && styles.rejectButtonDisabled,
-                          ]}
-                          onPress={() => handleReject(selectedVendor.id)}
-                          disabled={processing || !rejectionReason.trim()}
-                          activeOpacity={0.7}
-                        >
-                          {processing ? (
-                            <ActivityIndicator color="#ffffff" size="small" />
-                          ) : (
-                            <>
-                              <XCircle size={18} color="#ffffff" />
-                              <Text style={styles.rejectButtonText}>Reject</Text>
-                            </>
-                          )}
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  )}
-
-                  {selectedVendor.vendor_status === 'rejected' && (
-                    <View style={styles.actionsSection}>
-                      <Text style={styles.actionsSectionLabel}>Rejected Vendor</Text>
-
-                      {selectedVendor.rejection_reason && (
-                        <View style={styles.rejectionReasonCard}>
-                          <View style={styles.rejectionReasonHeader}>
-                            <XCircle size={14} color="#ef4444" />
-                            <Text style={styles.rejectionReasonLabel}>Rejection Reason</Text>
-                          </View>
-                          <Text style={styles.rejectionReasonText}>
-                            {selectedVendor.rejection_reason}
+                        <View style={styles.modalVendorInfo}>
+                          <Text style={styles.modalVendorName}>
+                            {selectedVendor.business_name || 'N/A'}
                           </Text>
+                          <Text style={styles.modalVendorOwner}>{selectedVendor.full_name}</Text>
+                        </View>
+                        {(() => {
+                          const config = statusConfig[selectedVendor.vendor_status] || statusConfig.pending;
+                          const Icon = config.icon;
+                          return (
+                            <View style={[styles.modalStatusBadge, { backgroundColor: config.bg }]}>
+                              <Icon size={14} color={config.color} />
+                              <Text style={[styles.modalStatusText, { color: config.color }]}>
+                                {config.label}
+                              </Text>
+                            </View>
+                          );
+                        })()}
+                      </View>
+
+                      <View style={styles.detailsCard}>
+                        <DetailItem icon={Mail} label="Email" value={selectedVendor.email} />
+                        <DetailItem icon={Phone} label="Phone" value={selectedVendor.business_phone || 'Not provided'} />
+                        <DetailItem icon={MapPin} label="Address" value={selectedVendor.business_address || 'Not provided'} />
+                        <DetailItem icon={FileText} label="Description" value={selectedVendor.business_description || 'Not provided'} />
+                        <DetailItem icon={Award} label="License" value={selectedVendor.business_license || 'Not provided'} last />
+                      </View>
+
+                      {selectedVendor.vendor_status === 'pending' && (
+                        <View style={styles.actionsSection}>
+                          <Text style={styles.actionsSectionLabel}>Review Application</Text>
+
+                          <TextInput
+                            style={styles.reasonInput}
+                            placeholder="Rejection reason (required for rejection)"
+                            placeholderTextColor="#8b909a"
+                            value={rejectionReason}
+                            onChangeText={setRejectionReason}
+                            multiline
+                            numberOfLines={3}
+                          />
+
+                          <View style={styles.actionButtons}>
+                            <TouchableOpacity
+                              style={styles.approveButton}
+                              onPress={() => handleApprove(selectedVendor.id)}
+                              disabled={processing}
+                              activeOpacity={0.7}
+                            >
+                              {processing ? (
+                                <ActivityIndicator color="#ffffff" size="small" />
+                              ) : (
+                                <>
+                                  <CheckCircle size={18} color="#ffffff" />
+                                  <Text style={styles.approveButtonText}>Approve</Text>
+                                </>
+                              )}
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                              style={[
+                                styles.rejectButton,
+                                !rejectionReason.trim() && styles.rejectButtonDisabled,
+                              ]}
+                              onPress={() => handleReject(selectedVendor.id)}
+                              disabled={processing || !rejectionReason.trim()}
+                              activeOpacity={0.7}
+                            >
+                              {processing ? (
+                                <ActivityIndicator color="#ffffff" size="small" />
+                              ) : (
+                                <>
+                                  <XCircle size={18} color="#ffffff" />
+                                  <Text style={styles.rejectButtonText}>Reject</Text>
+                                </>
+                              )}
+                            </TouchableOpacity>
+                          </View>
                         </View>
                       )}
 
-                      <View style={styles.actionButtons}>
-                        <TouchableOpacity
-                          style={styles.unrejectButton}
-                          onPress={() => handleUnreject(selectedVendor.id)}
-                          disabled={processing}
-                          activeOpacity={0.7}
-                        >
-                          {processing ? (
-                            <ActivityIndicator color="#ffffff" size="small" />
-                          ) : (
-                            <>
-                              <RotateCcw size={18} color="#ffffff" />
-                              <Text style={styles.unrejectButtonText}>Move to Pending</Text>
-                            </>
-                          )}
-                        </TouchableOpacity>
+                      {selectedVendor.vendor_status === 'rejected' && (
+                        <View style={styles.actionsSection}>
+                          <Text style={styles.actionsSectionLabel}>Rejected Vendor</Text>
 
-                        <TouchableOpacity
-                          style={styles.approveButton}
-                          onPress={() => handleApprove(selectedVendor.id)}
-                          disabled={processing}
-                          activeOpacity={0.7}
-                        >
-                          {processing ? (
-                            <ActivityIndicator color="#ffffff" size="small" />
-                          ) : (
-                            <>
-                              <CheckCircle size={18} color="#ffffff" />
-                              <Text style={styles.approveButtonText}>Approve</Text>
-                            </>
+                          {selectedVendor.rejection_reason && (
+                            <View style={styles.rejectionReasonCard}>
+                              <View style={styles.rejectionReasonHeader}>
+                                <XCircle size={14} color="#ef4444" />
+                                <Text style={styles.rejectionReasonLabel}>Rejection Reason</Text>
+                              </View>
+                              <Text style={styles.rejectionReasonText}>
+                                {selectedVendor.rejection_reason}
+                              </Text>
+                            </View>
                           )}
-                        </TouchableOpacity>
-                      </View>
-                    </View>
+
+                          <View style={styles.actionButtons}>
+                            <TouchableOpacity
+                              style={styles.unrejectButton}
+                              onPress={() => handleUnreject(selectedVendor.id)}
+                              disabled={processing}
+                              activeOpacity={0.7}
+                            >
+                              {processing ? (
+                                <ActivityIndicator color="#ffffff" size="small" />
+                              ) : (
+                                <>
+                                  <RotateCcw size={18} color="#ffffff" />
+                                  <Text style={styles.unrejectButtonText}>Move to Pending</Text>
+                                </>
+                              )}
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                              style={styles.approveButton}
+                              onPress={() => handleApprove(selectedVendor.id)}
+                              disabled={processing}
+                              activeOpacity={0.7}
+                            >
+                              {processing ? (
+                                <ActivityIndicator color="#ffffff" size="small" />
+                              ) : (
+                                <>
+                                  <CheckCircle size={18} color="#ffffff" />
+                                  <Text style={styles.approveButtonText}>Approve</Text>
+                                </>
+                              )}
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      )}
+                    </>
+                  ) : (
+                    <StoreDetailsPanel loading={loadingStore} data={storeData} />
                   )}
                 </ScrollView>
               </>
@@ -522,6 +606,337 @@ export default function VendorManagement({ onBack }: VendorManagementProps) {
     </View>
   );
 }
+
+function StoreDetailsPanel({ loading, data }: { loading: boolean; data: VendorStoreData | null }) {
+  if (loading) {
+    return (
+      <View style={storePanelStyles.loadingWrap}>
+        <ActivityIndicator size="large" color="#ff8c00" />
+        <Text style={storePanelStyles.loadingText}>Loading store settings...</Text>
+      </View>
+    );
+  }
+
+  if (!data || (!data.vendor && !data.settings)) {
+    return (
+      <View style={storePanelStyles.emptyWrap}>
+        <Store size={40} color="#d1d5db" />
+        <Text style={storePanelStyles.emptyTitle}>Store not set up yet</Text>
+        <Text style={storePanelStyles.emptySubtitle}>This vendor hasn't configured their store</Text>
+      </View>
+    );
+  }
+
+  const { vendor, settings } = data;
+
+  return (
+    <View>
+      {settings?.store_banner_url ? (
+        <View style={storePanelStyles.bannerWrap}>
+          <Image
+            source={{ uri: settings.store_banner_url }}
+            style={storePanelStyles.bannerImage}
+            resizeMode="cover"
+          />
+          <View style={storePanelStyles.bannerLabel}>
+            <Text style={storePanelStyles.bannerLabelText}>Store Banner</Text>
+          </View>
+        </View>
+      ) : null}
+
+      {vendor ? (
+        <View style={storePanelStyles.section}>
+          <View style={storePanelStyles.sectionHeader}>
+            <Store size={14} color="#ff8c00" />
+            <Text style={storePanelStyles.sectionTitle}>Store Profile</Text>
+          </View>
+          <View style={storePanelStyles.card}>
+            <StoreRow label="Business Name" value={vendor.business_name || 'Not set'} />
+            <StoreRow label="Description" value={vendor.description || 'Not set'} />
+            <StoreRow label="Address" value={[vendor.address, vendor.city, vendor.state].filter(Boolean).join(', ') || 'Not set'} />
+            <StoreRow label="Rating" value={vendor.rating != null ? `${Number(vendor.rating).toFixed(1)} / 5.0` : 'No ratings yet'} />
+            <StoreRow label="Total Sales" value={`${vendor.total_sales ?? 0} orders`} />
+            <View style={storePanelStyles.badgeRow}>
+              <View style={[storePanelStyles.badge, { backgroundColor: vendor.is_verified ? '#ecfdf5' : '#f8f9fb' }]}>
+                <CheckCircle size={12} color={vendor.is_verified ? '#059669' : '#9ca3af'} />
+                <Text style={[storePanelStyles.badgeText, { color: vendor.is_verified ? '#059669' : '#9ca3af' }]}>
+                  {vendor.is_verified ? 'Verified' : 'Not Verified'}
+                </Text>
+              </View>
+              <View style={[storePanelStyles.badge, { backgroundColor: vendor.is_active ? '#ecfdf5' : '#fef2f2' }]}>
+                <View style={[storePanelStyles.dot, { backgroundColor: vendor.is_active ? '#059669' : '#ef4444' }]} />
+                <Text style={[storePanelStyles.badgeText, { color: vendor.is_active ? '#059669' : '#ef4444' }]}>
+                  {vendor.is_active ? 'Active' : 'Inactive'}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      ) : null}
+
+      {settings ? (
+        <>
+          <View style={storePanelStyles.section}>
+            <View style={storePanelStyles.sectionHeader}>
+              <Truck size={14} color="#ff8c00" />
+              <Text style={storePanelStyles.sectionTitle}>Delivery & Orders</Text>
+            </View>
+            <View style={storePanelStyles.card}>
+              <StoreRow label="Delivery Radius" value={settings.delivery_radius != null ? `${settings.delivery_radius} km` : 'Not set'} />
+              <StoreRow label="Minimum Order" value={settings.minimum_order != null ? `\u20A6${settings.minimum_order.toLocaleString()}` : 'Not set'} last />
+            </View>
+          </View>
+
+          <View style={storePanelStyles.section}>
+            <View style={storePanelStyles.sectionHeader}>
+              <CreditCard size={14} color="#ff8c00" />
+              <Text style={storePanelStyles.sectionTitle}>Payment Methods</Text>
+            </View>
+            <View style={storePanelStyles.card}>
+              <View style={storePanelStyles.paymentRow}>
+                <View style={[storePanelStyles.paymentIndicator, { backgroundColor: settings.accepts_online_payment ? '#ecfdf5' : '#f8f9fb' }]}>
+                  <CheckCircle size={13} color={settings.accepts_online_payment ? '#059669' : '#9ca3af'} />
+                  <Text style={[storePanelStyles.paymentText, { color: settings.accepts_online_payment ? '#059669' : '#9ca3af' }]}>Online Payment</Text>
+                </View>
+                <View style={[storePanelStyles.paymentIndicator, { backgroundColor: settings.accepts_cash_on_delivery ? '#ecfdf5' : '#f8f9fb' }]}>
+                  <CheckCircle size={13} color={settings.accepts_cash_on_delivery ? '#059669' : '#9ca3af'} />
+                  <Text style={[storePanelStyles.paymentText, { color: settings.accepts_cash_on_delivery ? '#059669' : '#9ca3af' }]}>Cash on Delivery</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {settings.store_hours && Object.keys(settings.store_hours).length > 0 ? (
+            <View style={storePanelStyles.section}>
+              <View style={storePanelStyles.sectionHeader}>
+                <Clock size={14} color="#ff8c00" />
+                <Text style={storePanelStyles.sectionTitle}>Store Hours</Text>
+              </View>
+              <View style={storePanelStyles.card}>
+                {DAYS.map((day, i) => {
+                  const h = settings.store_hours?.[day];
+                  if (!h) return null;
+                  return (
+                    <View key={day} style={[storePanelStyles.hoursRow, i === DAYS.length - 1 && { borderBottomWidth: 0 }]}>
+                      <Text style={storePanelStyles.hoursDay}>{day.slice(0, 3)}</Text>
+                      {h.closed ? (
+                        <View style={storePanelStyles.closedBadge}>
+                          <Text style={storePanelStyles.closedBadgeText}>Closed</Text>
+                        </View>
+                      ) : (
+                        <Text style={storePanelStyles.hoursTime}>{h.open} – {h.close}</Text>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          ) : null}
+
+          {settings.social_media && Object.values(settings.social_media).some(Boolean) ? (
+            <View style={storePanelStyles.section}>
+              <View style={storePanelStyles.sectionHeader}>
+                <Share2 size={14} color="#ff8c00" />
+                <Text style={storePanelStyles.sectionTitle}>Social Media</Text>
+              </View>
+              <View style={storePanelStyles.card}>
+                {settings.social_media.facebook ? <StoreRow label="Facebook" value={settings.social_media.facebook} /> : null}
+                {settings.social_media.instagram ? <StoreRow label="Instagram" value={settings.social_media.instagram} /> : null}
+                {settings.social_media.twitter ? <StoreRow label="Twitter" value={settings.social_media.twitter} /> : null}
+                {settings.social_media.whatsapp ? <StoreRow label="WhatsApp" value={settings.social_media.whatsapp} last /> : null}
+              </View>
+            </View>
+          ) : null}
+        </>
+      ) : null}
+
+      <View style={{ height: 8 }} />
+    </View>
+  );
+}
+
+function StoreRow({ label, value, last }: { label: string; value: string; last?: boolean }) {
+  return (
+    <View style={[storePanelStyles.row, !last && storePanelStyles.rowBorder]}>
+      <Text style={storePanelStyles.rowLabel}>{label}</Text>
+      <Text style={storePanelStyles.rowValue}>{value}</Text>
+    </View>
+  );
+}
+
+const storePanelStyles = StyleSheet.create({
+  loadingWrap: {
+    alignItems: 'center',
+    paddingVertical: 40,
+    gap: 12,
+  },
+  loadingText: {
+    fontFamily: Fonts.regular,
+    fontSize: 14,
+    color: '#8b909a',
+  },
+  emptyWrap: {
+    alignItems: 'center',
+    paddingVertical: 48,
+    gap: 8,
+  },
+  emptyTitle: {
+    fontFamily: Fonts.heading,
+    fontSize: 16,
+    color: '#6b7280',
+    marginTop: 8,
+  },
+  emptySubtitle: {
+    fontFamily: Fonts.regular,
+    fontSize: 13,
+    color: '#9ca3af',
+  },
+  bannerWrap: {
+    width: '100%',
+    height: 160,
+    borderRadius: 14,
+    overflow: 'hidden',
+    marginBottom: 16,
+    position: 'relative',
+  },
+  bannerImage: {
+    width: '100%',
+    height: '100%',
+  },
+  bannerLabel: {
+    position: 'absolute',
+    bottom: 10,
+    left: 12,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  bannerLabelText: {
+    fontFamily: Fonts.medium,
+    fontSize: 11,
+    color: '#ffffff',
+  },
+  section: {
+    marginBottom: 14,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  sectionTitle: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 13,
+    color: '#1a1d23',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  card: {
+    backgroundColor: '#f8f9fb',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#f0f1f3',
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingVertical: 12,
+    gap: 12,
+  },
+  rowBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#e5e7eb',
+  },
+  rowLabel: {
+    fontFamily: Fonts.medium,
+    fontSize: 13,
+    color: '#8b909a',
+    flex: 0.9,
+  },
+  rowValue: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 13,
+    color: '#1a1d23',
+    flex: 1.1,
+    textAlign: 'right',
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingVertical: 12,
+  },
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  dot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+  badgeText: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 12,
+  },
+  paymentRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingVertical: 12,
+    flexWrap: 'wrap',
+  },
+  paymentIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    flex: 1,
+  },
+  paymentText: {
+    fontFamily: Fonts.medium,
+    fontSize: 12,
+  },
+  hoursRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#e5e7eb',
+  },
+  hoursDay: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 13,
+    color: '#374151',
+    width: 36,
+  },
+  hoursTime: {
+    fontFamily: Fonts.regular,
+    fontSize: 13,
+    color: '#1a1d23',
+  },
+  closedBadge: {
+    backgroundColor: '#fee2e2',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  closedBadgeText: {
+    fontFamily: Fonts.medium,
+    fontSize: 11,
+    color: '#ef4444',
+  },
+});
 
 function DetailItem({
   icon: Icon,
@@ -887,6 +1302,40 @@ const styles = StyleSheet.create({
   },
   closeBtn: {
     padding: 4,
+  },
+  modalTabRow: {
+    flexDirection: 'row',
+    backgroundColor: '#f0f1f3',
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 16,
+    gap: 4,
+  },
+  modalTabBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 9,
+    borderRadius: 9,
+  },
+  modalTabBtnActive: {
+    backgroundColor: '#ffffff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  modalTabText: {
+    fontFamily: Fonts.medium,
+    fontSize: 13,
+    color: '#8b909a',
+  },
+  modalTabTextActive: {
+    color: '#1a1d23',
+    fontFamily: Fonts.semiBold,
   },
   modalScroll: {
     flexGrow: 0,
