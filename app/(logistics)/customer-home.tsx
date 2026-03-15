@@ -765,7 +765,7 @@ export default function CustomerHome() {
                 disabled={locationLoading}
                 activeOpacity={0.7}>
                 {locationLoading ? (
-                  <ActivityIndicator size={12} color="#f97316" />
+                  <ActivityIndicator size={12} color={colors.primary} />
                 ) : (
                   <RefreshCw size={12} color="#f97316" />
                 )}
@@ -1357,7 +1357,7 @@ export default function CustomerHome() {
                   </View>
                   {calculatingDistance ? (
                     <View style={styles.calculatingContainer}>
-                      <ActivityIndicator size="small" color="#f97316" />
+                      <ActivityIndicator size="small" color={colors.primary} />
                       <Text style={styles.calculatingText}>Calculating distance...</Text>
                     </View>
                   ) : geocodingError ? (

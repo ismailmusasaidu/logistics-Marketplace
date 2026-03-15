@@ -12,7 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Plus, Package, Edit, Trash2, Search, X, SlidersHorizontal, ChevronDown } from 'lucide-react-native';
+import { Plus, Package, CreditCard as Edit, Trash2, Search, X, SlidersHorizontal, ChevronDown } from 'lucide-react-native';
 import { supabase } from '@/lib/marketplace/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Product, Vendor } from '@/types/database';
@@ -20,8 +20,10 @@ import StoreSetup from '@/components/marketplace/vendor/StoreSetup';
 import AddProduct from '@/components/marketplace/vendor/AddProduct';
 import EditProduct from '@/components/marketplace/vendor/EditProduct';
 import { Fonts } from '@/constants/fonts';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export default function VendorScreen() {
+  const { colors } = useTheme();
   const { profile } = useAuth();
   const insets = useSafeAreaInsets();
   const [vendor, setVendor] = useState<Vendor | null>(null);
@@ -181,7 +183,7 @@ export default function VendorScreen() {
   if (loading || loadingVendorData) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#ff8c00" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }

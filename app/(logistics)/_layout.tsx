@@ -33,7 +33,7 @@ export default function TabLayout() {
   if (!profile) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#f97316" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }

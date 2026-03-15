@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface Section {
   heading: string;
@@ -11,6 +12,7 @@ interface Section {
 }
 
 export default function TermsOfServiceScreen() {
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState('');
@@ -45,7 +47,7 @@ export default function TermsOfServiceScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#ff8c00" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }

@@ -1,13 +1,15 @@
 import { useRef, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, ActivityIndicator } from 'react-native';
-import { Clock, CheckCircle, Mail, ShieldCheck, XCircle, RefreshCw } from 'lucide-react-native';
+import { Clock, CircleCheck as CheckCircle, Mail, ShieldCheck, Circle as XCircle, RefreshCw } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/contexts/AuthContext';
 import { router } from 'expo-router';
 import { Fonts } from '@/constants/fonts';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export default function VendorPendingScreen() {
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { signOut, profile, refreshProfile } = useAuth();
   const isRider = profile?.role === 'rider';
@@ -165,7 +167,7 @@ export default function VendorPendingScreen() {
               activeOpacity={0.85}
             >
               {checking ? (
-                <ActivityIndicator color="#ff8c00" size="small" />
+                <ActivityIndicator color={colors.primary} size="small" />
               ) : (
                 <>
                   <RefreshCw size={18} color="#ff8c00" strokeWidth={2} />

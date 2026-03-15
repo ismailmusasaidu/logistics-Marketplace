@@ -66,6 +66,21 @@ interface DeliverySpeedOption {
   display_order: number;
 }
 
+interface PromoCode {
+  id: string;
+  code: string;
+  name: string;
+  discount_type: 'percentage' | 'fixed_amount' | 'free_delivery';
+  discount_value: number;
+  max_discount_amount: number | null;
+  usage_count: number;
+  usage_limit: number | null;
+  min_order_amount: number | null;
+  valid_from: string;
+  valid_until: string;
+  is_active: boolean;
+}
+
 export default function CheckoutScreen() {
   const { profile } = useAuth();
   const insets = useSafeAreaInsets();
@@ -93,7 +108,7 @@ export default function CheckoutScreen() {
   const [paymentReference, setPaymentReference] = useState('');
   const [initializingPayment, setInitializingPayment] = useState(false);
   const [promoCode, setPromoCode] = useState('');
-  const [appliedPromo, setAppliedPromo] = useState<any>(null);
+  const [appliedPromo, setAppliedPromo] = useState<PromoCode | null>(null);
   const [promoError, setPromoError] = useState('');
   const [applyingPromo, setApplyingPromo] = useState(false);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);

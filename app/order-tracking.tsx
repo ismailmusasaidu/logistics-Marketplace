@@ -9,23 +9,13 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
-import {
-  ArrowLeft,
-  Clock,
-  CheckCircle,
-  Package,
-  Truck,
-  MapPin,
-  Phone,
-  Calendar,
-  ShoppingBag,
-  XCircle,
-} from 'lucide-react-native';
+import { ArrowLeft, Clock, CircleCheck as CheckCircle, Package, Truck, MapPin, Phone, Calendar, ShoppingBag, Circle as XCircle } from 'lucide-react-native';
 import { supabase } from '@/lib/marketplace/supabase';
 import { Order, OrderStatus } from '@/types/database';
 import OrderItemsList from '@/components/marketplace/OrderItemsList';
 import LiveTrackingMap from '@/components/LiveTrackingMap';
 import { Fonts } from '@/constants/fonts';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface OrderItem {
   id: string;
@@ -86,6 +76,7 @@ const statusSteps: { status: OrderStatus; label: string; icon: any }[] = [
 ];
 
 export default function OrderTrackingScreen() {
+  const { colors } = useTheme();
   const { orderId } = useLocalSearchParams();
   const insets = useSafeAreaInsets();
   const [order, setOrder] = useState<OrderWithItems | null>(null);
@@ -227,7 +218,7 @@ export default function OrderTrackingScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#ff8c00" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }

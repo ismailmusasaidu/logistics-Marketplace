@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, useWindowDimensions, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Truck, ShoppingBag, ArrowRight, LogOut, Shield, ChevronRight } from 'lucide-react-native';
 import { Fonts } from '@/constants/fonts';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,6 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 export default function Hub() {
   const router = useRouter();
   const { profile, signOut } = useAuth();
+  const { colors, isDark } = useTheme();
   const { width } = useWindowDimensions();
 
   const isSmall = width < 380;
@@ -107,9 +109,9 @@ export default function Hub() {
   const firstName = profile?.full_name?.split(' ')[0];
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <LinearGradient
-        colors={['#0f0f0f', '#1a1a1a', '#111111']}
+        colors={isDark ? ['#0f0f0f', '#1a1a1a', '#111111'] : ['#faf8f5', '#f5f1ec', '#f8f5f0']}
         style={styles.bgGradient}
       >
         <ScrollView
@@ -125,14 +127,14 @@ export default function Hub() {
 
             <View style={styles.header}>
               <View style={styles.roleBadge}>
-                <Shield size={11} color="#f97316" />
-                <Text style={styles.roleBadgeText}>{getRoleLabel()}</Text>
+                <Shield size={11} color={colors.primary} />
+                <Text style={[styles.roleBadgeText, { color: colors.primary }]}>{getRoleLabel()}</Text>
               </View>
 
-              <Text style={[styles.greeting, { fontSize: greetingSize }]}>
+              <Text style={[styles.greeting, { fontSize: greetingSize, color: colors.text }]}>
                 {firstName ? `Hey, ${firstName}` : 'Welcome back'}
               </Text>
-              <Text style={[styles.subtitle, { fontSize: subtitleSize }]}>{getSubtitle()}</Text>
+              <Text style={[styles.subtitle, { fontSize: subtitleSize, color: colors.textSecondary }]}>{getSubtitle()}</Text>
             </View>
 
             <View style={[
@@ -233,9 +235,13 @@ export default function Hub() {
               )}
             </View>
 
-            <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut} activeOpacity={0.7}>
-              <LogOut size={16} color="#52525b" strokeWidth={2} />
-              <Text style={styles.signOutText}>Sign Out</Text>
+            <TouchableOpacity
+              style={[styles.signOutButton, { backgroundColor: colors.surfaceSecondary, borderWidth: 1, borderColor: colors.border }]}
+              onPress={handleSignOut}
+              activeOpacity={0.7}
+            >
+              <LogOut size={16} color={colors.textMuted} strokeWidth={2} />
+              <Text style={[styles.signOutText, { color: colors.textMuted }]}>Sign Out</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -247,11 +253,9 @@ export default function Hub() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#0f0f0f',
   },
   bgGradient: {
     flex: 1,
-    backgroundColor: '#111111',
   },
   scrollView: {
     flex: 1,
@@ -284,20 +288,17 @@ const styles = StyleSheet.create({
   roleBadgeText: {
     fontSize: 11,
     fontFamily: Fonts.semiBold,
-    color: '#f97316',
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
   greeting: {
     fontFamily: Fonts.bold,
-    color: '#f4f4f5',
     textAlign: 'center',
     marginBottom: 8,
     letterSpacing: -0.5,
   },
   subtitle: {
     fontFamily: Fonts.regular,
-    color: '#71717a',
     textAlign: 'center',
     lineHeight: 22,
   },
@@ -419,13 +420,9 @@ const styles = StyleSheet.create({
     gap: 7,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.07)',
   },
   signOutText: {
     fontSize: 13,
     fontFamily: Fonts.medium,
-    color: '#52525b',
   },
 });

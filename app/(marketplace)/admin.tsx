@@ -25,6 +25,7 @@ import WeightChargesManagement from '@/components/marketplace/admin/WeightCharge
 import VendorPayouts from '@/components/marketplace/admin/VendorPayouts';
 import ReturnManagement from '@/components/marketplace/admin/ReturnManagement';
 import { useLocalSearchParams } from 'expo-router';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface Stats {
   totalUsers: number;
@@ -51,6 +52,7 @@ const MENU_ITEMS = [
 ];
 
 export default function AdminScreen() {
+  const { colors } = useTheme();
   const params = useLocalSearchParams();
   const insets = useSafeAreaInsets();
   const [stats, setStats] = useState<Stats>({
@@ -147,7 +149,7 @@ export default function AdminScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#ff8c00" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }

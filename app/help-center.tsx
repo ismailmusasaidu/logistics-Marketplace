@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowLeft, HelpCircle, MessageCircle, Mail, Phone } from 'lucide-react-native';
+import { ArrowLeft, Circle as HelpCircle, MessageCircle, Mail, Phone } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface FAQItem {
   question: string;
@@ -17,6 +18,7 @@ interface ContactItem {
 }
 
 export default function HelpCenterScreen() {
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
   const [faqs, setFaqs] = useState<FAQItem[]>([]);
@@ -64,7 +66,7 @@ export default function HelpCenterScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#ff8c00" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }

@@ -6,6 +6,7 @@ import { coreBackend } from '@/lib/coreBackend';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CircleCheck as CheckCircle } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from '@/contexts/ThemeContext';
 
 function parseUrlParams(url: string) {
   const hashStr = url.includes('#') ? url.split('#')[1] : '';
@@ -48,6 +49,7 @@ async function tryEstablishSession(url: string): Promise<boolean> {
 }
 
 export default function ResetPasswordScreen() {
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -227,7 +229,7 @@ export default function ResetPasswordScreen() {
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color="#ff8c00" />
+              <ActivityIndicator color={colors.primary} />
             ) : (
               <Text style={styles.buttonText}>Reset Password</Text>
             )}
