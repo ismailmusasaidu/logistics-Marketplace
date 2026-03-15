@@ -1,6 +1,6 @@
 import { Tabs, router } from 'expo-router';
 import { View, ActivityIndicator, StyleSheet, Platform, TouchableOpacity } from 'react-native';
-import { Hop as Home, Package, Users, User, ArrowLeft } from 'lucide-react-native';
+import { Hop as Home, Package, Users, User, ArrowLeft, Store } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useEffect } from 'react';
@@ -113,6 +113,15 @@ export default function TabLayout() {
           title: 'Orders',
           tabBarIcon: ({ size, color }) => <Package size={size} color={color} />,
           href: isCustomer ? '/(marketplace)/orders' : null,
+        }}
+      />
+
+      <Tabs.Screen
+        name="stores"
+        options={{
+          title: 'Stores',
+          tabBarIcon: ({ size, color }) => <Store size={size} color={color} />,
+          href: isCustomer ? '/(marketplace)/stores' : null,
         }}
       />
 
