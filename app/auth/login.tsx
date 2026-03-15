@@ -143,13 +143,11 @@ export default function LoginScreen() {
             },
           ]}
         >
-          <View style={styles.logoIconWrapper}>
-            <Image
-              source={require('@/assets/images/favicon.png')}
-              style={styles.logoIcon}
-              resizeMode="cover"
-            />
-          </View>
+          <Image
+            source={require('@/assets/images/favicon.png')}
+            style={styles.logoIcon}
+            resizeMode="contain"
+          />
           <Text style={styles.brandName}>Danhausa</Text>
           <Text style={styles.brandTagline}>Logistics & Marketplace</Text>
           <Text style={styles.brandSlogan}>Your world, delivered.</Text>
@@ -327,23 +325,11 @@ const styles = StyleSheet.create({
   logoSection: {
     alignItems: 'center',
   },
-  logoIconWrapper: {
-    width: 90,
-    height: 90,
-    borderRadius: 22,
-    overflow: 'hidden',
-    marginBottom: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 10,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.15)',
-  },
   logoIcon: {
-    width: '100%',
-    height: '100%',
+    width: 72,
+    height: 72,
+    borderRadius: 16,
+    marginBottom: 12,
   },
   brandName: {
     fontSize: 38,
