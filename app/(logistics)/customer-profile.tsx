@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, TextInput, ActivityIndicator } from 'react-native';
 import { User, Mail, Phone, LogOut, Edit, Save, X, Wallet, Plus, TrendingUp, TrendingDown, ArrowDown, Building2, Trash2 } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
@@ -15,6 +16,7 @@ import { Fonts } from '@/constants/fonts';
 
 export default function CustomerProfile() {
   const { profile, signOut, refreshProfile } = useAuth();
+  const { toggleTheme, isDark } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [isEditing, setIsEditing] = useState(false);
@@ -401,7 +403,17 @@ export default function CustomerProfile() {
         </View>
       )}
 
-      <View  style={styles.section}>
+      <View style={styles.section}>
+        <TouchableOpacity
+          style={[styles.signOutButton, { backgroundColor: isDark ? '#1e1e1e' : '#f9fafb', borderColor: isDark ? '#2e2e2e' : '#e5e7eb', marginBottom: 10 }]}
+          onPress={toggleTheme}
+        >
+          <LogOut size={20} color="#ff8c00" />
+          <Text style={[styles.signOutText, { color: '#ff8c00' }]}>{isDark ? 'Dark Mode: On' : 'Light Mode: On'}</Text>
+          <View style={{ marginLeft: 'auto', width: 42, height: 24, borderRadius: 12, backgroundColor: isDark ? '#ff8c00' : '#e5e7eb', justifyContent: 'center', paddingHorizontal: 3 }}>
+            <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: '#ffffff', alignSelf: isDark ? 'flex-end' : 'flex-start' }} />
+          </View>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
           <LogOut size={20} color="#ef4444" />
           <Text style={styles.signOutText}>Sign Out</Text>

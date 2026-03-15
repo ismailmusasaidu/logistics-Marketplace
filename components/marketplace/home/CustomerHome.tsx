@@ -24,6 +24,11 @@ import ProductCard from '@/components/marketplace/ProductCard';
 import AdModal from '@/components/marketplace/AdModal';
 import PromoBannerSlider from '@/components/marketplace/PromoBannerSlider';
 import FilterSortPanel, { FilterState, DEFAULT_FILTERS } from '@/components/marketplace/FilterSortPanel';
+import SearchAutocomplete from '@/components/marketplace/SearchAutocomplete';
+import EmptyState from '@/components/EmptyState';
+import OfflineBanner from '@/components/OfflineBanner';
+const FILTERS_STORAGE_KEY = 'marketplace_filters';
+const CATEGORY_STORAGE_KEY = 'marketplace_selected_category';
 import { Fonts } from '@/constants/fonts';
 
 const PAGE_SIZE = 16;
@@ -42,16 +47,38 @@ export default function CustomerHome() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [currentAdvert, setCurrentAdvert] = useState<Advert | null>(null);
+  const [filtersRestored, setFiltersRestored] = useState(false);
   const [showAdModal, setShowAdModal] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
+  const [isProductsStale, setIsProductsStale] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(16)).current;
 
   useEffect(() => {
+    restoreFilters();
     Animated.parallel([
       Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
+  const restoreFilters = async () => {
+    try {
+      const [savedFilters, savedCategory] = await Promise.all([
+        AsyncStorage.getItem(FILTERS_STORAGE_KEY),
+        AsyncStorage.getItem(CATEGORY_STORAGE_KEY),
+      ]);
+      if (savedFilters) {
+        const parsed = JSON.parse(savedFilters) as FilterState;
+        setFilters(parsed);
+      }
+      if (savedCategory !== null) {
+        setSelectedCategory(savedCategory === '' ? null : savedCategory);
+      }
+    } catch {
+    } finally {
+      setFiltersRestored(true);
+    }
+  };
+
       Animated.timing(slideAnim, { toValue: 0, duration: 500, useNativeDriver: true }),
     ]).start();
   }, []);
@@ -71,6 +98,9 @@ export default function CustomerHome() {
       })
       .subscribe();
 
+    if (!filtersRestored) return;
+    AsyncStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify(filters)).catch(() => {});
+    AsyncStorage.setItem(CATEGORY_STORAGE_KEY, selectedCategory ?? '').catch(() => {});
     return () => { subscription.unsubscribe(); };
   }, []);
 
@@ -79,7 +109,7 @@ export default function CustomerHome() {
     setPage(0);
     setHasMore(true);
     fetchProducts(0, true);
-  }, [selectedCategory, filters]);
+  }, [selectedCategory, filters, filtersRestored]);
 
   const fetchCategories = async () => {
     try {
@@ -129,12 +159,33 @@ export default function CustomerHome() {
       if (error) throw error;
 
       const newProducts = data || [];
-      if (reset) setProducts(newProducts);
-      else setProducts((prev) => [...prev, ...newProducts]);
+      if (reset) {
+        setProducts(newProducts);
+        const cacheKey = `cache_products_${selectedCategory || 'all'}`;
+        try {
+          const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+          await AsyncStorage.setItem(cacheKey, JSON.stringify({ data: newProducts, timestamp: Date.now() }));
+        } catch {}
+      } else {
+        setProducts((prev) => [...prev, ...newProducts]);
+      }
 
       setHasMore(newProducts.length === PAGE_SIZE && (count ? (from + PAGE_SIZE) < count : true));
+      setIsProductsStale(false);
     } catch (error) {
       console.error('Error fetching products:', error);
+      if (reset) {
+        const cacheKey = `cache_products_${selectedCategory || 'all'}`;
+        try {
+          const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+          const raw = await AsyncStorage.getItem(cacheKey);
+          if (raw) {
+            const cached = JSON.parse(raw);
+            setProducts(cached.data || []);
+            setIsProductsStale(true);
+          }
+        } catch {}
+      }
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -254,25 +305,18 @@ export default function CustomerHome() {
             </View>
           </View>
 
-          <View style={[styles.searchBar, searchFocused && styles.searchBarFocused]}>
-            <Search size={18} color={searchFocused ? '#f97316' : '#9ca3af'} strokeWidth={2} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search products, vendors..."
-              placeholderTextColor="#9ca3af"
+          <View style={styles.searchBarWrap}>
+            <SearchAutocomplete
               value={searchQuery}
               onChangeText={setSearchQuery}
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => setSearchFocused(false)}
+              onSubmit={(q) => setSearchQuery(q)}
+              placeholder="Search products, vendors..."
             />
-            {searchQuery.length === 0 && (
-              <View style={styles.searchKbd}>
-                <SlidersHorizontal size={14} color="#9ca3af" strokeWidth={1.8} />
-              </View>
-            )}
           </View>
         </Animated.View>
       </LinearGradient>
+
+      <OfflineBanner isStale={isProductsStale} message="Showing cached products. Check your connection." />
 
       <View style={styles.categorySection}>
         <ScrollView
@@ -317,13 +361,14 @@ export default function CustomerHome() {
         </View>
       ) : filteredProducts.length === 0 ? (
         <View style={styles.emptyBox}>
-          <View style={styles.emptyIconWrap}>
-            <ShoppingBag size={36} color="#f97316" strokeWidth={1.5} />
-          </View>
-          <Text style={styles.emptyTitle}>No products found</Text>
-          <Text style={styles.emptySubtitle}>
-            {searchQuery ? 'Try a different search term' : 'Check back later for new arrivals'}
-          </Text>
+          <EmptyState
+            variant={searchQuery ? 'search' : 'products'}
+            title={searchQuery ? 'No results found' : 'No products yet'}
+            subtitle={searchQuery ? `No products match "${searchQuery}". Try a different search.` : 'Check back later for new arrivals.'}
+            actionLabel={searchQuery ? 'Clear search' : undefined}
+            onAction={searchQuery ? () => setSearchQuery('') : undefined}
+            size="small"
+          />
         </View>
       ) : (
         <FlatList
@@ -448,36 +493,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 2,
-    gap: 10,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.12)',
-  },
-  searchBarFocused: {
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderColor: 'rgba(249,115,22,0.6)',
-  },
-  searchInput: {
-    flex: 1,
-    paddingVertical: 12,
-    fontSize: 14,
-    fontFamily: Fonts.regular,
-    color: '#ffffff',
-    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
-  },
-  searchKbd: {
-    width: 28,
-    height: 28,
-    borderRadius: 7,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    justifyContent: 'center',
-    alignItems: 'center',
+  searchBarWrap: {
+    zIndex: 200,
   },
   categorySection: {
     backgroundColor: '#ffffff',

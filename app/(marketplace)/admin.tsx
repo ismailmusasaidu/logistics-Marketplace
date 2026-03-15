@@ -23,6 +23,7 @@ import CategoryManagement from '@/components/marketplace/admin/CategoryManagemen
 import ReviewModeration from '@/components/marketplace/admin/ReviewModeration';
 import WeightChargesManagement from '@/components/marketplace/admin/WeightChargesManagement';
 import VendorPayouts from '@/components/marketplace/admin/VendorPayouts';
+import ReturnManagement from '@/components/marketplace/admin/ReturnManagement';
 import { useLocalSearchParams } from 'expo-router';
 
 interface Stats {
@@ -46,6 +47,7 @@ const MENU_ITEMS = [
   { key: 'reviews', icon: Star, label: 'Review Moderation', desc: 'Moderate customer reviews', color: '#f59e0b' },
   { key: 'weight_charges', icon: Scale, label: 'Weight Charges', desc: 'Set surcharges by cart weight', color: '#0ea5e9' },
   { key: 'vendor_payouts', icon: Banknote, label: 'Vendor Payouts', desc: 'Manage vendor payout requests', color: '#059669' },
+  { key: 'returns', icon: BarChart3, label: 'Returns & Exchanges', desc: 'Review customer return requests', color: '#6366f1' },
 ];
 
 export default function AdminScreen() {
@@ -123,6 +125,7 @@ export default function AdminScreen() {
     categories: { title: 'Category Management', component: <CategoryManagement /> },
     reviews: { title: 'Review Moderation', component: <ReviewModeration /> },
     weight_charges: { title: 'Weight Charges', component: <WeightChargesManagement /> },
+    returns: { title: 'Returns & Exchanges', component: <ReturnManagement /> },
   };
 
   if (activeScreen && subScreens[activeScreen]) {

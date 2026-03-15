@@ -24,6 +24,7 @@ import {
 import { supabase } from '@/lib/marketplace/supabase';
 import { Order, OrderStatus } from '@/types/database';
 import OrderItemsList from '@/components/marketplace/OrderItemsList';
+import LiveTrackingMap from '@/components/LiveTrackingMap';
 import { Fonts } from '@/constants/fonts';
 
 interface OrderItem {
@@ -276,6 +277,18 @@ export default function OrderTrackingScreen() {
             </Text>
           </View>
         </View>
+
+        {!isCancelled && (
+          <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
+            <LiveTrackingMap
+              orderId={order.id}
+              orderStatus={order.status}
+              pickupAddress={order.vendor?.address}
+              deliveryAddress={order.delivery_address}
+              riderId={(order as any).assigned_rider_id || (order as any).rider_id}
+            />
+          </View>
+        )}
 
         {!isCancelled && (
           <View style={styles.trackingContainer}>

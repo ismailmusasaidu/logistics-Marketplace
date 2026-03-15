@@ -11,7 +11,8 @@ import {
   ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Trash2, Plus, Minus, ShoppingBag, Scale, RotateCcw, X, ShieldCheck, Clock, AlertCircle } from 'lucide-react-native';
+import { Trash2, Plus, Minus, Scale, RotateCcw, X, ShieldCheck, Clock, AlertCircle } from 'lucide-react-native';
+import EmptyState from '@/components/EmptyState';
 import { supabase } from '@/lib/marketplace/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { cartEvents } from '@/lib/marketplace/cartEvents';
@@ -261,12 +262,13 @@ export default function CartScreen() {
   if (cartItems.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <ShoppingBag size={80} color="#d1d5db" />
-        <Text style={styles.emptyTitle}>Your cart is empty</Text>
-        <Text style={styles.emptyText}>Add some products to get started</Text>
-        <TouchableOpacity style={styles.shopButton} onPress={() => router.push('/(marketplace)')}>
-          <Text style={styles.shopButtonText}>Start Shopping</Text>
-        </TouchableOpacity>
+        <EmptyState
+          variant="cart"
+          title="Your cart is empty"
+          subtitle="Add some products to get started."
+          actionLabel="Start Shopping"
+          onAction={() => router.push('/(marketplace)')}
+        />
       </View>
     );
   }

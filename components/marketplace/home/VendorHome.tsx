@@ -26,6 +26,7 @@ import { supabase } from '@/lib/marketplace/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { router, useFocusEffect } from 'expo-router';
 import VendorOrderManagement from '@/components/marketplace/vendor/VendorOrderManagement';
+import VendorAnalytics from '@/components/marketplace/vendor/VendorAnalytics';
 import { Fonts } from '@/constants/fonts';
 
 interface DashboardStats {
@@ -55,6 +56,7 @@ export default function VendorHome() {
   });
   const [loading, setLoading] = useState(true);
   const [showOrders, setShowOrders] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
   const [bannerUrl, setBannerUrl] = useState<string | null>(null);
 
   const fetchDashboardStats = async (isInitialLoad = false) => {
@@ -266,6 +268,20 @@ export default function VendorHome() {
     return <VendorOrderManagement onBack={() => setShowOrders(false)} />;
   }
 
+  if (showAnalytics) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#f8f5f0' }}>
+        <View style={[{ backgroundColor: '#2d1f12', paddingBottom: 16, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', gap: 12 }, { paddingTop: insets.top + 16 }]}>
+          <TouchableOpacity onPress={() => setShowAnalytics(false)} style={{ padding: 6 }}>
+            <Text style={{ color: '#ff8c00', fontSize: 14, fontFamily: Fonts.spaceSemiBold }}>← Back</Text>
+          </TouchableOpacity>
+          <Text style={{ color: '#ffffff', fontSize: 18, fontFamily: Fonts.spaceBold, flex: 1 }}>Sales Analytics</Text>
+        </View>
+        <VendorAnalytics />
+      </View>
+    );
+  }
+
   if (profile?.vendor_status === 'pending') {
     return (
       <View style={[styles.statusContainer, { paddingTop: insets.top + 40 }]}>
@@ -472,6 +488,20 @@ export default function VendorHome() {
             <Text style={styles.actionSub}>Track & fulfill</Text>
             <View style={styles.actionArrow}>
               <ArrowUpRight size={14} color="#2563eb" />
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionCard}
+            onPress={() => setShowAnalytics(true)}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.actionIconWrap, { backgroundColor: '#fef3c7' }]}>
+              <BarChart3 size={20} color="#d97706" />
+            </View>
+            <Text style={styles.actionTitle}>Analytics</Text>
+            <Text style={styles.actionSub}>Revenue & trends</Text>
+            <View style={styles.actionArrow}>
+              <ArrowUpRight size={14} color="#d97706" />
             </View>
           </TouchableOpacity>
         </View>

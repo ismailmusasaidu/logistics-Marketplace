@@ -9,15 +9,18 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Trash2, ShoppingCart, Heart } from 'lucide-react-native';
+import { Trash2, ShoppingCart } from 'lucide-react-native';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { supabase } from '@/lib/marketplace/supabase';
 import { Product } from '@/types/database';
 import { cartEvents } from '@/lib/marketplace/cartEvents';
 import { Fonts } from '@/constants/fonts';
+import EmptyState from '@/components/EmptyState';
+import { useRouter } from 'expo-router';
 
 export default function WishlistScreen() {
   const { wishlistItems, removeFromWishlist, loading: wishlistLoading } = useWishlist();
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -111,11 +114,13 @@ export default function WishlistScreen() {
           <Text style={styles.headerTitle}>My Wishlist</Text>
         </View>
         <View style={styles.emptyContainer}>
-          <Heart size={80} color="#e2e8f0" strokeWidth={1.5} />
-          <Text style={styles.emptyText}>Your wishlist is empty</Text>
-          <Text style={styles.emptySubtext}>
-            Add items you love to your wishlist
-          </Text>
+          <EmptyState
+            variant="wishlist"
+            title="Your wishlist is empty"
+            subtitle="Save products you love to find them later."
+            actionLabel="Browse Products"
+            onAction={() => router.push('/(marketplace)')}
+          />
         </View>
       </SafeAreaView>
     );

@@ -18,6 +18,8 @@ import { Order, OrderStatus, OrderItem, Product } from '@/types/database';
 import { router } from 'expo-router';
 import ReviewForm from '@/components/marketplace/ReviewForm';
 import OrderReceipt from '@/components/marketplace/OrderReceipt';
+import ReturnRequestModal from '@/components/marketplace/ReturnRequestModal';
+import EmptyState from '@/components/EmptyState';
 import { Fonts } from '@/constants/fonts';
 
 const statusIcons: Record<OrderStatus, any> = {
@@ -55,6 +57,8 @@ export default function OrdersScreen() {
   const [reviewProduct, setReviewProduct] = useState<{ productId: string; orderId: string } | null>(null);
   const [receiptOrder, setReceiptOrder] = useState<Order | null>(null);
   const [receiptItems, setReceiptItems] = useState<any[]>([]);
+  const [returnOrder, setReturnOrder] = useState<Order | null>(null);
+  const [returnOrderItems, setReturnOrderItems] = useState<any[]>([]);
 
   useEffect(() => {
     if (profile) {
@@ -196,6 +200,12 @@ export default function OrdersScreen() {
     }
   };
 
+  const handleOpenReturn = async (order: Order) => {
+    if (!orderItems[order.id]) await fetchOrderItems(order.id);
+    setReturnOrderItems(orderItems[order.id] || []);
+    setReturnOrder(order);
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -241,10 +251,14 @@ export default function OrdersScreen() {
 
   if (showEmptyOrders) {
     return (
-      <View style={styles.emptyContainer}>
-        <Package size={80} color="#d1d5db" />
-        <Text style={styles.emptyTitle}>No orders yet</Text>
-        <Text style={styles.emptyText}>Your orders will appear here</Text>
+      <View style={[styles.emptyContainer, { backgroundColor: '#faf8f5' }]}>
+        <EmptyState
+          variant="orders"
+          title="No orders yet"
+          subtitle="Your marketplace orders will appear here once you make a purchase."
+          actionLabel="Start Shopping"
+          onAction={() => router.back()}
+        />
       </View>
     );
   }
@@ -357,14 +371,26 @@ export default function OrdersScreen() {
                   </View>
                 </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={styles.receiptButton}
-                  onPress={() => handleViewReceipt(item)}
-                  activeOpacity={0.7}
-                >
-                  <Receipt size={18} color="#ff8c00" />
-                  <Text style={styles.receiptButtonText}>View Receipt</Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <TouchableOpacity
+                    style={[styles.receiptButton, { flex: 1 }]}
+                    onPress={() => handleViewReceipt(item)}
+                    activeOpacity={0.7}
+                  >
+                    <Receipt size={18} color="#ff8c00" />
+                    <Text style={styles.receiptButtonText}>View Receipt</Text>
+                  </TouchableOpacity>
+                  {item.status === 'delivered' && (
+                    <TouchableOpacity
+                      style={[styles.receiptButton, { flex: 1, borderColor: '#059669' }]}
+                      onPress={() => handleOpenReturn(item)}
+                      activeOpacity={0.7}
+                    >
+                      <Receipt size={18} color="#059669" />
+                      <Text style={[styles.receiptButtonText, { color: '#059669' }]}>Return</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
 
                 {item.status === 'delivered' && items.length > 0 && (
                   <View style={styles.reviewSection}>
@@ -439,6 +465,18 @@ export default function OrdersScreen() {
           setReceiptItems([]);
         }}
       />
+
+      {returnOrder && (
+        <ReturnRequestModal
+          visible={!!returnOrder}
+          onClose={() => setReturnOrder(null)}
+          orderId={returnOrder.id}
+          orderNumber={returnOrder.order_number}
+          orderTotal={returnOrder.total}
+          items={returnOrderItems}
+          onSuccess={() => setReturnOrder(null)}
+        />
+      )}
     </View>
   );
 }

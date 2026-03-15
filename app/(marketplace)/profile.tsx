@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, TextInp
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { User, Mail, Phone, LogOut, Shield, Edit, Save, X, Store, MapPin, FileText, Wallet, Settings, ChevronRight, HelpCircle, FileCheck, Lock } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { router } from 'expo-router';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/marketplace/supabase';
@@ -13,6 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 export default function ProfileScreen() {
   const { profile, signOut } = useAuth();
+  const { toggleTheme, isDark } = useTheme();
   const { showToast } = useToast();
   const insets = useSafeAreaInsets();
   const [isEditing, setIsEditing] = useState(false);
@@ -477,6 +479,32 @@ export default function ProfileScreen() {
                 <ChevronRight size={16} color="#ff8c00" />
               </View>
             </LinearGradient>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardIconWrap}>
+              <Settings size={18} color="#ff8c00" strokeWidth={2.2} />
+            </View>
+            <Text style={styles.cardTitle}>Preferences</Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.menuItem, styles.menuItemLast]}
+            onPress={toggleTheme}
+            activeOpacity={0.6}
+          >
+            <View style={styles.menuItemLeft}>
+              <View style={styles.menuIconWrap}>
+                <Settings size={18} color="#78716c" strokeWidth={2} />
+              </View>
+              <Text style={styles.menuText}>{isDark ? 'Dark Mode' : 'Light Mode'}</Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <View style={{ width: 42, height: 24, borderRadius: 12, backgroundColor: isDark ? '#ff8c00' : '#e5e7eb', justifyContent: 'center', paddingHorizontal: 3 }}>
+                <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: '#ffffff', alignSelf: isDark ? 'flex-end' : 'flex-start' }} />
+              </View>
+            </View>
           </TouchableOpacity>
         </View>
 
