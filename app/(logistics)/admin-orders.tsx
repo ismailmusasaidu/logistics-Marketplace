@@ -250,7 +250,6 @@ export default function AdminOrders() {
         .update({
           status: editStatus,
           notes: editNotes,
-          assigned_rider_id: editRiderId || null,
           rider_id: editRiderId || null,
           assignment_status: editRiderId ? 'accepted' : 'pending',
         })

@@ -62,20 +62,31 @@ export class PricingCalculator {
   private orderSizes: OrderSizePricing[] = [];
   private promotions: Promotion[] = [];
   private initialized: boolean = false;
+  private initializingPromise: Promise<void> | null = null;
 
   async initialize(forceReload: boolean = false) {
     if (this.initialized && !forceReload && this.zones.length > 0) {
       return;
     }
 
-    await Promise.all([
+    if (this.initializingPromise) {
+      return this.initializingPromise;
+    }
+
+    this.initializingPromise = Promise.all([
       this.loadZones(),
       this.loadAdjustments(),
       this.loadOrderSizes(),
       this.loadPromotions(),
-    ]);
+    ]).then(() => {
+      this.initialized = true;
+      this.initializingPromise = null;
+    }).catch((err) => {
+      this.initializingPromise = null;
+      throw err;
+    });
 
-    this.initialized = true;
+    return this.initializingPromise;
   }
 
   isReady(): boolean {

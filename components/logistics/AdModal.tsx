@@ -7,21 +7,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { X, Flame, Star, TrendingUp, Timer, ArrowRight, Sparkles } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Fonts } from '@/constants/fonts';
+import type { LogisticsAdvert, BadgeType } from '@/types/logistics';
 
 const { width, height } = Dimensions.get('window');
-
-type BadgeType = 'hot_deal' | 'featured' | 'trending' | 'limited';
-
-type LogisticsAdvert = {
-  id: string;
-  title: string;
-  description: string;
-  image_url: string | null;
-  badge_text: string;
-  badge_type: BadgeType;
-  action_text: string | null;
-  action_url: string | null;
-};
 
 interface AdModalProps {
   visible: boolean;

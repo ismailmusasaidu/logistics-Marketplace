@@ -68,7 +68,8 @@ export const walletService = {
     try {
       const wallet = await coreWalletService.getBalance();
       return wallet?.balance || 0;
-    } catch {
+    } catch (err) {
+      console.warn('walletService.getBalance failed, returning 0:', err);
       return 0;
     }
   },

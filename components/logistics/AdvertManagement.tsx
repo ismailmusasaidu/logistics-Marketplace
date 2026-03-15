@@ -4,37 +4,13 @@ import {
   TextInput, Switch, Image, Platform, Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import {
-  Plus, X, Edit2, Trash2, Flame, Star, TrendingUp, Timer,
-  Image as ImageIcon, Link, Megaphone, Eye, EyeOff, ChevronDown,
-} from 'lucide-react-native';
+import { Plus, X, CreditCard as Edit2, Trash2, Flame, Star, TrendingUp, Timer, Image as ImageIcon, Link, Megaphone, Eye, EyeOff, ChevronDown } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '@/lib/supabase';
 import { Fonts } from '@/constants/fonts';
 import { Toast } from '@/components/Toast';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-
-type BadgeType = 'hot_deal' | 'featured' | 'trending' | 'limited';
-type DisplayMode = 'banner' | 'modal' | 'both';
-type DisplayFrequency = 'once' | 'daily' | 'always';
-
-type LogisticsAdvert = {
-  id: string;
-  title: string;
-  description: string;
-  image_url: string | null;
-  badge_text: string;
-  badge_type: BadgeType;
-  action_text: string | null;
-  action_url: string | null;
-  display_mode: DisplayMode;
-  display_frequency: DisplayFrequency;
-  priority: number;
-  is_active: boolean;
-  start_date: string | null;
-  end_date: string | null;
-  created_at: string;
-};
+import type { LogisticsAdvert, BadgeType, DisplayMode, DisplayFrequency } from '@/types/logistics';
 
 type FormState = {
   title: string;

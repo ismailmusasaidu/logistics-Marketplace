@@ -203,6 +203,13 @@ export default function RiderPayouts() {
 
   const handleUpdateStatus = async (newStatus: string) => {
     if (!selectedPayout) return;
+
+    const allowedTransitions = STATUS_ACTIONS[selectedPayout.status]?.next ?? [];
+    if (!allowedTransitions.includes(newStatus)) {
+      console.warn(`Invalid status transition: ${selectedPayout.status} -> ${newStatus}`);
+      return;
+    }
+
     try {
       setProcessing(true);
       const { error } = await supabase
