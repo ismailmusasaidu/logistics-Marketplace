@@ -95,8 +95,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           loadSavedLocation(data);
         }
       }
+
+      return data;
     } catch (error) {
       console.error('Error loading profile:', error);
+      return null;
     } finally {
       setLoading(false);
     }
@@ -116,7 +119,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data?.session && data?.user) {
         setSession(data.session);
         setUser(data.user);
-        await loadProfile(data.user.id, true);
+        const profileData = await loadProfile(data.user.id, true);
+
+        if (!profileData) {
+          await coreBackend.auth.signOut();
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+          isSigningIn.current = false;
+          throw new Error('Your account no longer exists. Please contact support or create a new account.');
+        }
       }
     } catch (err) {
       isSigningIn.current = false;
