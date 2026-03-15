@@ -29,6 +29,7 @@ import SearchAutocomplete from '@/components/marketplace/SearchAutocomplete';
 import EmptyState from '@/components/EmptyState';
 import OfflineBanner from '@/components/OfflineBanner';
 import VendorLeaderboard from '@/components/marketplace/VendorLeaderboard';
+import VendorStorePage from '@/components/marketplace/VendorStorePage';
 const FILTERS_STORAGE_KEY = 'marketplace_filters';
 const CATEGORY_STORAGE_KEY = 'marketplace_selected_category';
 import { Fonts } from '@/constants/fonts';
@@ -55,6 +56,9 @@ export default function CustomerHome() {
   const [searchFocused, setSearchFocused] = useState(false);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [isProductsStale, setIsProductsStale] = useState(false);
+  const [vendorStoreVisible, setVendorStoreVisible] = useState(false);
+  const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
+  const [selectedVendorName, setSelectedVendorName] = useState('');
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(16)).current;
@@ -388,7 +392,13 @@ export default function CustomerHome() {
               <View style={styles.bannerSection}>
                 <PromoBannerSlider />
               </View>
-              <VendorLeaderboard />
+              <VendorLeaderboard
+                onVendorPress={(vendorId, name) => {
+                  setSelectedVendorId(vendorId);
+                  setSelectedVendorName(name);
+                  setVendorStoreVisible(true);
+                }}
+              />
             </View>
           }
           ListFooterComponent={
@@ -421,6 +431,16 @@ export default function CustomerHome() {
         visible={showAdModal}
         advert={currentAdvert}
         onClose={closeAdModal}
+      />
+
+      <VendorStorePage
+        visible={vendorStoreVisible}
+        vendorId={selectedVendorId}
+        vendorName={selectedVendorName}
+        onClose={() => {
+          setVendorStoreVisible(false);
+          setSelectedVendorId(null);
+        }}
       />
     </View>
   );
