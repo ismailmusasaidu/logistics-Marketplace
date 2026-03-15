@@ -14,7 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 export default function ProfileScreen() {
   const { profile, signOut } = useAuth();
-  const { toggleTheme, isDark } = useTheme();
+  const { toggleTheme, isDark, colors } = useTheme();
   const { showToast } = useToast();
   const insets = useSafeAreaInsets();
   const [isEditing, setIsEditing] = useState(false);
