@@ -21,6 +21,16 @@ Deno.serve(async (req: Request) => {
     const type = url.searchParams.get("type");
     const webUrl = url.searchParams.get("web_url");
 
+    // If no token in query params, Supabase may have sent them as a fragment (#).
+    // Fragments are never sent to the server, so we serve a small HTML page that
+    // reads the fragment client-side and re-submits as proper query params.
+    if (!tokenHash && !token) {
+      return new Response(buildFragmentBridgePage(), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "text/html" },
+      });
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
@@ -74,6 +84,83 @@ Deno.serve(async (req: Request) => {
     });
   }
 });
+
+// Supabase sometimes delivers the token as a URL fragment (e.g. #token_hash=...&type=recovery).
+// Fragments are stripped by the browser before the request reaches the server.
+// This page runs JS client-side to extract those values and reload the page with them
+// as proper query parameters so the server can process them.
+function buildFragmentBridgePage(): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Verifying reset link...</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #ff8c00, #ff4500);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: white;
+      border-radius: 24px;
+      padding: 40px 32px;
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+    .spinner {
+      width: 48px; height: 48px;
+      border: 4px solid #fed7aa;
+      border-top-color: #f97316;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 24px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    h1 { font-size: 20px; color: #1a1a1a; margin-bottom: 10px; font-weight: 700; }
+    p { font-size: 15px; color: #6b7280; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="spinner"></div>
+    <h1>Verifying your link...</h1>
+    <p>Please wait while we confirm your reset request.</p>
+  </div>
+  <script>
+    (function () {
+      var hash = window.location.hash.substring(1);
+      if (!hash) {
+        window.location.href = window.location.pathname + '?error=no_token';
+        return;
+      }
+      var params = new URLSearchParams(hash);
+      var tokenHash = params.get('token_hash');
+      var token = params.get('access_token');
+      var type = params.get('type');
+
+      if ((tokenHash || token) && type) {
+        var query = new URLSearchParams();
+        if (tokenHash) query.set('token_hash', tokenHash);
+        if (token) query.set('token', token);
+        query.set('type', type);
+        window.location.href = window.location.pathname + '?' + query.toString();
+      } else {
+        window.location.href = window.location.pathname + '?error=invalid_token';
+      }
+    })();
+  </script>
+</body>
+</html>`;
+}
 
 function buildRedirectPage(appDeepLink: string, _expoGoDeepLink: string): string {
   const deepPath = appDeepLink.replace(`${APP_SCHEME}:/`, "");
@@ -162,7 +249,7 @@ function buildRedirectPage(appDeepLink: string, _expoGoDeepLink: string): string
 </head>
 <body>
   <div class="card">
-    <div class="icon">🔐</div>
+    <div class="icon">&#128272;</div>
     <h1>Reset Your Password</h1>
     <p>Opening the Danhausa app to let you set a new password...</p>
     <a href="${appDeepLink}" class="btn" id="openBtn">
@@ -229,7 +316,7 @@ function buildErrorPage(message: string): string {
 </head>
 <body>
   <div class="card">
-    <div class="icon">⚠️</div>
+    <div class="icon">&#9888;&#65039;</div>
     <h1>Link Expired</h1>
     <p>${message}</p>
   </div>
