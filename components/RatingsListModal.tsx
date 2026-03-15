@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { X, Star, MessageSquare } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Fonts } from '@/constants/fonts';
 
 type Rating = {
@@ -33,10 +34,11 @@ export default function RatingsListModal({
   ratings,
   averageRating,
 }: RatingsListModalProps) {
+  const insets = useSafeAreaInsets();
   return (
     <Modal visible={visible} transparent animationType="slide">
       <View style={styles.overlay}>
-        <View style={styles.container}>
+        <View style={[styles.container, { paddingBottom: insets.bottom }]}>
           <View style={styles.header}>
             <Text style={styles.title}>All Ratings</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>

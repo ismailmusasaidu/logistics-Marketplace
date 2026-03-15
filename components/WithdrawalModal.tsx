@@ -10,7 +10,8 @@ import {
   ScrollView,
   Platform,
 } from 'react-native';
-import { X, ArrowDown, AlertCircle, CheckCircle2, Building2 } from 'lucide-react-native';
+import { X, ArrowDown, CircleAlert as AlertCircle, CircleCheck as CheckCircle2, Building2 } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { walletService, BankAccount } from '@/lib/wallet';
 
 type WithdrawalModalProps = {
@@ -30,6 +31,7 @@ export function WithdrawalModal({
   walletBalance,
   bankAccounts,
 }: WithdrawalModalProps) {
+  const insets = useSafeAreaInsets();
   const [step, setStep] = useState<'select-account' | 'enter-amount' | 'confirm'>('select-account');
   const [selectedAccount, setSelectedAccount] = useState<BankAccount | null>(null);
   const [amount, setAmount] = useState('');
@@ -139,7 +141,7 @@ export function WithdrawalModal({
         onRequestClose={onClose}
       >
         <View style={styles.overlay}>
-          <View style={styles.modal}>
+          <View style={[styles.modal, { paddingBottom: insets.bottom }]}>
             <View style={styles.header}>
               <View style={styles.headerLeft}>
                 <ArrowDown size={24} color="#2563eb" />

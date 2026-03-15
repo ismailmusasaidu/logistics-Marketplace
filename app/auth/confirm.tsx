@@ -11,12 +11,14 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CircleCheck, CircleX, Loader, Mail } from 'lucide-react-native';
 import * as Linking from 'expo-linking';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { coreBackend } from '@/lib/coreBackend';
 
 type ConfirmState = 'loading' | 'success' | 'error' | 'expired';
 
 export default function ConfirmPage() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [state, setState] = useState<ConfirmState>('loading');
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -244,7 +246,7 @@ export default function ConfirmPage() {
         colors={['#1a1a1a', '#2d1a00', '#3d2200']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={styles.header}
+        style={[styles.header, { paddingTop: insets.top + 24 }]}
       >
         <Text style={styles.brandName}>Danhausa</Text>
         <Text style={styles.brandTagline}>Email Verification</Text>
@@ -272,7 +274,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f5f0',
   },
   header: {
-    paddingTop: 60,
     paddingBottom: 40,
     paddingHorizontal: 24,
     alignItems: 'center',

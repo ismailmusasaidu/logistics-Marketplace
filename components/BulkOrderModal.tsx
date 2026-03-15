@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Modal, Platform, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X, Plus, Trash2, Package, MapPin, User, Phone, Navigation, Tag, Calendar, Clock, ChevronDown, ChevronUp, Layers } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { calculateDistanceBetweenAddresses } from '@/lib/geocoding';
@@ -40,6 +41,7 @@ type BulkOrderModalProps = {
 };
 
 export default function BulkOrderModal({ visible, onClose, onSuccess, customerId, showToast }: BulkOrderModalProps) {
+  const insets = useSafeAreaInsets();
   const [deliveries, setDeliveries] = useState<DeliveryItem[]>([
     {
       id: '1',
@@ -523,7 +525,7 @@ export default function BulkOrderModal({ visible, onClose, onSuccess, customerId
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContainer}>
+        <View style={[styles.modalContainer, { paddingBottom: insets.bottom }]}>
           <View style={styles.modalHandle} />
 
           <LinearGradient colors={['#1c1917', '#292524']} style={styles.header}>

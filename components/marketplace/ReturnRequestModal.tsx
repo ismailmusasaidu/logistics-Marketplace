@@ -11,6 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { X, RotateCcw, RefreshCw, ChevronDown } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/marketplace/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -53,6 +54,7 @@ export default function ReturnRequestModal({
   items,
   onSuccess,
 }: ReturnRequestModalProps) {
+  const insets = useSafeAreaInsets();
   const { profile } = useAuth();
   const { colors } = useTheme();
   const [returnType, setReturnType] = useState<'refund' | 'exchange'>('refund');
@@ -98,7 +100,7 @@ export default function ReturnRequestModal({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.overlay}>
-        <View style={[styles.sheet, { backgroundColor: colors.surface }]}>
+        <View style={[styles.sheet, { backgroundColor: colors.surface, paddingBottom: insets.bottom }]}>
           <View style={[styles.header, { borderBottomColor: colors.border }]}>
             <Text style={[styles.title, { color: colors.text }]}>Return / Exchange</Text>
             <Text style={[styles.orderNum, { color: colors.textMuted }]}>Order #{orderNumber}</Text>

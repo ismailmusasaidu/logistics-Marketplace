@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Platform, Share } from 'react-native';
 import { X, Download, Printer, Share2 } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Fonts } from '@/constants/fonts';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -33,6 +34,7 @@ type ReceiptProps = {
 };
 
 export function OrderReceiptModal({ visible, onClose, orderId }: ReceiptProps) {
+  const insets = useSafeAreaInsets();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -648,7 +650,7 @@ Order ID: ${order.id}
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
+        <View style={[styles.modalContent, Platform.OS !== 'web' ? { marginTop: insets.top } : {}]}>
           <View style={styles.header}>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <X size={22} color="#6b7280" />
@@ -850,7 +852,7 @@ const styles = StyleSheet.create({
     height: Platform.OS === 'web' ? undefined : '100%',
     maxHeight: Platform.OS === 'web' ? '90%' : '100%',
     overflow: 'hidden',
-    marginTop: Platform.OS === 'web' ? 0 : 40,
+    marginTop: 0,
   },
   header: {
     flexDirection: 'row',

@@ -10,7 +10,8 @@ import {
   ScrollView,
   Platform,
 } from 'react-native';
-import { X, Building2, CheckCircle2, AlertCircle } from 'lucide-react-native';
+import { X, Building2, CircleCheck as CheckCircle2, CircleAlert as AlertCircle } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { walletService } from '@/lib/wallet';
 import { NIGERIAN_BANKS } from '@/lib/nigerianBanks';
 
@@ -22,6 +23,7 @@ type BankAccountModalProps = {
 };
 
 export function BankAccountModal({ visible, onClose, onSuccess, userId }: BankAccountModalProps) {
+  const insets = useSafeAreaInsets();
   const [step, setStep] = useState<'select-bank' | 'enter-details' | 'verify'>('select-bank');
   const [selectedBank, setSelectedBank] = useState<{ name: string; code: string } | null>(null);
   const [accountNumber, setAccountNumber] = useState('');
@@ -132,7 +134,7 @@ export function BankAccountModal({ visible, onClose, onSuccess, userId }: BankAc
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <View style={styles.modal}>
+        <View style={[styles.modal, { paddingBottom: insets.bottom }]}>
           <View style={styles.header}>
             <View style={styles.headerLeft}>
               <Building2 size={24} color="#2563eb" />

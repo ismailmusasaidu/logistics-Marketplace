@@ -13,6 +13,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { X, Wallet, CircleAlert as AlertCircle, CircleCheck as CheckCircle2, Copy, Building2, CreditCard } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { walletService } from '@/lib/wallet';
 import { coreBackend, CORE_URL } from '@/lib/coreBackend';
 
@@ -32,6 +33,7 @@ type VirtualAccount = {
 };
 
 export function WalletFundingModal({ visible, onClose, onSuccess }: WalletFundingModalProps) {
+  const insets = useSafeAreaInsets();
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(false);
@@ -251,7 +253,7 @@ export function WalletFundingModal({ visible, onClose, onSuccess }: WalletFundin
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <View style={styles.modal}>
+        <View style={[styles.modal, { paddingBottom: insets.bottom }]}>
           <View style={styles.header}>
             <View style={styles.headerLeft}>
               <Wallet size={24} color="#2563eb" />

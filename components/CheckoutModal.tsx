@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ActivityIndicator, ScrollView, Alert, Linking, TextInput } from 'react-native';
 import { X, Wallet, CreditCard, Banknote, CircleCheck as CheckCircle2, Building2, Info, Calendar, Clock } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Fonts } from '@/constants/fonts';
 import { PricingBreakdown as PricingBreakdownType } from '@/lib/pricingCalculator';
 import { PaymentMethod, walletService } from '@/lib/wallet';
@@ -84,6 +85,7 @@ function getOrderError(error: any): string {
 }
 
 export function CheckoutModal({ visible, onClose, onConfirm, pricing, userId, userEmail, orderId }: CheckoutModalProps) {
+  const insets = useSafeAreaInsets();
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod>('cash_on_delivery');
   const [walletBalance, setWalletBalance] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -280,7 +282,7 @@ export function CheckoutModal({ visible, onClose, onConfirm, pricing, userId, us
     <>
       <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
         <View style={styles.overlay}>
-        <View style={styles.container}>
+        <View style={[styles.container, { paddingBottom: insets.bottom }]}>
           <View style={styles.header}>
             <Text style={styles.title}>Checkout</Text>
             <TouchableOpacity onPress={onClose} disabled={loading}>
