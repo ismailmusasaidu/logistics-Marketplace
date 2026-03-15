@@ -28,6 +28,7 @@ import FilterSortPanel, { FilterState, DEFAULT_FILTERS } from '@/components/mark
 import SearchAutocomplete from '@/components/marketplace/SearchAutocomplete';
 import EmptyState from '@/components/EmptyState';
 import OfflineBanner from '@/components/OfflineBanner';
+import VendorLeaderboard from '@/components/marketplace/VendorLeaderboard';
 const FILTERS_STORAGE_KEY = 'marketplace_filters';
 const CATEGORY_STORAGE_KEY = 'marketplace_selected_category';
 import { Fonts } from '@/constants/fonts';
@@ -383,8 +384,11 @@ export default function CustomerHome() {
           onEndReached={loadMoreProducts}
           onEndReachedThreshold={0.5}
           ListHeaderComponent={
-            <View style={styles.bannerSection}>
-              <PromoBannerSlider />
+            <View>
+              <View style={styles.bannerSection}>
+                <PromoBannerSlider />
+              </View>
+              <VendorLeaderboard />
             </View>
           }
           ListFooterComponent={
