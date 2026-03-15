@@ -10,6 +10,7 @@ import {
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CircleCheck, CircleX, Loader, Mail } from 'lucide-react-native';
+import * as Linking from 'expo-linking';
 import { coreBackend } from '@/lib/coreBackend';
 
 type ConfirmState = 'loading' | 'success' | 'error' | 'expired';
@@ -43,23 +44,53 @@ export default function ConfirmPage() {
     }, 200);
   };
 
+  const parseTokensFromUrl = (url: string) => {
+    const hashStr = url.includes('#') ? url.split('#')[1] : '';
+    const queryStr = url.includes('?') ? url.split('?')[1]?.split('#')[0] : '';
+    const hash = new URLSearchParams(hashStr);
+    const query = new URLSearchParams(queryStr);
+    const get = (key: string) => hash.get(key) || query.get(key) || null;
+    return {
+      accessToken: get('access_token'),
+      refreshToken: get('refresh_token'),
+      tokenHash: get('token_hash'),
+      type: get('type'),
+      errorParam: get('error'),
+      errorDescription: get('error_description'),
+    };
+  };
+
   const handleEmailConfirmation = async () => {
     try {
+      let accessToken: string | null = null;
+      let refreshToken: string | null = null;
+      let tokenHash: string | null = null;
+      let type: string | null = null;
+      let errorParam: string | null = null;
+      let errorDescription: string | null = null;
+
       if (Platform.OS !== 'web') {
-        setState('success');
-        animateIcon();
-        return;
+        const initialUrl = await Linking.getInitialURL();
+        if (initialUrl) {
+          const parsed = parseTokensFromUrl(initialUrl);
+          accessToken = parsed.accessToken;
+          refreshToken = parsed.refreshToken;
+          tokenHash = parsed.tokenHash;
+          type = parsed.type;
+          errorParam = parsed.errorParam;
+          errorDescription = parsed.errorDescription;
+        }
+      } else {
+        const hashParams = new URLSearchParams(window.location.hash.replace('#', ''));
+        const searchParams = new URLSearchParams(window.location.search);
+        const get = (key: string) => hashParams.get(key) || searchParams.get(key) || null;
+        accessToken = get('access_token');
+        refreshToken = get('refresh_token');
+        tokenHash = get('token_hash');
+        type = get('type');
+        errorParam = get('error');
+        errorDescription = get('error_description');
       }
-
-      const hashParams = new URLSearchParams(window.location.hash.replace('#', ''));
-      const searchParams = new URLSearchParams(window.location.search);
-
-      const accessToken = hashParams.get('access_token') || searchParams.get('access_token');
-      const refreshToken = hashParams.get('refresh_token') || searchParams.get('refresh_token');
-      const tokenHash = hashParams.get('token_hash') || searchParams.get('token_hash');
-      const type = hashParams.get('type') || searchParams.get('type');
-      const errorParam = hashParams.get('error') || searchParams.get('error');
-      const errorDescription = hashParams.get('error_description') || searchParams.get('error_description');
 
       if (errorParam) {
         const desc = errorDescription?.replace(/\+/g, ' ') || 'The confirmation link is invalid or has expired.';

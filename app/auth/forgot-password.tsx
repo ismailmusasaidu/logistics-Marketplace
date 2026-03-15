@@ -14,6 +14,7 @@ import {
 import * as Linking from 'expo-linking';
 import { Link, router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
+import { CORE_URL } from '@/lib/coreBackend';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, Mail, KeyRound } from 'lucide-react-native';
 import { Fonts } from '@/constants/fonts';
@@ -68,12 +69,13 @@ export default function ForgotPasswordScreen() {
 
     try {
       let redirectTo: string;
-      const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+      const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || process.env.EXPO_PUBLIC_CORE_BACKEND_ANON_KEY;
+      const supabaseUrl = CORE_URL;
       if (Platform.OS === 'web' && typeof window !== 'undefined') {
         const webUrl = encodeURIComponent(`${window.location.origin}/auth/reset-password`);
-        redirectTo = `https://uutsoqjcbsiplwhkgstz.supabase.co/functions/v1/password-reset-redirect?apikey=${anonKey}&web_url=${webUrl}`;
+        redirectTo = `${supabaseUrl}/functions/v1/password-reset-redirect?apikey=${anonKey}&web_url=${webUrl}`;
       } else {
-        redirectTo = `https://uutsoqjcbsiplwhkgstz.supabase.co/functions/v1/password-reset-redirect?apikey=${anonKey}`;
+        redirectTo = `${supabaseUrl}/functions/v1/password-reset-redirect?apikey=${anonKey}`;
       }
 
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
