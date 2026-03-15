@@ -2,6 +2,7 @@ import { Tabs, router } from 'expo-router';
 import { View, ActivityIndicator, StyleSheet, Platform, TouchableOpacity } from 'react-native';
 import { Hop as Home, Package, Users, User, ArrowLeft } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { useEffect } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CartIconWithBadge from '@/components/marketplace/CartIconWithBadge';
@@ -9,6 +10,7 @@ import WishlistIconWithBadge from '@/components/marketplace/WishlistIconWithBadg
 
 export default function TabLayout() {
   const { session, loading, profile } = useAuth();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
@@ -29,8 +31,8 @@ export default function TabLayout() {
 
   if (loading || !session || !profile) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#ff8c00" />
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -43,15 +45,16 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#ff8c00',
-        tabBarInactiveTintColor: '#94a3b8',
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textMuted,
         tabBarStyle: {
-          backgroundColor: '#ffffff',
-          borderTopWidth: 0,
+          backgroundColor: colors.tabBar,
+          borderTopWidth: 1,
+          borderTopColor: colors.tabBarBorder,
           height: 60 + insets.bottom,
           paddingBottom: insets.bottom,
           paddingTop: 8,
-          shadowColor: '#000',
+          shadowColor: colors.shadow,
           shadowOffset: { width: 0, height: -2 },
           shadowOpacity: 0.1,
           shadowRadius: 8,

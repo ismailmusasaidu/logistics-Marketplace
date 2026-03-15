@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, TextInput, Modal, ActivityIndicator, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { User, Mail, Phone, LogOut, Shield, Edit, Save, X, Store, MapPin, FileText, Wallet, Settings, ChevronRight, HelpCircle, FileCheck, Lock } from 'lucide-react-native';
+import { User, Mail, Phone, LogOut, Shield, CreditCard as Edit, Save, X, Store, MapPin, FileText, Wallet, Settings, ChevronRight, Circle as HelpCircle, FileCheck, Lock } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { router } from 'expo-router';
@@ -191,7 +191,7 @@ export default function ProfileScreen() {
 
   if (showWallet) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <LinearGradient
           colors={['#ff9a1f', '#ff8c00', '#e67a00']}
           start={{ x: 0, y: 0 }}
@@ -216,7 +216,7 @@ export default function ProfileScreen() {
 
   if (showVendorSettings) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <LinearGradient
           colors={['#ff9a1f', '#ff8c00', '#e67a00']}
           start={{ x: 0, y: 0 }}
@@ -237,7 +237,7 @@ export default function ProfileScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
       <LinearGradient
         colors={['#ff9a1f', '#ff8c00', '#e67a00']}
         start={{ x: 0, y: 0 }}
@@ -288,13 +288,13 @@ export default function ProfileScreen() {
           ) : (
             <View style={styles.actionButtons}>
               <TouchableOpacity
-                style={styles.cancelButton}
+                style={[styles.cancelButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
                 onPress={handleCancel}
                 disabled={isSaving}
                 activeOpacity={0.7}
               >
-                <X size={18} color="#78716c" />
-                <Text style={styles.cancelBtnText}>Cancel</Text>
+                <X size={18} color={colors.textSecondary} />
+                <Text style={[styles.cancelBtnText, { color: colors.textSecondary }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
@@ -322,25 +322,26 @@ export default function ProfileScreen() {
           )}
         </View>
 
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardIconWrap}>
-              <User size={18} color="#ff8c00" strokeWidth={2.2} />
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
+          <View style={[styles.cardHeader, { borderBottomColor: colors.borderLight }]}>
+            <View style={[styles.cardIconWrap, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderLight }]}>
+              <User size={18} color={colors.primary} strokeWidth={2.2} />
             </View>
-            <Text style={styles.cardTitle}>Personal Information</Text>
+            <Text style={[styles.cardTitle, { color: colors.text }]}>Personal Information</Text>
           </View>
 
           <InfoRow
-            icon={<User size={18} color="#ff8c00" />}
+            icon={<User size={18} color={colors.primary} />}
             label="Full Name"
             value={profile?.full_name}
             isEditing={isEditing}
             editValue={fullName}
             onChangeText={setFullName}
             placeholder="Enter your full name"
+            colors={colors}
           />
           <InfoRow
-            icon={<Mail size={18} color="#ff8c00" />}
+            icon={<Mail size={18} color={colors.primary} />}
             label="Email Address"
             value={profile?.email}
             isEditing={isEditing}
@@ -349,9 +350,10 @@ export default function ProfileScreen() {
             placeholder="Enter your email"
             keyboardType="email-address"
             autoCapitalize="none"
+            colors={colors}
           />
           <InfoRow
-            icon={<Phone size={18} color="#ff8c00" />}
+            icon={<Phone size={18} color={colors.primary} />}
             label="Phone Number"
             value={profile?.phone || 'Not provided'}
             isEditing={isEditing}
@@ -360,30 +362,32 @@ export default function ProfileScreen() {
             placeholder="Enter your phone number"
             keyboardType="phone-pad"
             isLast
+            colors={colors}
           />
         </View>
 
         {profile?.role === 'vendor' && (
           <>
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <View style={styles.cardIconWrap}>
-                  <Store size={18} color="#ff8c00" strokeWidth={2.2} />
+            <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
+              <View style={[styles.cardHeader, { borderBottomColor: colors.borderLight }]}>
+                <View style={[styles.cardIconWrap, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderLight }]}>
+                  <Store size={18} color={colors.primary} strokeWidth={2.2} />
                 </View>
-                <Text style={styles.cardTitle}>Store Information</Text>
+                <Text style={[styles.cardTitle, { color: colors.text }]}>Store Information</Text>
               </View>
 
               <InfoRow
-                icon={<Store size={18} color="#ff8c00" />}
+                icon={<Store size={18} color={colors.primary} />}
                 label="Business Name"
                 value={profile?.business_name || 'Not provided'}
                 isEditing={isEditing}
                 editValue={businessName}
                 onChangeText={setBusinessName}
                 placeholder="Enter business name"
+                colors={colors}
               />
               <InfoRow
-                icon={<Phone size={18} color="#ff8c00" />}
+                icon={<Phone size={18} color={colors.primary} />}
                 label="Business Phone"
                 value={profile?.business_phone || 'Not provided'}
                 isEditing={isEditing}
@@ -391,9 +395,10 @@ export default function ProfileScreen() {
                 onChangeText={setBusinessPhone}
                 placeholder="Enter business phone"
                 keyboardType="phone-pad"
+                colors={colors}
               />
               <InfoRow
-                icon={<MapPin size={18} color="#ff8c00" />}
+                icon={<MapPin size={18} color={colors.primary} />}
                 label="Business Address"
                 value={profile?.business_address || 'Not provided'}
                 isEditing={isEditing}
@@ -401,9 +406,10 @@ export default function ProfileScreen() {
                 onChangeText={setBusinessAddress}
                 placeholder="Enter business address"
                 multiline
+                colors={colors}
               />
               <InfoRow
-                icon={<FileText size={18} color="#ff8c00" />}
+                icon={<FileText size={18} color={colors.primary} />}
                 label="Business Description"
                 value={profile?.business_description || 'Not provided'}
                 isEditing={isEditing}
@@ -412,15 +418,16 @@ export default function ProfileScreen() {
                 placeholder="Describe your business"
                 multiline
                 isLast
+                colors={colors}
               />
             </View>
 
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <View style={styles.cardIconWrap}>
-                  <Settings size={18} color="#ff8c00" strokeWidth={2.2} />
+            <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
+              <View style={[styles.cardHeader, { borderBottomColor: colors.borderLight }]}>
+                <View style={[styles.cardIconWrap, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderLight }]}>
+                  <Settings size={18} color={colors.primary} strokeWidth={2.2} />
                 </View>
-                <Text style={styles.cardTitle}>Vendor Settings</Text>
+                <Text style={[styles.cardTitle, { color: colors.text }]}>Vendor Settings</Text>
               </View>
               <TouchableOpacity
                 style={styles.actionCard}
@@ -447,12 +454,12 @@ export default function ProfileScreen() {
           </>
         )}
 
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardIconWrap}>
-              <Wallet size={18} color="#ff8c00" strokeWidth={2.2} />
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
+          <View style={[styles.cardHeader, { borderBottomColor: colors.borderLight }]}>
+            <View style={[styles.cardIconWrap, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderLight }]}>
+              <Wallet size={18} color={colors.primary} strokeWidth={2.2} />
             </View>
-            <Text style={styles.cardTitle}>My Wallet</Text>
+            <Text style={[styles.cardTitle, { color: colors.text }]}>My Wallet</Text>
           </View>
           <TouchableOpacity
             style={styles.walletCard}
@@ -482,90 +489,90 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardIconWrap}>
-              <Settings size={18} color="#ff8c00" strokeWidth={2.2} />
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
+          <View style={[styles.cardHeader, { borderBottomColor: colors.borderLight }]}>
+            <View style={[styles.cardIconWrap, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderLight }]}>
+              <Settings size={18} color={colors.primary} strokeWidth={2.2} />
             </View>
-            <Text style={styles.cardTitle}>Preferences</Text>
+            <Text style={[styles.cardTitle, { color: colors.text }]}>Preferences</Text>
           </View>
           <TouchableOpacity
-            style={[styles.menuItem, styles.menuItemLast]}
+            style={[styles.menuItem, styles.menuItemLast, { borderBottomColor: colors.borderLight }]}
             onPress={toggleTheme}
             activeOpacity={0.6}
           >
             <View style={styles.menuItemLeft}>
-              <View style={styles.menuIconWrap}>
-                <Settings size={18} color="#78716c" strokeWidth={2} />
+              <View style={[styles.menuIconWrap, { backgroundColor: colors.surfaceSecondary }]}>
+                <Settings size={18} color={colors.textSecondary} strokeWidth={2} />
               </View>
-              <Text style={styles.menuText}>{isDark ? 'Dark Mode' : 'Light Mode'}</Text>
+              <Text style={[styles.menuText, { color: colors.text }]}>{isDark ? 'Dark Mode' : 'Light Mode'}</Text>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <View style={{ width: 42, height: 24, borderRadius: 12, backgroundColor: isDark ? '#ff8c00' : '#e5e7eb', justifyContent: 'center', paddingHorizontal: 3 }}>
+              <View style={{ width: 42, height: 24, borderRadius: 12, backgroundColor: isDark ? colors.primary : colors.border, justifyContent: 'center', paddingHorizontal: 3 }}>
                 <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: '#ffffff', alignSelf: isDark ? 'flex-end' : 'flex-start' }} />
               </View>
             </View>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardIconWrap}>
-              <HelpCircle size={18} color="#ff8c00" strokeWidth={2.2} />
+        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
+          <View style={[styles.cardHeader, { borderBottomColor: colors.borderLight }]}>
+            <View style={[styles.cardIconWrap, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderLight }]}>
+              <HelpCircle size={18} color={colors.primary} strokeWidth={2.2} />
             </View>
-            <Text style={styles.cardTitle}>Support</Text>
+            <Text style={[styles.cardTitle, { color: colors.text }]}>Support</Text>
           </View>
 
           <TouchableOpacity
-            style={styles.menuItem}
+            style={[styles.menuItem, { borderBottomColor: colors.borderLight }]}
             onPress={() => router.push('/help-center')}
             activeOpacity={0.6}
           >
             <View style={styles.menuItemLeft}>
-              <View style={styles.menuIconWrap}>
-                <HelpCircle size={18} color="#78716c" strokeWidth={2} />
+              <View style={[styles.menuIconWrap, { backgroundColor: colors.surfaceSecondary }]}>
+                <HelpCircle size={18} color={colors.textSecondary} strokeWidth={2} />
               </View>
-              <Text style={styles.menuText}>Help Center</Text>
+              <Text style={[styles.menuText, { color: colors.text }]}>Help Center</Text>
             </View>
-            <ChevronRight size={18} color="#d6d3d1" />
+            <ChevronRight size={18} color={colors.border} />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.menuItem}
+            style={[styles.menuItem, { borderBottomColor: colors.borderLight }]}
             onPress={() => router.push('/terms-of-service')}
             activeOpacity={0.6}
           >
             <View style={styles.menuItemLeft}>
-              <View style={styles.menuIconWrap}>
-                <FileCheck size={18} color="#78716c" strokeWidth={2} />
+              <View style={[styles.menuIconWrap, { backgroundColor: colors.surfaceSecondary }]}>
+                <FileCheck size={18} color={colors.textSecondary} strokeWidth={2} />
               </View>
-              <Text style={styles.menuText}>Terms of Service</Text>
+              <Text style={[styles.menuText, { color: colors.text }]}>Terms of Service</Text>
             </View>
-            <ChevronRight size={18} color="#d6d3d1" />
+            <ChevronRight size={18} color={colors.border} />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.menuItem, styles.menuItemLast]}
+            style={[styles.menuItem, styles.menuItemLast, { borderBottomColor: colors.borderLight }]}
             onPress={() => router.push('/privacy-policy')}
             activeOpacity={0.6}
           >
             <View style={styles.menuItemLeft}>
-              <View style={styles.menuIconWrap}>
-                <Lock size={18} color="#78716c" strokeWidth={2} />
+              <View style={[styles.menuIconWrap, { backgroundColor: colors.surfaceSecondary }]}>
+                <Lock size={18} color={colors.textSecondary} strokeWidth={2} />
               </View>
-              <Text style={styles.menuText}>Privacy Policy</Text>
+              <Text style={[styles.menuText, { color: colors.text }]}>Privacy Policy</Text>
             </View>
-            <ChevronRight size={18} color="#d6d3d1" />
+            <ChevronRight size={18} color={colors.border} />
           </TouchableOpacity>
         </View>
 
         <TouchableOpacity
-          style={styles.signOutButton}
+          style={[styles.signOutButton, { backgroundColor: colors.surface, borderColor: colors.error + '44' }]}
           onPress={confirmSignOut}
           activeOpacity={0.7}
         >
-          <LogOut size={20} color="#ef4444" strokeWidth={2.2} />
-          <Text style={styles.signOutText}>Sign Out</Text>
+          <LogOut size={20} color={colors.error} strokeWidth={2.2} />
+          <Text style={[styles.signOutText, { color: colors.error }]}>Sign Out</Text>
         </TouchableOpacity>
       </Animated.View>
 
@@ -576,22 +583,22 @@ export default function ProfileScreen() {
         onRequestClose={() => setShowSignOutConfirmation(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.confirmationModal}>
+          <View style={[styles.confirmationModal, { backgroundColor: colors.surface }]}>
             <View style={styles.confirmationIcon}>
               <LogOut size={28} color="#ef4444" strokeWidth={2} />
             </View>
-            <Text style={styles.confirmationTitle}>Sign Out</Text>
-            <Text style={styles.confirmationMessage}>
+            <Text style={[styles.confirmationTitle, { color: colors.text }]}>Sign Out</Text>
+            <Text style={[styles.confirmationMessage, { color: colors.textSecondary }]}>
               Are you sure you want to sign out of your account?
             </Text>
             <View style={styles.confirmationButtons}>
               <TouchableOpacity
-                style={styles.confirmCancelBtn}
+                style={[styles.confirmCancelBtn, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}
                 onPress={() => setShowSignOutConfirmation(false)}
                 disabled={signingOut}
                 activeOpacity={0.7}
               >
-                <Text style={styles.confirmCancelText}>Cancel</Text>
+                <Text style={[styles.confirmCancelText, { color: colors.textSecondary }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.confirmSignOutBtn}
@@ -625,6 +632,7 @@ function InfoRow({
   autoCapitalize,
   multiline,
   isLast,
+  colors,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -637,30 +645,32 @@ function InfoRow({
   autoCapitalize?: any;
   multiline?: boolean;
   isLast?: boolean;
+  colors: any;
 }) {
   return (
-    <View style={[styles.infoRow, isLast && styles.infoRowLast]}>
-      <View style={styles.infoIconWrap}>{icon}</View>
+    <View style={[styles.infoRow, { borderBottomColor: colors.borderLight }, isLast && styles.infoRowLast]}>
+      <View style={[styles.infoIconWrap, { backgroundColor: colors.surfaceSecondary }]}>{icon}</View>
       <View style={styles.infoContent}>
-        <Text style={styles.infoLabel}>{label}</Text>
+        <Text style={[styles.infoLabel, { color: colors.textMuted }]}>{label}</Text>
         {isEditing ? (
           <TextInput
             style={[
               styles.infoInput,
+              { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground, color: colors.text },
               multiline && styles.infoInputMultiline,
               Platform.OS === 'web' && { outlineStyle: 'none' } as any,
             ]}
             value={editValue}
             onChangeText={onChangeText}
             placeholder={placeholder}
-            placeholderTextColor="#b0b0b0"
+            placeholderTextColor={colors.textMuted}
             keyboardType={keyboardType}
             autoCapitalize={autoCapitalize}
             multiline={multiline}
             numberOfLines={multiline ? 3 : 1}
           />
         ) : (
-          <Text style={[styles.infoValue, (!value || value === 'Not provided') && styles.infoValueEmpty]}>
+          <Text style={[styles.infoValue, { color: colors.text }, (!value || value === 'Not provided') && { color: colors.border, fontStyle: 'italic' }]}>
             {value || 'Not provided'}
           </Text>
         )}

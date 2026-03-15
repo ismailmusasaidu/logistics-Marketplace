@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SlidersHorizontal, ArrowUpDown, X, Check, ChevronDown } from 'lucide-react-native';
 import { Fonts } from '@/constants/fonts';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export type SortOption =
   | 'newest'
@@ -55,6 +56,7 @@ interface Props {
 }
 
 export default function FilterSortPanel({ filters, onApply, resultCount }: Props) {
+  const { colors } = useTheme();
   const [visible, setVisible] = useState(false);
   const [draft, setDraft] = useState<FilterState>(filters);
   const slideAnim = useRef(new Animated.Value(600)).current;
@@ -97,40 +99,40 @@ export default function FilterSortPanel({ filters, onApply, resultCount }: Props
 
   return (
     <>
-      <View style={styles.barRow}>
+      <View style={[styles.barRow, { backgroundColor: colors.surface, borderBottomColor: colors.borderLight }]}>
         <TouchableOpacity
-          style={[styles.barButton, activeFilterCount > 0 && styles.barButtonActive]}
+          style={[styles.barButton, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }, activeFilterCount > 0 && { backgroundColor: colors.primary, borderColor: colors.primary }]}
           onPress={() => setVisible(true)}
           activeOpacity={0.8}
         >
-          <SlidersHorizontal size={16} color={activeFilterCount > 0 ? '#fff' : '#444'} strokeWidth={2} />
-          <Text style={[styles.barButtonText, activeFilterCount > 0 && styles.barButtonTextActive]}>
+          <SlidersHorizontal size={16} color={activeFilterCount > 0 ? '#fff' : colors.textSecondary} strokeWidth={2} />
+          <Text style={[styles.barButtonText, { color: colors.textSecondary }, activeFilterCount > 0 && styles.barButtonTextActive]}>
             Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
           </Text>
           {activeFilterCount > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{activeFilterCount}</Text>
+            <View style={[styles.badge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+              <Text style={[styles.badgeText, { color: '#fff' }]}>{activeFilterCount}</Text>
             </View>
           )}
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.barButton, filters.sort !== 'newest' && styles.barButtonActive]}
+          style={[styles.barButton, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }, filters.sort !== 'newest' && { backgroundColor: colors.primary, borderColor: colors.primary }]}
           onPress={() => setVisible(true)}
           activeOpacity={0.8}
         >
-          <ArrowUpDown size={16} color={filters.sort !== 'newest' ? '#fff' : '#444'} strokeWidth={2} />
+          <ArrowUpDown size={16} color={filters.sort !== 'newest' ? '#fff' : colors.textSecondary} strokeWidth={2} />
           <Text
-            style={[styles.barButtonText, filters.sort !== 'newest' && styles.barButtonTextActive]}
+            style={[styles.barButtonText, { color: colors.textSecondary }, filters.sort !== 'newest' && styles.barButtonTextActive]}
             numberOfLines={1}
           >
             {filters.sort !== 'newest' ? currentSortLabel : 'Sort'}
           </Text>
-          <ChevronDown size={14} color={filters.sort !== 'newest' ? '#fff' : '#888'} />
+          <ChevronDown size={14} color={filters.sort !== 'newest' ? '#fff' : colors.textMuted} />
         </TouchableOpacity>
 
-        <View style={styles.resultBadge}>
-          <Text style={styles.resultText}>{resultCount} item{resultCount !== 1 ? 's' : ''}</Text>
+        <View style={[styles.resultBadge, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}>
+          <Text style={[styles.resultText, { color: colors.primary }]}>{resultCount} item{resultCount !== 1 ? 's' : ''}</Text>
         </View>
       </View>
 
@@ -139,35 +141,35 @@ export default function FilterSortPanel({ filters, onApply, resultCount }: Props
           <TouchableOpacity style={StyleSheet.absoluteFill} onPress={() => setVisible(false)} />
         </Animated.View>
 
-        <Animated.View style={[styles.sheet, { transform: [{ translateY: slideAnim }] }]}>
-          <View style={styles.sheetHandle} />
+        <Animated.View style={[styles.sheet, { backgroundColor: colors.surface, transform: [{ translateY: slideAnim }] }]}>
+          <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
 
-          <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>Filter & Sort</Text>
+          <View style={[styles.sheetHeader, { borderBottomColor: colors.borderLight }]}>
+            <Text style={[styles.sheetTitle, { color: colors.text }]}>Filter & Sort</Text>
             <View style={styles.sheetHeaderRight}>
-              <TouchableOpacity onPress={handleReset} style={styles.resetBtn}>
-                <Text style={styles.resetText}>Reset all</Text>
+              <TouchableOpacity onPress={handleReset} style={[styles.resetBtn, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}>
+                <Text style={[styles.resetText, { color: colors.primary }]}>Reset all</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => setVisible(false)} style={styles.closeBtn}>
-                <X size={20} color="#333" strokeWidth={2} />
+              <TouchableOpacity onPress={() => setVisible(false)} style={[styles.closeBtn, { backgroundColor: colors.surfaceSecondary }]}>
+                <X size={20} color={colors.text} strokeWidth={2} />
               </TouchableOpacity>
             </View>
           </View>
 
           <ScrollView style={styles.sheetBody} showsVerticalScrollIndicator={false}>
-            <Section title="Sort By">
+            <Section title="Sort By" colors={colors}>
               <View style={styles.sortGrid}>
                 {SORT_OPTIONS.map((opt) => {
                   const active = draft.sort === opt.value;
                   return (
                     <TouchableOpacity
                       key={opt.value}
-                      style={[styles.sortChip, active && styles.sortChipActive]}
+                      style={[styles.sortChip, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }, active && { backgroundColor: colors.primary, borderColor: colors.primary }]}
                       onPress={() => setDraft((d) => ({ ...d, sort: opt.value }))}
                       activeOpacity={0.8}
                     >
                       {active && <Check size={13} color="#fff" strokeWidth={3} />}
-                      <Text style={[styles.sortChipText, active && styles.sortChipTextActive]}>
+                      <Text style={[styles.sortChipText, { color: colors.textSecondary }, active && styles.sortChipTextActive]}>
                         {opt.label}
                       </Text>
                     </TouchableOpacity>
@@ -176,29 +178,29 @@ export default function FilterSortPanel({ filters, onApply, resultCount }: Props
               </View>
             </Section>
 
-            <Divider />
+            <Divider colors={colors} />
 
-            <Section title="Price Range">
+            <Section title="Price Range" colors={colors}>
               <View style={styles.priceRow}>
                 <View style={styles.priceInputWrap}>
-                  <Text style={styles.priceLabel}>Min (₦)</Text>
+                  <Text style={[styles.priceLabel, { color: colors.textMuted }]}>Min (₦)</Text>
                   <TextInput
-                    style={styles.priceInput}
+                    style={[styles.priceInput, { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground, color: colors.text }]}
                     keyboardType="numeric"
                     placeholder="0"
-                    placeholderTextColor="#bbb"
+                    placeholderTextColor={colors.textMuted}
                     value={draft.minPrice}
                     onChangeText={(v) => setDraft((d) => ({ ...d, minPrice: v.replace(/[^0-9]/g, '') }))}
                   />
                 </View>
-                <View style={styles.priceDash} />
+                <View style={[styles.priceDash, { backgroundColor: colors.border }]} />
                 <View style={styles.priceInputWrap}>
-                  <Text style={styles.priceLabel}>Max (₦)</Text>
+                  <Text style={[styles.priceLabel, { color: colors.textMuted }]}>Max (₦)</Text>
                   <TextInput
-                    style={styles.priceInput}
+                    style={[styles.priceInput, { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground, color: colors.text }]}
                     keyboardType="numeric"
                     placeholder="Any"
-                    placeholderTextColor="#bbb"
+                    placeholderTextColor={colors.textMuted}
                     value={draft.maxPrice}
                     onChangeText={(v) => setDraft((d) => ({ ...d, maxPrice: v.replace(/[^0-9]/g, '') }))}
                   />
@@ -206,33 +208,35 @@ export default function FilterSortPanel({ filters, onApply, resultCount }: Props
               </View>
             </Section>
 
-            <Divider />
+            <Divider colors={colors} />
 
-            <Section title="Availability & Deals">
+            <Section title="Availability & Deals" colors={colors}>
               <ToggleRow
                 label="In Stock Only"
                 sublabel="Hide out-of-stock products"
                 value={draft.inStockOnly}
                 onToggle={() => setDraft((d) => ({ ...d, inStockOnly: !d.inStockOnly }))}
+                colors={colors}
               />
               <ToggleRow
                 label="On Sale"
                 sublabel="Show discounted products only"
                 value={draft.onSaleOnly}
                 onToggle={() => setDraft((d) => ({ ...d, onSaleOnly: !d.onSaleOnly }))}
+                colors={colors}
               />
             </Section>
 
-            <Divider />
+            <Divider colors={colors} />
 
-            <Section title="Minimum Rating">
+            <Section title="Minimum Rating" colors={colors}>
               <View style={styles.ratingRow}>
                 <TouchableOpacity
-                  style={[styles.ratingChip, draft.minRating === null && styles.ratingChipActive]}
+                  style={[styles.ratingChip, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }, draft.minRating === null && { backgroundColor: colors.primary, borderColor: colors.primary }]}
                   onPress={() => setDraft((d) => ({ ...d, minRating: null }))}
                   activeOpacity={0.8}
                 >
-                  <Text style={[styles.ratingChipText, draft.minRating === null && styles.ratingChipTextActive]}>
+                  <Text style={[styles.ratingChipText, { color: colors.textSecondary }, draft.minRating === null && styles.ratingChipTextActive]}>
                     Any
                   </Text>
                 </TouchableOpacity>
@@ -241,11 +245,11 @@ export default function FilterSortPanel({ filters, onApply, resultCount }: Props
                   return (
                     <TouchableOpacity
                       key={r}
-                      style={[styles.ratingChip, active && styles.ratingChipActive]}
+                      style={[styles.ratingChip, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }, active && { backgroundColor: colors.primary, borderColor: colors.primary }]}
                       onPress={() => setDraft((d) => ({ ...d, minRating: r }))}
                       activeOpacity={0.8}
                     >
-                      <Text style={[styles.ratingChipText, active && styles.ratingChipTextActive]}>
+                      <Text style={[styles.ratingChipText, { color: colors.textSecondary }, active && styles.ratingChipTextActive]}>
                         {r}+ ★
                       </Text>
                     </TouchableOpacity>
@@ -257,8 +261,8 @@ export default function FilterSortPanel({ filters, onApply, resultCount }: Props
             <View style={{ height: 16 }} />
           </ScrollView>
 
-          <View style={styles.applyWrap}>
-            <TouchableOpacity style={styles.applyBtn} onPress={handleApply} activeOpacity={0.85}>
+          <View style={[styles.applyWrap, { borderTopColor: colors.borderLight }]}>
+            <TouchableOpacity style={[styles.applyBtn, { backgroundColor: colors.primary }]} onPress={handleApply} activeOpacity={0.85}>
               <Text style={styles.applyText}>Show Results</Text>
             </TouchableOpacity>
           </View>
@@ -268,17 +272,17 @@ export default function FilterSortPanel({ filters, onApply, resultCount }: Props
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children, colors }: { title: string; children: React.ReactNode; colors: any }) {
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>{title}</Text>
       {children}
     </View>
   );
 }
 
-function Divider() {
-  return <View style={styles.divider} />;
+function Divider({ colors }: { colors: any }) {
+  return <View style={[styles.divider, { backgroundColor: colors.borderLight }]} />;
 }
 
 function ToggleRow({
@@ -286,19 +290,21 @@ function ToggleRow({
   sublabel,
   value,
   onToggle,
+  colors,
 }: {
   label: string;
   sublabel: string;
   value: boolean;
   onToggle: () => void;
+  colors: any;
 }) {
   return (
     <TouchableOpacity style={styles.toggleRow} onPress={onToggle} activeOpacity={0.8}>
       <View style={styles.toggleInfo}>
-        <Text style={styles.toggleLabel}>{label}</Text>
-        <Text style={styles.toggleSublabel}>{sublabel}</Text>
+        <Text style={[styles.toggleLabel, { color: colors.text }]}>{label}</Text>
+        <Text style={[styles.toggleSublabel, { color: colors.textMuted }]}>{sublabel}</Text>
       </View>
-      <View style={[styles.toggle, value && styles.toggleOn]}>
+      <View style={[styles.toggle, { backgroundColor: colors.border }, value && { backgroundColor: colors.primary }]}>
         <View style={[styles.toggleThumb, value && styles.toggleThumbOn]} />
       </View>
     </TouchableOpacity>

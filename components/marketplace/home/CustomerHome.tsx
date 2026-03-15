@@ -18,6 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '@/lib/marketplace/supabase';
 import { Product, Category, Advert } from '@/types/database';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { cartEvents } from '@/lib/marketplace/cartEvents';
 import ProductDetailModal from '@/components/marketplace/ProductDetailModal';
 import ProductCard from '@/components/marketplace/ProductCard';
@@ -35,6 +36,7 @@ const PAGE_SIZE = 16;
 
 export default function CustomerHome() {
   const { profile } = useAuth();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -56,10 +58,6 @@ export default function CustomerHome() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(16)).current;
 
-  useEffect(() => {
-    restoreFilters();
-    Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
   const restoreFilters = async () => {
     try {
       const [savedFilters, savedCategory] = await Promise.all([
@@ -79,6 +77,10 @@ export default function CustomerHome() {
     }
   };
 
+  useEffect(() => {
+    restoreFilters();
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
       Animated.timing(slideAnim, { toValue: 0, duration: 500, useNativeDriver: true }),
     ]).start();
   }, []);
@@ -283,7 +285,7 @@ export default function CustomerHome() {
   const firstName = profile?.full_name?.split(' ')[0] || 'there';
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <LinearGradient
         colors={['#1a1a1a', '#2d1a00', '#3d2200']}
         start={{ x: 0, y: 0 }}
@@ -318,29 +320,29 @@ export default function CustomerHome() {
 
       <OfflineBanner isStale={isProductsStale} message="Showing cached products. Check your connection." />
 
-      <View style={styles.categorySection}>
+      <View style={[styles.categorySection, { backgroundColor: colors.surface, borderBottomColor: colors.borderLight }]}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoryList}
         >
           <TouchableOpacity
-            style={[styles.chip, !selectedCategory && styles.chipActive]}
+            style={[styles.chip, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }, !selectedCategory && { backgroundColor: colors.primaryLight + '22', borderColor: colors.primary }]}
             onPress={() => setSelectedCategory(null)}
             activeOpacity={0.75}
           >
-            {!selectedCategory && <View style={styles.chipDot} />}
-            <Text style={[styles.chipText, !selectedCategory && styles.chipTextActive]}>All</Text>
+            {!selectedCategory && <View style={[styles.chipDot, { backgroundColor: colors.primary }]} />}
+            <Text style={[styles.chipText, { color: colors.textSecondary }, !selectedCategory && { color: colors.primary }]}>All</Text>
           </TouchableOpacity>
           {categories.map((cat) => (
             <TouchableOpacity
               key={cat.id}
-              style={[styles.chip, selectedCategory === cat.id && styles.chipActive]}
+              style={[styles.chip, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }, selectedCategory === cat.id && { backgroundColor: colors.primaryLight + '22', borderColor: colors.primary }]}
               onPress={() => setSelectedCategory(cat.id)}
               activeOpacity={0.75}
             >
-              {selectedCategory === cat.id && <View style={styles.chipDot} />}
-              <Text style={[styles.chipText, selectedCategory === cat.id && styles.chipTextActive]}>
+              {selectedCategory === cat.id && <View style={[styles.chipDot, { backgroundColor: colors.primary }]} />}
+              <Text style={[styles.chipText, { color: colors.textSecondary }, selectedCategory === cat.id && { color: colors.primary }]}>
                 {cat.name}
               </Text>
             </TouchableOpacity>
@@ -356,8 +358,8 @@ export default function CustomerHome() {
 
       {loading ? (
         <View style={styles.loadingBox}>
-          <ActivityIndicator size="large" color="#f97316" />
-          <Text style={styles.loadingText}>Loading products...</Text>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={[styles.loadingText, { color: colors.textMuted }]}>Loading products...</Text>
         </View>
       ) : filteredProducts.length === 0 ? (
         <View style={styles.emptyBox}>
@@ -388,8 +390,8 @@ export default function CustomerHome() {
           ListFooterComponent={
             loadingMore ? (
               <View style={styles.footerLoader}>
-                <ActivityIndicator size="small" color="#f97316" />
-                <Text style={styles.footerLoaderText}>Loading more...</Text>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={[styles.footerLoaderText, { color: colors.textMuted }]}>Loading more...</Text>
               </View>
             ) : <View style={{ height: 24 }} />
           }
