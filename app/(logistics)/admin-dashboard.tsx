@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, TextInput, Modal } from 'react-native';
-import { Package, Users, Bike, TrendingUp, DollarSign, Activity, CheckCircle, Zap, Star, Search, X, ChevronDown, MessageSquare, User, Trash2, Filter, Megaphone } from 'lucide-react-native';
+import { Package, Users, Bike, TrendingUp, DollarSign, Activity, CircleCheck as CheckCircle, Zap, Star, Search, X, ChevronDown, MessageSquare, User, Trash2, ListFilter as Filter, Megaphone, Banknote } from 'lucide-react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -8,6 +8,7 @@ import { Fonts } from '@/constants/fonts';
 import { Toast } from '@/components/Toast';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import LogisticsAdvertManagement from '@/components/logistics/AdvertManagement';
+import RiderPayouts from '@/components/logistics/RiderPayouts';
 
 type Stats = {
   totalOrders: number;
@@ -42,7 +43,7 @@ const SORT_LABELS: Record<SortOption, string> = {
   lowest: 'Lowest Rating',
 };
 
-type ActiveTab = 'overview' | 'reviews' | 'adverts';
+type ActiveTab = 'overview' | 'reviews' | 'adverts' | 'payouts';
 
 export default function AdminDashboard() {
   const insets = useSafeAreaInsets();
@@ -277,6 +278,14 @@ export default function AdminDashboard() {
           >
             <Megaphone size={16} color={activeTab === 'adverts' ? '#f97316' : '#6b7280'} />
             <Text style={[styles.tabLabel, activeTab === 'adverts' && styles.tabLabelActive]}>Adverts</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tabItem, activeTab === 'payouts' && styles.tabItemActive]}
+            onPress={() => setActiveTab('payouts')}
+            activeOpacity={0.8}
+          >
+            <Banknote size={16} color={activeTab === 'payouts' ? '#f97316' : '#6b7280'} />
+            <Text style={[styles.tabLabel, activeTab === 'payouts' && styles.tabLabelActive]}>Payouts</Text>
           </TouchableOpacity>
         </View>
 
@@ -555,6 +564,8 @@ export default function AdminDashboard() {
           </ScrollView>
         ) : activeTab === 'adverts' ? (
           <LogisticsAdvertManagement />
+        ) : activeTab === 'payouts' ? (
+          <RiderPayouts />
         ) : null}
       </View>
 
