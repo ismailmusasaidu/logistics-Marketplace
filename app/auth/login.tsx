@@ -10,14 +10,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Image,
 } from 'react-native';
 import { Link, router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { coreBackend } from '@/lib/coreBackend';
 import { Fonts } from '@/constants/fonts';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Eye, EyeOff, Mail } from 'lucide-react-native';
+import { Eye, EyeOff, Mail, Truck } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function LoginScreen() {
@@ -143,11 +142,9 @@ export default function LoginScreen() {
             },
           ]}
         >
-          <Image
-            source={require('@/assets/images/favicon.png')}
-            style={styles.logoIcon}
-            resizeMode="contain"
-          />
+          <View style={styles.logoIconWrapper}>
+            <Truck size={36} color="#ffffff" strokeWidth={1.8} />
+          </View>
           <Text style={styles.brandName}>Danhausa</Text>
           <Text style={styles.brandTagline}>Logistics & Marketplace</Text>
           <Text style={styles.brandSlogan}>Your world, delivered.</Text>
@@ -325,11 +322,16 @@ const styles = StyleSheet.create({
   logoSection: {
     alignItems: 'center',
   },
-  logoIcon: {
+  logoIconWrapper: {
     width: 72,
     height: 72,
-    borderRadius: 16,
-    marginBottom: 12,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.3)',
   },
   brandName: {
     fontSize: 38,
