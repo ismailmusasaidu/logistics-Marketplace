@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Package, MapPin, Clock, Plus, X, User, Phone, ChevronDown, ChevronUp, Layers, Navigation, Search, Tag, Receipt, Star, ArrowDown, Truck, CircleCheck as CheckCircle2, CircleDot, RefreshCw, Calendar } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Order } from '@/lib/supabase';
 import { coreBackend } from '@/lib/coreBackend';
 import BulkOrderModal from '@/components/BulkOrderModal';
@@ -25,6 +26,7 @@ import { supabase as coreSupabase } from '@/lib/supabase';
 
 export default function CustomerHome() {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   const { profile, locationAddress, locationPermissionDenied, locationLoading, refreshLocation } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -745,7 +747,7 @@ export default function CustomerHome() {
   });
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <LinearGradient colors={['#1c1917', '#292524']} style={styles.headerGradient}>
         <View style={styles.headerTopRow}>
           <View style={styles.headerLeft}>
@@ -840,17 +842,17 @@ export default function CustomerHome() {
         {activeTab === 'active' && (
           <>
             <LogisticsBannerSlider />
-            <Text style={styles.sectionHeading}>Active Orders</Text>
+            <Text style={[styles.sectionHeading, { color: colors.text }]}>Active Orders</Text>
 
             {activeOrders.length === 0 ? (
               <View style={styles.emptyState}>
-                <Package size={64} color="#d1d5db" />
-                <Text style={styles.emptyText}>No active orders</Text>
-                <Text style={styles.emptySubtext}>Your active orders will appear here</Text>
+                <Package size={64} color={colors.textMuted} />
+                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No active orders</Text>
+                <Text style={[styles.emptySubtext, { color: colors.textMuted }]}>Your active orders will appear here</Text>
               </View>
             ) : (
               activeOrders.map((order, index) => (
-            <View key={order.id} style={styles.orderCard}>
+            <View key={order.id} style={[styles.orderCard, { borderColor: colors.border, backgroundColor: colors.surface }]}>
               <LinearGradient
                 colors={['#fff7ed', '#ffffff']}
                 style={styles.orderCardGradient}
@@ -864,7 +866,7 @@ export default function CustomerHome() {
                     </LinearGradient>
                   </View>
                   <View style={styles.orderCardMeta}>
-                    <Text style={styles.orderCardNumber}>{order.order_number}</Text>
+                    <Text style={[styles.orderCardNumber, { color: colors.text }]}>{order.order_number}</Text>
                     <Text style={styles.orderCardDate}>
                       {new Date(order.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </Text>
@@ -875,7 +877,7 @@ export default function CustomerHome() {
                   </View>
                 </View>
 
-                <View style={styles.routeContainer}>
+                <View style={[styles.routeContainer, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderLight }]}>
                   <View style={styles.routeRow}>
                     <View style={styles.routeIconCol}>
                       <View style={[styles.routeCircle, styles.routeCircleOrigin]}>
@@ -889,13 +891,13 @@ export default function CustomerHome() {
                     <View style={styles.routeTextCol}>
                       {order.pickup_address ? (
                         <View style={styles.routeTextBlock}>
-                          <Text style={styles.routeLabel}>PICKUP</Text>
-                          <Text style={styles.routeAddress} numberOfLines={2}>{order.pickup_address}</Text>
+                          <Text style={[styles.routeLabel, { color: colors.textSecondary }]}>PICKUP</Text>
+                          <Text style={[styles.routeAddress, { color: colors.text }]} numberOfLines={2}>{order.pickup_address}</Text>
                         </View>
                       ) : null}
                       <View style={[styles.routeTextBlock, { marginTop: order.pickup_address ? 0 : 0 }]}>
-                        <Text style={[styles.routeLabel, { color: '#f97316' }]}>DELIVERY</Text>
-                        <Text style={styles.routeAddress} numberOfLines={2}>{order.delivery_address}</Text>
+                        <Text style={[styles.routeLabel, { color: colors.primary }]}>DELIVERY</Text>
+                        <Text style={[styles.routeAddress, { color: colors.text }]} numberOfLines={2}>{order.delivery_address}</Text>
                       </View>
                     </View>
                   </View>
@@ -914,32 +916,32 @@ export default function CustomerHome() {
                 )}
 
                 {(order.recipient_name || order.recipient_phone || order.package_description || order.order_size) ? (
-                  <View style={styles.notesCard}>
-                    <View style={styles.notesCardHeader}>
+                  <View style={[styles.notesCard, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderLight }]}>
+                    <View style={[styles.notesCardHeader, { borderBottomColor: colors.borderLight }]}>
                       <Package size={13} color="#f97316" />
                       <Text style={styles.notesCardTitle}>Package Info{order.bulk_order_id ? ' (Bulk)' : ''}</Text>
                     </View>
                     {order.recipient_name ? (
                       <View style={styles.notesInfoRow}>
-                        <Text style={styles.notesInfoLabel}>Recipient</Text>
-                        <Text style={styles.notesInfoValue}>{order.recipient_name}</Text>
+                        <Text style={[styles.notesInfoLabel, { color: colors.textSecondary }]}>Recipient</Text>
+                        <Text style={[styles.notesInfoValue, { color: colors.text }]}>{order.recipient_name}</Text>
                       </View>
                     ) : null}
                     {order.recipient_phone ? (
                       <View style={styles.notesInfoRow}>
-                        <Text style={styles.notesInfoLabel}>Phone</Text>
-                        <Text style={styles.notesInfoValue}>{order.recipient_phone}</Text>
+                        <Text style={[styles.notesInfoLabel, { color: colors.textSecondary }]}>Phone</Text>
+                        <Text style={[styles.notesInfoValue, { color: colors.text }]}>{order.recipient_phone}</Text>
                       </View>
                     ) : null}
                     {order.package_description ? (
                       <View style={styles.notesInfoRow}>
-                        <Text style={styles.notesInfoLabel}>Package</Text>
-                        <Text style={styles.notesInfoValue}>{order.package_description}</Text>
+                        <Text style={[styles.notesInfoLabel, { color: colors.textSecondary }]}>Package</Text>
+                        <Text style={[styles.notesInfoValue, { color: colors.text }]}>{order.package_description}</Text>
                       </View>
                     ) : null}
                     {order.order_size ? (
                       <View style={styles.notesInfoRow}>
-                        <Text style={styles.notesInfoLabel}>Size</Text>
+                        <Text style={[styles.notesInfoLabel, { color: colors.textSecondary }]}>Size</Text>
                         <Text style={[styles.notesInfoValue, styles.sizeBadgeText]}>
                           {order.order_size.charAt(0).toUpperCase() + order.order_size.slice(1)}
                         </Text>
@@ -947,33 +949,33 @@ export default function CustomerHome() {
                     ) : null}
                     {order.order_types && order.order_types.length > 0 ? (
                       <View style={styles.notesInfoRow}>
-                        <Text style={styles.notesInfoLabel}>Type</Text>
-                        <Text style={styles.notesInfoValue}>{order.order_types.join(', ')}</Text>
+                        <Text style={[styles.notesInfoLabel, { color: colors.textSecondary }]}>Type</Text>
+                        <Text style={[styles.notesInfoValue, { color: colors.text }]}>{order.order_types.join(', ')}</Text>
                       </View>
                     ) : null}
                     {order.notes && !order.recipient_name && parseOrderNotes(order.notes).map((item, i) => (
                       <View key={i} style={styles.notesInfoRow}>
-                        <Text style={styles.notesInfoLabel}>{item.label}</Text>
-                        <Text style={styles.notesInfoValue}>{item.value}</Text>
+                        <Text style={[styles.notesInfoLabel, { color: colors.textSecondary }]}>{item.label}</Text>
+                        <Text style={[styles.notesInfoValue, { color: colors.text }]}>{item.value}</Text>
                       </View>
                     ))}
                   </View>
                 ) : order.notes ? (
-                  <View style={styles.notesCard}>
-                    <View style={styles.notesCardHeader}>
-                      <Package size={13} color="#f97316" />
+                  <View style={[styles.notesCard, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderLight }]}>
+                    <View style={[styles.notesCardHeader, { borderBottomColor: colors.borderLight }]}>
+                      <Package size={13} color={colors.primary} />
                       <Text style={styles.notesCardTitle}>Package Info</Text>
                     </View>
                     {parseOrderNotes(order.notes).map((item, i) => (
                       <View key={i} style={styles.notesInfoRow}>
-                        <Text style={styles.notesInfoLabel}>{item.label}</Text>
-                        <Text style={styles.notesInfoValue}>{item.value}</Text>
+                        <Text style={[styles.notesInfoLabel, { color: colors.textSecondary }]}>{item.label}</Text>
+                        <Text style={[styles.notesInfoValue, { color: colors.text }]}>{item.value}</Text>
                       </View>
                     ))}
                   </View>
                 ) : null}
 
-                <View style={styles.orderCardFooter}>
+                <View style={[styles.orderCardFooter, { borderTopColor: colors.border }]}>
                   <View style={styles.feeBox}>
                     <Text style={styles.feeLabelSmall}>Delivery Fee</Text>
                     <Text style={styles.feeAmount}>₦{order.delivery_fee.toFixed(2)}</Text>
@@ -996,32 +998,32 @@ export default function CustomerHome() {
           <>
             <View style={styles.historyHeaderRow}>
               <View>
-                <Text style={styles.sectionHeading}>Order History</Text>
-                <Text style={styles.historySubheading}>Your past deliveries</Text>
+                <Text style={[styles.sectionHeading, { color: colors.text }]}>Order History</Text>
+                <Text style={[styles.historySubheading, { color: colors.textMuted }]}>Your past deliveries</Text>
               </View>
             </View>
 
-            <View style={styles.searchContainer}>
-              <Search size={18} color="#9ca3af" />
+            <View style={[styles.searchContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Search size={18} color={colors.textMuted} />
               <TextInput
-                style={styles.searchInput}
+                style={[styles.searchInput, { color: colors.text }]}
                 placeholder="Search orders, addresses..."
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                placeholderTextColor="#c4c9d4"
+                placeholderTextColor={colors.textMuted}
               />
               {searchQuery.length > 0 && (
-                <TouchableOpacity style={styles.searchClearBtn} onPress={() => setSearchQuery('')}>
-                  <X size={16} color="#6b7280" />
+                <TouchableOpacity style={[styles.searchClearBtn, { backgroundColor: colors.surfaceSecondary }]} onPress={() => setSearchQuery('')}>
+                  <X size={16} color={colors.textSecondary} />
                 </TouchableOpacity>
               )}
             </View>
 
             {completedOrders.length === 0 ? (
               <View style={styles.emptyState}>
-                <Package size={64} color="#d1d5db" />
-                <Text style={styles.emptyText}>No completed orders</Text>
-                <Text style={styles.emptySubtext}>Your order history will appear here</Text>
+                <Package size={64} color={colors.textMuted} />
+                <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No completed orders</Text>
+                <Text style={[styles.emptySubtext, { color: colors.textMuted }]}>Your order history will appear here</Text>
               </View>
             ) : (
               <>
@@ -1060,9 +1062,9 @@ export default function CustomerHome() {
 
                 {filteredCompletedOrders.length === 0 ? (
                   <View style={styles.emptyState}>
-                    <Package size={64} color="#d1d5db" />
-                    <Text style={styles.emptyText}>No orders found</Text>
-                    <Text style={styles.emptySubtext}>Try adjusting your search</Text>
+                    <Package size={64} color={colors.textMuted} />
+                    <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No orders found</Text>
+                    <Text style={[styles.emptySubtext, { color: colors.textMuted }]}>Try adjusting your search</Text>
                   </View>
                 ) : (
                   <>
@@ -1072,8 +1074,8 @@ export default function CustomerHome() {
                       </Text>
                     )}
                     {filteredCompletedOrders.map((order) => (
-                      <View key={order.id} style={styles.historyCard}>
-                        <View style={styles.historyCardTopBar}>
+                      <View key={order.id} style={[styles.historyCard, { backgroundColor: colors.surface }]}>
+                        <View style={[styles.historyCardTopBar, { backgroundColor: colors.surfaceSecondary, borderBottomColor: colors.borderLight }]}>
                           <View style={[styles.historyStatusPill, {
                             backgroundColor: order.status === 'delivered' ? '#dcfce7' : '#fee2e2',
                           }]}>
@@ -1101,17 +1103,17 @@ export default function CustomerHome() {
 
                         <View style={styles.historyCardBody}>
                           <View style={styles.historyCardLeft}>
-                            <Text style={styles.historyOrderNumber}>{order.order_number}</Text>
+                            <Text style={[styles.historyOrderNumber, { color: colors.text }]}>{order.order_number}</Text>
                             <View style={styles.historyAddressRow}>
-                              <View style={styles.historyAddressDot} />
-                              <Text style={styles.historyAddressText} numberOfLines={1}>
+                              <View style={[styles.historyAddressDot, { backgroundColor: colors.textMuted }]} />
+                              <Text style={[styles.historyAddressText, { color: colors.textSecondary }]} numberOfLines={1}>
                                 {order.delivery_address}
                               </Text>
                             </View>
                             {order.pickup_address ? (
                               <View style={styles.historyAddressRow}>
-                                <View style={[styles.historyAddressDot, { backgroundColor: '#f97316' }]} />
-                                <Text style={styles.historyAddressText} numberOfLines={1}>
+                                <View style={[styles.historyAddressDot, { backgroundColor: colors.primary }]} />
+                                <Text style={[styles.historyAddressText, { color: colors.textSecondary }]} numberOfLines={1}>
                                   {order.pickup_address}
                                 </Text>
                               </View>
@@ -1124,7 +1126,7 @@ export default function CustomerHome() {
                         </View>
 
                         {(order.recipient_name || order.recipient_phone || order.package_description || order.order_size) ? (
-                          <View style={styles.historyPackageInfo}>
+                          <View style={[styles.historyPackageInfo, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}>
                             <View style={styles.historyPackageHeader}>
                               <Package size={12} color="#f97316" />
                               <Text style={styles.historyPackageTitle}>Package Info{order.bulk_order_id ? ' (Bulk)' : ''}</Text>
@@ -1133,19 +1135,19 @@ export default function CustomerHome() {
                               {order.recipient_name ? (
                                 <View style={styles.historyPackageRow}>
                                   <User size={11} color="#9ca3af" />
-                                  <Text style={styles.historyPackageText}>{order.recipient_name}</Text>
+                                  <Text style={[styles.historyPackageText, { color: colors.textSecondary }]}>{order.recipient_name}</Text>
                                 </View>
                               ) : null}
                               {order.recipient_phone ? (
                                 <View style={styles.historyPackageRow}>
                                   <Phone size={11} color="#9ca3af" />
-                                  <Text style={styles.historyPackageText}>{order.recipient_phone}</Text>
+                                  <Text style={[styles.historyPackageText, { color: colors.textSecondary }]}>{order.recipient_phone}</Text>
                                 </View>
                               ) : null}
                               {order.package_description ? (
                                 <View style={styles.historyPackageRow}>
                                   <Package size={11} color="#9ca3af" />
-                                  <Text style={styles.historyPackageText} numberOfLines={1}>{order.package_description}</Text>
+                                  <Text style={[styles.historyPackageText, { color: colors.textSecondary }]} numberOfLines={1}>{order.package_description}</Text>
                                 </View>
                               ) : null}
                               {order.order_size ? (
@@ -1199,7 +1201,7 @@ export default function CustomerHome() {
         transparent={true}
         onRequestClose={() => setModalVisible(false)}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: colors.backgroundSecondary }]}>
             <View style={styles.modalHandle} />
             <LinearGradient
               colors={['#1c1917', '#292524']}
@@ -1221,19 +1223,19 @@ export default function CustomerHome() {
             </LinearGradient>
 
             <ScrollView showsVerticalScrollIndicator={false} style={styles.modalScrollView} contentContainerStyle={styles.modalScrollContent}>
-              <View style={styles.formSection}>
+              <View style={[styles.formSection, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
                 <View style={styles.sectionHeader}>
                   <View style={styles.sectionDot} />
                   <Text style={styles.sectionTitle}>Pickup Details</Text>
                 </View>
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Pickup Address</Text>
-                  <View style={[styles.inputWrapper, fieldErrors.pickupAddress ? styles.inputWrapperError : null]}>
+                  <Text style={[styles.label, { color: colors.textSecondary }]}>Pickup Address</Text>
+                  <View style={[styles.inputWrapper, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }, fieldErrors.pickupAddress ? styles.inputWrapperError : null]}>
                     <MapPin size={16} color={fieldErrors.pickupAddress ? '#ef4444' : '#f97316'} style={styles.inputIcon} />
                     <TextInput
-                      style={styles.inputWithIcon}
+                      style={[styles.inputWithIcon, { color: colors.text }]}
                       placeholder="e.g. 10 Admiralty Way, Lekki Phase 1, Lagos"
-                      placeholderTextColor="#9ca3af"
+                      placeholderTextColor={colors.textMuted}
                       value={newOrder.pickupAddress}
                       onChangeText={(text) => { setNewOrder({ ...newOrder, pickupAddress: text }); if (fieldErrors.pickupAddress) setFieldErrors(e => ({ ...e, pickupAddress: undefined })); }}
                     />
@@ -1243,9 +1245,9 @@ export default function CustomerHome() {
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Pickup Instructions <Text style={styles.optionalLabel}>(Optional)</Text></Text>
                   <TextInput
-                    style={[styles.input, styles.textArea]}
+                    style={[styles.input, styles.textArea, { color: colors.text, backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}
                     placeholder="e.g. Gate code, Parking info, Contact person..."
-                    placeholderTextColor="#9ca3af"
+                    placeholderTextColor={colors.textMuted}
                     value={newOrder.pickupInstructions}
                     onChangeText={(text) => setNewOrder({ ...newOrder, pickupInstructions: text })}
                     multiline
@@ -1262,19 +1264,19 @@ export default function CustomerHome() {
                 <View style={styles.routeConnectorLine} />
               </View>
 
-              <View style={styles.formSection}>
+              <View style={[styles.formSection, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
                 <View style={styles.sectionHeader}>
                   <View style={[styles.sectionDot, styles.sectionDotDelivery]} />
                   <Text style={styles.sectionTitle}>Delivery Details</Text>
                 </View>
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Delivery Address</Text>
-                  <View style={[styles.inputWrapper, fieldErrors.deliveryAddress ? styles.inputWrapperError : null]}>
+                  <View style={[styles.inputWrapper, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }, fieldErrors.deliveryAddress ? styles.inputWrapperError : null]}>
                     <MapPin size={16} color={fieldErrors.deliveryAddress ? '#ef4444' : '#22c55e'} style={styles.inputIcon} />
                     <TextInput
-                      style={styles.inputWithIcon}
+                      style={[styles.inputWithIcon, { color: colors.text }]}
                       placeholder="e.g. Plot 1234, Victoria Island, Lagos"
-                      placeholderTextColor="#9ca3af"
+                      placeholderTextColor={colors.textMuted}
                       value={newOrder.deliveryAddress}
                       onChangeText={(text) => { setNewOrder({ ...newOrder, deliveryAddress: text }); if (fieldErrors.deliveryAddress) setFieldErrors(e => ({ ...e, deliveryAddress: undefined })); }}
                     />
@@ -1284,9 +1286,9 @@ export default function CustomerHome() {
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Delivery Instructions <Text style={styles.optionalLabel}>(Optional)</Text></Text>
                   <TextInput
-                    style={[styles.input, styles.textArea]}
+                    style={[styles.input, styles.textArea, { color: colors.text, backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}
                     placeholder="e.g. Call on arrival, Floor/Unit info, Security procedures..."
-                    placeholderTextColor="#9ca3af"
+                    placeholderTextColor={colors.textMuted}
                     value={newOrder.deliveryInstructions}
                     onChangeText={(text) => setNewOrder({ ...newOrder, deliveryInstructions: text })}
                     multiline
@@ -1295,19 +1297,19 @@ export default function CustomerHome() {
                 </View>
               </View>
 
-              <View style={styles.formSection}>
+              <View style={[styles.formSection, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
                 <View style={styles.sectionHeader}>
                   <View style={[styles.sectionDot, styles.sectionDotRecipient]} />
                   <Text style={styles.sectionTitle}>Recipient Info</Text>
                 </View>
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Recipient Name</Text>
-                  <View style={[styles.inputWrapper, fieldErrors.recipientName ? styles.inputWrapperError : null]}>
+                  <View style={[styles.inputWrapper, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }, fieldErrors.recipientName ? styles.inputWrapperError : null]}>
                     <User size={16} color={fieldErrors.recipientName ? '#ef4444' : '#6b7280'} style={styles.inputIcon} />
                     <TextInput
-                      style={styles.inputWithIcon}
+                      style={[styles.inputWithIcon, { color: colors.text }]}
                       placeholder="John Doe"
-                      placeholderTextColor="#9ca3af"
+                      placeholderTextColor={colors.textMuted}
                       value={newOrder.recipientName}
                       onChangeText={(text) => { setNewOrder({ ...newOrder, recipientName: text }); if (fieldErrors.recipientName) setFieldErrors(e => ({ ...e, recipientName: undefined })); }}
                     />
@@ -1316,12 +1318,12 @@ export default function CustomerHome() {
                 </View>
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Recipient Phone</Text>
-                  <View style={[styles.inputWrapper, fieldErrors.recipientPhone ? styles.inputWrapperError : null]}>
+                  <View style={[styles.inputWrapper, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }, fieldErrors.recipientPhone ? styles.inputWrapperError : null]}>
                     <Phone size={16} color={fieldErrors.recipientPhone ? '#ef4444' : '#6b7280'} style={styles.inputIcon} />
                     <TextInput
-                      style={styles.inputWithIcon}
+                      style={[styles.inputWithIcon, { color: colors.text }]}
                       placeholder="+234 800 000 0000"
-                      placeholderTextColor="#9ca3af"
+                      placeholderTextColor={colors.textMuted}
                       value={newOrder.recipientPhone}
                       onChangeText={(text) => { setNewOrder({ ...newOrder, recipientPhone: text }); if (fieldErrors.recipientPhone) setFieldErrors(e => ({ ...e, recipientPhone: undefined })); }}
                       keyboardType="phone-pad"
@@ -1331,12 +1333,12 @@ export default function CustomerHome() {
                 </View>
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Package Description</Text>
-                  <View style={[styles.inputWrapper, fieldErrors.packageDescription ? styles.inputWrapperError : null]}>
+                  <View style={[styles.inputWrapper, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }, fieldErrors.packageDescription ? styles.inputWrapperError : null]}>
                     <Package size={16} color={fieldErrors.packageDescription ? '#ef4444' : '#6b7280'} style={styles.inputIcon} />
                     <TextInput
-                      style={[styles.inputWithIcon, styles.textArea]}
+                      style={[styles.inputWithIcon, styles.textArea, { color: colors.text }]}
                       placeholder="Describe your package"
-                      placeholderTextColor="#9ca3af"
+                      placeholderTextColor={colors.textMuted}
                       value={newOrder.packageDescription}
                       onChangeText={(text) => { setNewOrder({ ...newOrder, packageDescription: text }); if (fieldErrors.packageDescription) setFieldErrors(e => ({ ...e, packageDescription: undefined })); }}
                       multiline
@@ -1382,6 +1384,7 @@ export default function CustomerHome() {
                           key={size}
                           style={[
                             styles.orderTypeChip,
+                            { backgroundColor: colors.surfaceSecondary, borderColor: colors.border },
                             newOrder.orderSize === size && styles.orderTypeChipActive,
                             fieldErrors.orderSize && !newOrder.orderSize && styles.orderTypeChipError,
                           ]}
@@ -1389,6 +1392,7 @@ export default function CustomerHome() {
                           <Text
                             style={[
                               styles.orderTypeChipText,
+                              { color: colors.textSecondary },
                               newOrder.orderSize === size && styles.orderTypeChipTextActive,
                             ]}>
                             {size.charAt(0).toUpperCase() + size.slice(1)}
@@ -1416,12 +1420,14 @@ export default function CustomerHome() {
                           key={type}
                           style={[
                             styles.orderTypeChip,
+                            { backgroundColor: colors.surfaceSecondary, borderColor: colors.border },
                             newOrder.orderTypes.includes(type) && styles.orderTypeChipActive,
                           ]}
                           onPress={() => toggleOrderType(type)}>
                           <Text
                             style={[
                               styles.orderTypeChipText,
+                              { color: colors.textSecondary },
                               newOrder.orderTypes.includes(type) && styles.orderTypeChipTextActive,
                             ]}>
                             {type}
@@ -1433,12 +1439,12 @@ export default function CustomerHome() {
                 )}
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Promo Code <Text style={styles.optionalLabel}>(Optional)</Text></Text>
-                  <View style={styles.inputWrapper}>
-                    <Tag size={16} color="#6b7280" style={styles.inputIcon} />
+                  <View style={[styles.inputWrapper, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
+                    <Tag size={16} color={colors.textSecondary} style={styles.inputIcon} />
                     <TextInput
-                      style={styles.inputWithIcon}
+                      style={[styles.inputWithIcon, { color: colors.text }]}
                       placeholder="Enter promo code"
-                      placeholderTextColor="#9ca3af"
+                      placeholderTextColor={colors.textMuted}
                       value={newOrder.promoCode}
                       onChangeText={(text) => setNewOrder({ ...newOrder, promoCode: text.toUpperCase() })}
                       autoCapitalize="characters"
@@ -1499,10 +1505,10 @@ export default function CustomerHome() {
         <>
           <Modal visible={true} transparent animationType="fade">
             <View style={styles.verifyingOverlay}>
-              <View style={styles.verifyingContainer}>
-                <ActivityIndicator size="large" color="#f97316" />
-                <Text style={styles.verifyingTitle}>Verifying Payment</Text>
-                <Text style={styles.verifyingText}>
+              <View style={[styles.verifyingContainer, { backgroundColor: colors.surface }]}>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={[styles.verifyingTitle, { color: colors.text }]}>Verifying Payment</Text>
+                <Text style={[styles.verifyingText, { color: colors.textSecondary }]}>
                   Please wait while we confirm your payment...
                 </Text>
               </View>

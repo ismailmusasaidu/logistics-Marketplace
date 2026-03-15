@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, RefreshControl } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Package, Truck, X, CheckCircle, Clock, ChevronRight, ArrowUpRight, MapPin, Phone, User, AlertCircle } from 'lucide-react-native';
+import { Package, Truck, X, CircleCheck as CheckCircle, Clock, ChevronRight, ArrowUpRight, MapPin, Phone, User, CircleAlert as AlertCircle } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { supabase } from '@/lib/supabase';
 import { Toast } from '@/components/Toast';
 import { Fonts } from '@/constants/fonts';
@@ -21,6 +22,7 @@ interface ServiceRequest {
 
 export default function CustomerRequestService() {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   const { profile } = useAuth();
   const [modalVisible, setModalVisible] = useState(false);
   const [serviceType, setServiceType] = useState<'gadget_delivery' | 'relocation'>('gadget_delivery');
@@ -127,7 +129,7 @@ export default function CustomerRequestService() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <LinearGradient
         colors={['#1c1917', '#292524']}
         style={styles.header}>
@@ -149,10 +151,10 @@ export default function CustomerRequestService() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadMyRequests(); }} tintColor="#f97316" />}>
 
         <View style={styles.servicesSection}>
-          <Text style={styles.sectionTitle}>Choose a Service</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Choose a Service</Text>
 
           <TouchableOpacity
-            style={styles.serviceCard}
+            style={[styles.serviceCard, { borderColor: colors.borderLight }]}
             onPress={() => handleOpenModal('gadget_delivery')}
             activeOpacity={0.9}>
             <LinearGradient
@@ -168,8 +170,8 @@ export default function CustomerRequestService() {
                   <ArrowUpRight size={18} color="#f97316" />
                 </View>
               </View>
-              <Text style={styles.serviceTitle}>Gadget Delivery</Text>
-              <Text style={styles.serviceDescription}>
+              <Text style={[styles.serviceTitle, { color: colors.text }]}>Gadget Delivery</Text>
+              <Text style={[styles.serviceDescription, { color: colors.textSecondary }]}>
                 Safe and fast delivery of phones, laptops, electronics, and fragile items anywhere.
               </Text>
               <View style={styles.serviceFeatures}>
@@ -188,7 +190,7 @@ export default function CustomerRequestService() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.serviceCard}
+            style={[styles.serviceCard, { borderColor: colors.borderLight }]}
             onPress={() => handleOpenModal('relocation')}
             activeOpacity={0.9}>
             <LinearGradient
@@ -204,8 +206,8 @@ export default function CustomerRequestService() {
                   <ArrowUpRight size={18} color="#16a34a" />
                 </View>
               </View>
-              <Text style={styles.serviceTitle}>Relocation Service</Text>
-              <Text style={styles.serviceDescription}>
+              <Text style={[styles.serviceTitle, { color: colors.text }]}>Relocation Service</Text>
+              <Text style={[styles.serviceDescription, { color: colors.textSecondary }]}>
                 Move your home or shop with ease. Our team handles everything from packing to delivery.
               </Text>
               <View style={styles.serviceFeatures}>
@@ -227,7 +229,7 @@ export default function CustomerRequestService() {
         {myRequests.length > 0 && (
           <View style={styles.requestsSection}>
             <View style={styles.requestsSectionHeader}>
-              <Text style={styles.sectionTitle}>My Requests</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>My Requests</Text>
               <View style={styles.requestsCountBadge}>
                 <Text style={styles.requestsCountText}>{myRequests.length}</Text>
               </View>
@@ -236,7 +238,7 @@ export default function CustomerRequestService() {
             {myRequests.map((request) => {
               const statusConfig = getStatusConfig(request.status);
               return (
-                <View key={request.id} style={styles.requestCard}>
+                <View key={request.id} style={[styles.requestCard, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
                   <View style={styles.requestCardHeader}>
                     <View style={styles.requestTypeRow}>
                       <View style={[styles.requestTypeIcon, request.service_type === 'gadget_delivery' ? styles.requestTypeIconOrange : styles.requestTypeIconGreen]}>
@@ -244,7 +246,7 @@ export default function CustomerRequestService() {
                           ? <Package size={14} color={request.service_type === 'gadget_delivery' ? '#f97316' : '#16a34a'} />
                           : <Truck size={14} color="#16a34a" />}
                       </View>
-                      <Text style={styles.requestType}>{getServiceTypeLabel(request.service_type)}</Text>
+                      <Text style={[styles.requestType, { color: colors.text }]}>{getServiceTypeLabel(request.service_type)}</Text>
                     </View>
                     <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
                       <Text style={[styles.statusText, { color: statusConfig.color }]}>{statusConfig.label}</Text>
@@ -254,19 +256,19 @@ export default function CustomerRequestService() {
                   <View style={styles.requestRoute}>
                     <View style={styles.routeRow}>
                       <View style={[styles.routeDot, styles.routeDotFrom]} />
-                      <Text style={styles.routeText} numberOfLines={1}>{request.pickup_area}</Text>
+                      <Text style={[styles.routeText, { color: colors.textSecondary }]} numberOfLines={1}>{request.pickup_area}</Text>
                     </View>
                     <View style={styles.routeLine} />
                     <View style={styles.routeRow}>
                       <View style={[styles.routeDot, styles.routeDotTo]} />
-                      <Text style={styles.routeText} numberOfLines={1}>{request.dropoff_area}</Text>
+                      <Text style={[styles.routeText, { color: colors.textSecondary }]} numberOfLines={1}>{request.dropoff_area}</Text>
                     </View>
                   </View>
 
                   <View style={styles.requestFooter}>
                     <View style={styles.requestFooterLeft}>
-                      <Clock size={12} color="#9ca3af" />
-                      <Text style={styles.requestDate}>
+                      <Clock size={12} color={colors.textMuted} />
+                      <Text style={[styles.requestDate, { color: colors.textMuted }]}>
                         {new Date(request.created_at).toLocaleDateString('en-US', {
                           month: 'short',
                           day: 'numeric',
@@ -275,8 +277,8 @@ export default function CustomerRequestService() {
                       </Text>
                     </View>
                     <View style={styles.requestFooterRight}>
-                      <Phone size={12} color="#9ca3af" />
-                      <Text style={styles.requestDate}>{request.phone}</Text>
+                      <Phone size={12} color={colors.textMuted} />
+                      <Text style={[styles.requestDate, { color: colors.textMuted }]}>{request.phone}</Text>
                     </View>
                   </View>
                 </View>
@@ -294,10 +296,10 @@ export default function CustomerRequestService() {
         transparent
         onRequestClose={() => setModalVisible(false)}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <View style={styles.modalHandle} />
 
-            <View style={styles.modalHeader}>
+            <View style={[styles.modalHeader, { borderBottomColor: colors.borderLight }]}>
               <View style={styles.modalHeaderLeft}>
                 <View style={[styles.modalHeaderIcon,
                   serviceType === 'gadget_delivery'
@@ -308,10 +310,10 @@ export default function CustomerRequestService() {
                     : <Truck size={20} color="#16a34a" />}
                 </View>
                 <View>
-                  <Text style={styles.modalTitle}>
+                  <Text style={[styles.modalTitle, { color: colors.text }]}>
                     {serviceType === 'gadget_delivery' ? 'Gadget Delivery' : 'Relocation Service'}
                   </Text>
-                  <Text style={styles.modalSubtitle}>Fill in your details below</Text>
+                  <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>Fill in your details below</Text>
                 </View>
               </View>
               <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setModalVisible(false)}>
@@ -328,44 +330,44 @@ export default function CustomerRequestService() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Full Name</Text>
-                <View style={styles.inputWrapper}>
-                  <User size={16} color="#9ca3af" style={styles.inputIcon} />
+                <Text style={[styles.label, { color: colors.textSecondary }]}>Full Name</Text>
+                <View style={[styles.inputWrapper, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
+                  <User size={16} color={colors.textMuted} style={styles.inputIcon} />
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: colors.text }]}
                     value={fullName}
                     onChangeText={setFullName}
                     placeholder="Enter your full name"
-                    placeholderTextColor="#d1d5db"
+                    placeholderTextColor={colors.textMuted}
                   />
                 </View>
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Phone Number</Text>
-                <View style={styles.inputWrapper}>
-                  <Phone size={16} color="#9ca3af" style={styles.inputIcon} />
+                <Text style={[styles.label, { color: colors.textSecondary }]}>Phone Number</Text>
+                <View style={[styles.inputWrapper, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
+                  <Phone size={16} color={colors.textMuted} style={styles.inputIcon} />
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: colors.text }]}
                     value={phone}
                     onChangeText={setPhone}
                     placeholder="e.g. +234 800 000 0000"
-                    placeholderTextColor="#d1d5db"
+                    placeholderTextColor={colors.textMuted}
                     keyboardType="phone-pad"
                   />
                 </View>
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Pickup Area</Text>
-                <View style={[styles.inputWrapper, styles.inputWrapperMulti]}>
-                  <MapPin size={16} color="#9ca3af" style={styles.inputIcon} />
+                <Text style={[styles.label, { color: colors.textSecondary }]}>Pickup Area</Text>
+                <View style={[styles.inputWrapper, styles.inputWrapperMulti, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
+                  <MapPin size={16} color={colors.textMuted} style={styles.inputIcon} />
                   <TextInput
-                    style={[styles.input, styles.inputMulti]}
+                    style={[styles.input, styles.inputMulti, { color: colors.text }]}
                     value={pickupArea}
                     onChangeText={setPickupArea}
                     placeholder="e.g. 10 Admiralty Way, Lekki Phase 1, Lagos"
-                    placeholderTextColor="#d1d5db"
+                    placeholderTextColor={colors.textMuted}
                     multiline
                     numberOfLines={2}
                   />
@@ -373,15 +375,15 @@ export default function CustomerRequestService() {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Drop-off Area</Text>
-                <View style={[styles.inputWrapper, styles.inputWrapperMulti]}>
-                  <MapPin size={16} color="#f97316" style={styles.inputIcon} />
+                <Text style={[styles.label, { color: colors.textSecondary }]}>Drop-off Area</Text>
+                <View style={[styles.inputWrapper, styles.inputWrapperMulti, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
+                  <MapPin size={16} color={colors.primary} style={styles.inputIcon} />
                   <TextInput
-                    style={[styles.input, styles.inputMulti]}
+                    style={[styles.input, styles.inputMulti, { color: colors.text }]}
                     value={dropoffArea}
                     onChangeText={setDropoffArea}
                     placeholder="e.g. Plot 1234, Victoria Island, Lagos"
-                    placeholderTextColor="#d1d5db"
+                    placeholderTextColor={colors.textMuted}
                     multiline
                     numberOfLines={2}
                   />
@@ -398,11 +400,11 @@ export default function CustomerRequestService() {
               <View style={{ height: 8 }} />
             </ScrollView>
 
-            <View style={styles.modalFooter}>
+            <View style={[styles.modalFooter, { borderTopColor: colors.borderLight }]}>
               <TouchableOpacity
-                style={styles.cancelButton}
+                style={[styles.cancelButton, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}
                 onPress={() => setModalVisible(false)}>
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text style={[styles.cancelButtonText, { color: colors.textSecondary }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.submitButton, submitting && styles.submitButtonDisabled,

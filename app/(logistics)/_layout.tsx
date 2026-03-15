@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Tabs, router } from 'expo-router';
 import { Package, User, LayoutDashboard, Bike, Users, DollarSign, Headphones, ArrowLeft } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Platform, View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Fonts } from '@/constants/fonts';
@@ -15,6 +16,7 @@ const hubListener = {
 
 export default function TabLayout() {
   const { profile } = useAuth();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
@@ -49,9 +51,9 @@ export default function TabLayout() {
             fontFamily: Fonts.spaceSemiBold,
           },
           tabBarStyle: {
-            backgroundColor: '#ffffff',
+            backgroundColor: colors.surface,
             borderTopWidth: 1,
-            borderTopColor: '#e5e7eb',
+            borderTopColor: colors.borderLight,
             height: Platform.OS === 'ios' ? 70 + insets.bottom : 65 + insets.bottom,
             paddingBottom: Platform.OS === 'ios' ? Math.max(insets.bottom, 4) : Math.max(insets.bottom, 8),
             paddingTop: 8,
@@ -122,9 +124,9 @@ export default function TabLayout() {
             fontFamily: Fonts.spaceSemiBold,
           },
           tabBarStyle: {
-            backgroundColor: '#ffffff',
+            backgroundColor: colors.surface,
             borderTopWidth: 1,
-            borderTopColor: '#e5e7eb',
+            borderTopColor: colors.borderLight,
             height: Platform.OS === 'ios' ? 70 + insets.bottom : 65 + insets.bottom,
             paddingBottom: Platform.OS === 'ios' ? Math.max(insets.bottom, 4) : Math.max(insets.bottom, 8),
             paddingTop: 8,
@@ -186,9 +188,9 @@ export default function TabLayout() {
             paddingHorizontal: 0,
           },
           tabBarStyle: {
-            backgroundColor: '#ffffff',
+            backgroundColor: colors.surface,
             borderTopWidth: 1,
-            borderTopColor: '#e5e7eb',
+            borderTopColor: colors.borderLight,
             height: Platform.OS === 'ios' ? 75 + insets.bottom : 70 + insets.bottom,
             paddingBottom: Platform.OS === 'ios' ? Math.max(insets.bottom + 2, 8) : Math.max(insets.bottom + 4, 10),
             paddingTop: 6,
@@ -287,6 +289,5 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
   },
 });

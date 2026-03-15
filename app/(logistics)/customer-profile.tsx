@@ -16,7 +16,7 @@ import { Fonts } from '@/constants/fonts';
 
 export default function CustomerProfile() {
   const { profile, signOut, refreshProfile } = useAuth();
-  const { toggleTheme, isDark } = useTheme();
+  const { toggleTheme, isDark, colors } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [isEditing, setIsEditing] = useState(false);
@@ -168,12 +168,12 @@ export default function CustomerProfile() {
 
   return (
     <ScrollView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 20) }}
       showsVerticalScrollIndicator={false}
     >
-      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-        <Text style={styles.title}>Profile</Text>
+      <View style={[styles.header, { paddingTop: insets.top + 16, backgroundColor: colors.surface, borderBottomColor: colors.borderLight }]}>
+        <Text style={[styles.title, { color: colors.text }]}>Profile</Text>
         {!isEditing && (
           <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
             <Edit size={24} color="#f97316" strokeWidth={2.5} />
@@ -193,7 +193,7 @@ export default function CustomerProfile() {
         </View>
       )}
 
-      <View  style={styles.profileCard}>
+      <View style={[styles.profileCard, { backgroundColor: colors.surface }]}>
         <View style={styles.avatarContainer}>
           <View style={styles.avatar}>
             <User size={48} color="#ffffff" />
@@ -202,18 +202,19 @@ export default function CustomerProfile() {
 
         {isEditing ? (
           <View style={styles.editSection}>
-            <Text style={styles.inputLabel}>Full Name</Text>
+            <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>Full Name</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder, color: colors.text }]}
               value={fullName}
               onChangeText={setFullName}
               placeholder="Enter your full name"
+              placeholderTextColor={colors.textMuted}
               editable={!loading}
             />
           </View>
         ) : (
           <>
-            <Text style={styles.name}>{profile?.full_name || 'No name set'}</Text>
+            <Text style={[styles.name, { color: colors.text }]}>{profile?.full_name || 'No name set'}</Text>
             <View style={styles.roleBadge}>
               <Text style={styles.roleText}>Customer</Text>
             </View>
@@ -226,14 +227,14 @@ export default function CustomerProfile() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Wallet</Text>
-        <View style={styles.walletCard}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Wallet</Text>
+        <View style={[styles.walletCard, { backgroundColor: colors.surface }]}>
           <View style={styles.walletHeader}>
             <View style={styles.walletIconContainer}>
               <Wallet size={28} color="#f97316" />
             </View>
             <View style={styles.walletBalanceSection}>
-              <Text style={styles.walletLabel}>Available Balance</Text>
+              <Text style={[styles.walletLabel, { color: colors.textSecondary }]}>Available Balance</Text>
               <Text style={styles.walletBalance}>{walletService.formatCurrency(walletBalance)}</Text>
             </View>
           </View>
@@ -245,7 +246,7 @@ export default function CustomerProfile() {
               <Text style={styles.walletActionButtonText}>Add Money</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.walletActionButtonSecondary}
+              style={[styles.walletActionButtonSecondary, { backgroundColor: colors.surface, borderColor: colors.primary }]}
               onPress={() => setWithdrawalModalVisible(true)}>
               <ArrowDown size={20} color="#f97316" />
               <Text style={styles.walletActionButtonSecondaryText}>Withdraw</Text>
@@ -254,10 +255,10 @@ export default function CustomerProfile() {
         </View>
 
         {transactions.length > 0 && (
-          <View style={styles.transactionsSection}>
-            <Text style={styles.transactionsTitle}>Recent Transactions</Text>
+          <View style={[styles.transactionsSection, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.transactionsTitle, { color: colors.text }]}>Recent Transactions</Text>
             {transactions.slice(0, 5).map((txn) => (
-              <View key={txn.id} style={styles.transactionItem}>
+              <View key={txn.id} style={[styles.transactionItem, { borderBottomColor: colors.borderLight }]}>
                 <View style={[
                   styles.transactionIcon,
                   { backgroundColor: txn.transaction_type === 'credit' ? '#d1fae5' : '#fee2e2' }
@@ -269,8 +270,8 @@ export default function CustomerProfile() {
                   )}
                 </View>
                 <View style={styles.transactionDetails}>
-                  <Text style={styles.transactionDescription}>{txn.description}</Text>
-                  <Text style={styles.transactionDate}>
+                  <Text style={[styles.transactionDescription, { color: colors.text }]}>{txn.description}</Text>
+                  <Text style={[styles.transactionDate, { color: colors.textMuted }]}>
                     {new Date(txn.created_at).toLocaleDateString()}
                   </Text>
                 </View>
@@ -289,7 +290,7 @@ export default function CustomerProfile() {
 
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Bank Accounts</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Bank Accounts</Text>
           <TouchableOpacity
             style={styles.addButton}
             onPress={() => setBankAccountModalVisible(true)}>
@@ -301,14 +302,14 @@ export default function CustomerProfile() {
         {bankAccounts.length > 0 ? (
           <View style={styles.bankAccountsList}>
             {bankAccounts.map((account) => (
-              <View key={account.id} style={styles.bankAccountCard}>
+              <View key={account.id} style={[styles.bankAccountCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <View style={styles.bankAccountIcon}>
                   <Building2 size={20} color="#f97316" />
                 </View>
                 <View style={styles.bankAccountDetails}>
-                  <Text style={styles.bankAccountName}>{account.account_name}</Text>
-                  <Text style={styles.bankAccountBank}>{account.bank_name}</Text>
-                  <Text style={styles.bankAccountNumber}>{account.account_number}</Text>
+                  <Text style={[styles.bankAccountName, { color: colors.text }]}>{account.account_name}</Text>
+                  <Text style={[styles.bankAccountBank, { color: colors.textSecondary }]}>{account.bank_name}</Text>
+                  <Text style={[styles.bankAccountNumber, { color: colors.textMuted }]}>{account.account_number}</Text>
                 </View>
                 {account.is_default && (
                   <View style={styles.defaultBadge}>
@@ -324,47 +325,48 @@ export default function CustomerProfile() {
             ))}
           </View>
         ) : (
-          <View style={styles.emptyBankAccounts}>
-            <Building2 size={32} color="#9ca3af" />
-            <Text style={styles.emptyBankAccountsText}>No bank accounts added yet</Text>
-            <Text style={styles.emptyBankAccountsSubtext}>Add a bank account to withdraw funds</Text>
+          <View style={[styles.emptyBankAccounts, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Building2 size={32} color={colors.textMuted} />
+            <Text style={[styles.emptyBankAccountsText, { color: colors.text }]}>No bank accounts added yet</Text>
+            <Text style={[styles.emptyBankAccountsSubtext, { color: colors.textSecondary }]}>Add a bank account to withdraw funds</Text>
           </View>
         )}
       </View>
 
-      <View  style={styles.section}>
-        <Text style={styles.sectionTitle}>Account Information</Text>
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Account Information</Text>
 
-        <View style={styles.infoCard}>
+        <View style={[styles.infoCard, { backgroundColor: colors.surface }]}>
           <View style={styles.infoRow}>
             <View style={styles.iconContainer}>
               <Mail size={20} color="#f97316" />
             </View>
             <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Email</Text>
-              <Text style={styles.infoValue}>{profile?.email}</Text>
+              <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Email</Text>
+              <Text style={[styles.infoValue, { color: colors.text }]}>{profile?.email}</Text>
             </View>
           </View>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: colors.borderLight }]} />
 
           <View style={styles.infoRow}>
             <View style={styles.iconContainer}>
               <Phone size={20} color="#f97316" />
             </View>
             <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Phone</Text>
+              <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Phone</Text>
               {isEditing ? (
                 <TextInput
-                  style={styles.inputInline}
+                  style={[styles.inputInline, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder, color: colors.text }]}
                   value={phone}
                   onChangeText={setPhone}
                   placeholder="Enter your phone number"
+                  placeholderTextColor={colors.textMuted}
                   editable={!loading}
                   keyboardType="phone-pad"
                 />
               ) : (
-                <Text style={styles.infoValue}>{profile?.phone || 'Not provided'}</Text>
+                <Text style={[styles.infoValue, { color: colors.text }]}>{profile?.phone || 'Not provided'}</Text>
               )}
             </View>
           </View>
@@ -375,7 +377,7 @@ export default function CustomerProfile() {
         <View style={styles.section}>
           <View style={styles.buttonRow}>
             <TouchableOpacity
-              style={[styles.actionButton, styles.cancelButton]}
+              style={[styles.actionButton, styles.cancelButton, { backgroundColor: colors.surface, borderColor: '#fee2e2' }]}
               onPress={handleCancel}
               disabled={loading}
             >
@@ -403,16 +405,16 @@ export default function CustomerProfile() {
 
       <View style={styles.section}>
         <TouchableOpacity
-          style={[styles.signOutButton, { backgroundColor: isDark ? '#1e1e1e' : '#f9fafb', borderColor: isDark ? '#2e2e2e' : '#e5e7eb', marginBottom: 10 }]}
+          style={[styles.signOutButton, { backgroundColor: colors.surface, borderColor: colors.border, marginBottom: 10 }]}
           onPress={toggleTheme}
         >
-          <LogOut size={20} color="#ff8c00" />
-          <Text style={[styles.signOutText, { color: '#ff8c00' }]}>{isDark ? 'Dark Mode: On' : 'Light Mode: On'}</Text>
-          <View style={{ marginLeft: 'auto', width: 42, height: 24, borderRadius: 12, backgroundColor: isDark ? '#ff8c00' : '#e5e7eb', justifyContent: 'center', paddingHorizontal: 3 }}>
-            <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: '#ffffff', alignSelf: isDark ? 'flex-end' : 'flex-start' }} />
+          <LogOut size={20} color={colors.primary} />
+          <Text style={[styles.signOutText, { color: colors.primary }]}>{isDark ? 'Dark Mode: On' : 'Light Mode: On'}</Text>
+          <View style={{ marginLeft: 'auto', width: 42, height: 24, borderRadius: 12, backgroundColor: isDark ? colors.primary : colors.borderLight, justifyContent: 'center', paddingHorizontal: 3 }}>
+            <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: colors.surface, alignSelf: isDark ? 'flex-end' : 'flex-start' }} />
           </View>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+        <TouchableOpacity style={[styles.signOutButton, { backgroundColor: colors.surface, borderColor: '#fee2e2' }]} onPress={handleSignOut}>
           <LogOut size={20} color="#ef4444" />
           <Text style={styles.signOutText}>Sign Out</Text>
         </TouchableOpacity>
