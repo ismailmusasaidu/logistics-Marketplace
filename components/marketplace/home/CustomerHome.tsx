@@ -325,7 +325,7 @@ export default function CustomerHome() {
         </Animated.View>
       </LinearGradient>
 
-      <OfflineBanner isStale={isProductsStale} message="Showing cached products. Check your connection." />
+
 
       <View style={[styles.categorySection, { backgroundColor: colors.surface, borderBottomColor: colors.borderLight }]}>
         <ScrollView
