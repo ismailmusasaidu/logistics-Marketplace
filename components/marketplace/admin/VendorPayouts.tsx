@@ -96,6 +96,8 @@ export default function VendorPayouts({ onBack }: VendorPayoutsProps) {
     accountNumber: '',
     accountName: '',
     note: '',
+    periodFrom: '',
+    periodTo: '',
   });
   const [vendorResults, setVendorResults] = useState<any[]>([]);
   const [searchingVendors, setSearchingVendors] = useState(false);
@@ -251,12 +253,14 @@ export default function VendorPayouts({ onBack }: VendorPayoutsProps) {
         account_number: createForm.accountNumber,
         account_name: createForm.accountName,
         note: createForm.note.trim() || null,
+        period_from: createForm.periodFrom || null,
+        period_to: createForm.periodTo || null,
       });
 
       if (error) throw error;
 
       setShowCreateModal(false);
-      setCreateForm({ vendorSearch: '', selectedVendorId: '', selectedVendorUserId: '', selectedVendorName: '', amount: '', bankName: '', accountNumber: '', accountName: '', note: '' });
+      setCreateForm({ vendorSearch: '', selectedVendorId: '', selectedVendorUserId: '', selectedVendorName: '', amount: '', bankName: '', accountNumber: '', accountName: '', note: '', periodFrom: '', periodTo: '' });
       setVendorResults([]);
       fetchPayouts(true);
     } catch (err: any) {
@@ -667,6 +671,43 @@ export default function VendorPayouts({ onBack }: VendorPayoutsProps) {
                 value={createForm.accountName}
                 onChangeText={v => setCreateForm(f => ({ ...f, accountName: v }))}
               />
+
+              <Text style={[styles.formLabel, { marginTop: 16 }]}>Payout Period (optional)</Text>
+              <View style={styles.periodRow}>
+                <View style={styles.periodFieldWrap}>
+                  <Text style={styles.periodFieldLabel}>From</Text>
+                  <View style={styles.periodInputWrap}>
+                    <Calendar size={13} color="#8b909a" />
+                    <TextInput
+                      style={styles.periodInput}
+                      placeholder="YYYY-MM-DD"
+                      placeholderTextColor="#9ca3af"
+                      value={createForm.periodFrom}
+                      onChangeText={v => setCreateForm(f => ({ ...f, periodFrom: v }))}
+                      keyboardType="numeric"
+                      maxLength={10}
+                    />
+                  </View>
+                </View>
+                <View style={styles.periodSep}>
+                  <Text style={styles.periodSepText}>–</Text>
+                </View>
+                <View style={styles.periodFieldWrap}>
+                  <Text style={styles.periodFieldLabel}>To</Text>
+                  <View style={styles.periodInputWrap}>
+                    <Calendar size={13} color="#8b909a" />
+                    <TextInput
+                      style={styles.periodInput}
+                      placeholder="YYYY-MM-DD"
+                      placeholderTextColor="#9ca3af"
+                      value={createForm.periodTo}
+                      onChangeText={v => setCreateForm(f => ({ ...f, periodTo: v }))}
+                      keyboardType="numeric"
+                      maxLength={10}
+                    />
+                  </View>
+                </View>
+              </View>
 
               <Text style={[styles.formLabel, { marginTop: 16 }]}>Note (optional)</Text>
               <TextInput
@@ -1340,5 +1381,47 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.semiBold,
     fontSize: 15,
     color: '#ffffff',
+  },
+  periodRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 8,
+  },
+  periodFieldWrap: {
+    flex: 1,
+  },
+  periodFieldLabel: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 11,
+    color: '#8b909a',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: 5,
+  },
+  periodInputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#f8f9fb',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#f0f1f3',
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+  },
+  periodInput: {
+    flex: 1,
+    fontFamily: Fonts.regular,
+    fontSize: 13,
+    color: '#1a1d23',
+    padding: 0,
+  },
+  periodSep: {
+    paddingBottom: 10,
+  },
+  periodSepText: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 16,
+    color: '#c4c9d4',
   },
 });
