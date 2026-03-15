@@ -71,12 +71,7 @@ export default function ForgotPasswordScreen() {
       let redirectTo: string;
       const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || process.env.EXPO_PUBLIC_CORE_BACKEND_ANON_KEY;
       const supabaseUrl = CORE_URL;
-      if (Platform.OS === 'web' && typeof window !== 'undefined') {
-        const webUrl = encodeURIComponent(`${window.location.origin}/auth/reset-password`);
-        redirectTo = `${supabaseUrl}/functions/v1/password-reset-redirect?apikey=${anonKey}&web_url=${webUrl}`;
-      } else {
-        redirectTo = `${supabaseUrl}/functions/v1/password-reset-redirect?apikey=${anonKey}`;
-      }
+      redirectTo = `${supabaseUrl}/functions/v1/password-reset-redirect?apikey=${anonKey}`;
 
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo,
