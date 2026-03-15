@@ -16,49 +16,59 @@ Deno.serve(async (req: Request) => {
 
   try {
     const url = new URL(req.url);
-    const token = url.searchParams.get("token");
     const tokenHash = url.searchParams.get("token_hash");
+    const accessToken = url.searchParams.get("access_token");
+    const refreshToken = url.searchParams.get("refresh_token");
     const type = url.searchParams.get("type");
     const webUrl = url.searchParams.get("web_url");
 
-    // If no token in query params, Supabase may have sent them as a fragment (#).
-    // Fragments are never sent to the server, so we serve a small HTML page that
-    // reads the fragment client-side and re-submits as proper query params.
-    if (!tokenHash && !token) {
+    // If no token params at all, Supabase delivered them as a URL fragment (#...).
+    // Fragments are stripped by the browser before reaching the server, so we serve
+    // a bridge page that reads them client-side and reloads with them as query params.
+    if (!tokenHash && !accessToken) {
       return new Response(buildFragmentBridgePage(), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "text/html" },
       });
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
-
-    const resolvedToken = tokenHash || token;
-
-    if (!resolvedToken || type !== "recovery") {
+    if (type !== "recovery") {
       return new Response(buildErrorPage("Invalid or missing reset token."), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "text/html" },
       });
     }
 
-    const { data, error } = await supabase.auth.verifyOtp({
-      token_hash: resolvedToken,
-      type: "recovery",
-    });
+    let access_token: string;
+    let refresh_token: string;
 
-    if (error || !data.session) {
-      return new Response(buildErrorPage("This password reset link has expired or already been used. Please request a new one."), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "text/html" },
+    if (accessToken && refreshToken) {
+      // Supabase already verified the OTP and issued a session — use it directly.
+      access_token = accessToken;
+      refresh_token = refreshToken;
+    } else {
+      // token_hash flow: verify the OTP to obtain a session.
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+        auth: { autoRefreshToken: false, persistSession: false },
       });
-    }
 
-    const { access_token, refresh_token } = data.session;
+      const { data, error } = await supabase.auth.verifyOtp({
+        token_hash: tokenHash!,
+        type: "recovery",
+      });
+
+      if (error || !data.session) {
+        return new Response(buildErrorPage("This password reset link has expired or already been used. Please request a new one."), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "text/html" },
+        });
+      }
+
+      access_token = data.session.access_token;
+      refresh_token = data.session.refresh_token;
+    }
     const deepLinkPath = `/auth/reset-password#access_token=${access_token}&refresh_token=${refresh_token}&type=recovery`;
 
     if (webUrl) {
@@ -144,13 +154,15 @@ function buildFragmentBridgePage(): string {
       }
       var params = new URLSearchParams(hash);
       var tokenHash = params.get('token_hash');
-      var token = params.get('access_token');
+      var accessToken = params.get('access_token');
+      var refreshToken = params.get('refresh_token');
       var type = params.get('type');
 
-      if ((tokenHash || token) && type) {
+      if ((tokenHash || accessToken) && type) {
         var query = new URLSearchParams();
         if (tokenHash) query.set('token_hash', tokenHash);
-        if (token) query.set('token', token);
+        if (accessToken) query.set('access_token', accessToken);
+        if (refreshToken) query.set('refresh_token', refreshToken);
         query.set('type', type);
         window.location.href = window.location.pathname + '?' + query.toString();
       } else {
