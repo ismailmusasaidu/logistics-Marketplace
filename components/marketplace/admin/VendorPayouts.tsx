@@ -11,7 +11,7 @@ import {
   ScrollView,
   RefreshControl,
 } from 'react-native';
-import { ArrowLeft, Search, X, CircleCheck as CheckCircle, Circle as XCircle, Clock, DollarSign, Building2, CreditCard, User, ChevronDown, ListFilter as Filter, CircleAlert as AlertCircle, Banknote, RotateCcw, CircleCheck } from 'lucide-react-native';
+import { ArrowLeft, Search, X, CircleCheck as CheckCircle, Circle as XCircle, Clock, DollarSign, Building2, CreditCard, User, ChevronDown, ListFilter as Filter, CircleAlert as AlertCircle, Banknote, RotateCcw, CircleCheck, Calendar } from 'lucide-react-native';
 import { supabase } from '@/lib/marketplace/supabase';
 import { Fonts } from '@/constants/fonts';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -101,6 +101,9 @@ export default function VendorPayouts({ onBack }: VendorPayoutsProps) {
   const [searchingVendors, setSearchingVendors] = useState(false);
   const [createError, setCreateError] = useState('');
   const [creating, setCreating] = useState(false);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [showDateFilter, setShowDateFilter] = useState(false);
 
   useEffect(() => { fetchPayouts(); }, []);
 
@@ -117,8 +120,18 @@ export default function VendorPayouts({ onBack }: VendorPayoutsProps) {
         p.account_number?.includes(q)
       );
     }
+    if (dateFrom) {
+      const from = new Date(dateFrom);
+      from.setHours(0, 0, 0, 0);
+      list = list.filter(p => new Date(p.created_at) >= from);
+    }
+    if (dateTo) {
+      const to = new Date(dateTo);
+      to.setHours(23, 59, 59, 999);
+      list = list.filter(p => new Date(p.created_at) <= to);
+    }
     setFiltered(list);
-  }, [payouts, activeFilter, searchQuery]);
+  }, [payouts, activeFilter, searchQuery, dateFrom, dateTo]);
 
   const fetchPayouts = async (silent = false) => {
     try {
@@ -363,7 +376,65 @@ export default function VendorPayouts({ onBack }: VendorPayoutsProps) {
             </TouchableOpacity>
           )}
         </View>
+        <TouchableOpacity
+          style={[styles.dateToggleBtn, (dateFrom || dateTo) && styles.dateToggleBtnActive]}
+          onPress={() => setShowDateFilter(v => !v)}
+          activeOpacity={0.7}
+        >
+          <Calendar size={16} color={(dateFrom || dateTo) ? '#ffffff' : '#6b7280'} />
+          {(dateFrom || dateTo) && (
+            <View style={styles.dateActiveDot} />
+          )}
+        </TouchableOpacity>
       </View>
+
+      {showDateFilter && (
+        <View style={styles.dateFilterPanel}>
+          <View style={styles.dateFilterRow}>
+            <View style={styles.dateFieldWrap}>
+              <Text style={styles.dateFieldLabel}>From</Text>
+              <TextInput
+                style={styles.dateInput}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor="#9ca3af"
+                value={dateFrom}
+                onChangeText={setDateFrom}
+                keyboardType="numeric"
+                maxLength={10}
+              />
+            </View>
+            <View style={styles.dateFieldSep}>
+              <Text style={styles.dateFieldSepText}>–</Text>
+            </View>
+            <View style={styles.dateFieldWrap}>
+              <Text style={styles.dateFieldLabel}>To</Text>
+              <TextInput
+                style={styles.dateInput}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor="#9ca3af"
+                value={dateTo}
+                onChangeText={setDateTo}
+                keyboardType="numeric"
+                maxLength={10}
+              />
+            </View>
+            {(dateFrom || dateTo) && (
+              <TouchableOpacity
+                style={styles.dateClearBtn}
+                onPress={() => { setDateFrom(''); setDateTo(''); }}
+                activeOpacity={0.7}
+              >
+                <X size={14} color="#ef4444" />
+              </TouchableOpacity>
+            )}
+          </View>
+          {(dateFrom || dateTo) && (
+            <Text style={styles.dateFilterNote}>
+              Showing {filtered.length} result{filtered.length !== 1 ? 's' : ''} in range
+            </Text>
+          )}
+        </View>
+      )}
 
       <ScrollView
         horizontal
@@ -790,8 +861,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 8,
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'center',
   },
   searchWrap: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#ffffff',
@@ -808,6 +883,93 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#1a1d23',
     padding: 0,
+  },
+  dateToggleBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#f0f1f3',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dateToggleBtnActive: {
+    backgroundColor: '#ff8c00',
+    borderColor: '#ff8c00',
+  },
+  dateActiveDot: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#ffffff',
+  },
+  dateFilterPanel: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#f0f1f3',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  dateFilterRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 8,
+  },
+  dateFieldWrap: {
+    flex: 1,
+  },
+  dateFieldLabel: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 11,
+    color: '#8b909a',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: 5,
+  },
+  dateInput: {
+    backgroundColor: '#f8f9fb',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#f0f1f3',
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    fontFamily: Fonts.regular,
+    fontSize: 13,
+    color: '#1a1d23',
+  },
+  dateFieldSep: {
+    paddingBottom: 10,
+  },
+  dateFieldSepText: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 16,
+    color: '#c4c9d4',
+  },
+  dateClearBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#fef2f2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 1,
+  },
+  dateFilterNote: {
+    fontFamily: Fonts.medium,
+    fontSize: 12,
+    color: '#ff8c00',
+    marginTop: 10,
   },
   filterScroll: {
     maxHeight: 44,
