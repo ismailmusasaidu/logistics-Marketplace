@@ -8,23 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  Users,
-  ShoppingBag,
-  DollarSign,
-  TrendingUp,
-  Package,
-  FileText,
-  Truck,
-  Building2,
-  Megaphone,
-  Layers,
-  Star,
-  Scale,
-  ChevronRight,
-  BarChart3,
-  Shield,
-} from 'lucide-react-native';
+import { Users, ShoppingBag, DollarSign, TrendingUp, Package, FileText, Truck, Building2, Megaphone, Layers, Star, Scale, ChevronRight, ChartBar as BarChart3, Shield, Banknote } from 'lucide-react-native';
 import { supabase } from '@/lib/marketplace/supabase';
 import { Fonts } from '@/constants/fonts';
 import VendorManagement from '@/components/marketplace/admin/VendorManagement';
@@ -38,6 +22,7 @@ import AdvertManagement from '@/components/marketplace/admin/AdvertManagement';
 import CategoryManagement from '@/components/marketplace/admin/CategoryManagement';
 import ReviewModeration from '@/components/marketplace/admin/ReviewModeration';
 import WeightChargesManagement from '@/components/marketplace/admin/WeightChargesManagement';
+import VendorPayouts from '@/components/marketplace/admin/VendorPayouts';
 import { useLocalSearchParams } from 'expo-router';
 
 interface Stats {
@@ -60,6 +45,7 @@ const MENU_ITEMS = [
   { key: 'adverts', icon: Megaphone, label: 'Advert Management', desc: 'Manage promotional adverts', color: '#ec4899' },
   { key: 'reviews', icon: Star, label: 'Review Moderation', desc: 'Moderate customer reviews', color: '#f59e0b' },
   { key: 'weight_charges', icon: Scale, label: 'Weight Charges', desc: 'Set surcharges by cart weight', color: '#0ea5e9' },
+  { key: 'vendor_payouts', icon: Banknote, label: 'Vendor Payouts', desc: 'Manage vendor payout requests', color: '#059669' },
 ];
 
 export default function AdminScreen() {
@@ -128,6 +114,7 @@ export default function AdminScreen() {
   if (activeScreen === 'products') return <ProductManagement onBack={handleBack} />;
   if (activeScreen === 'orders') return <OrderManagement onBack={handleBack} />;
   if (activeScreen === 'content') return <ContentManagement onBack={handleBack} />;
+  if (activeScreen === 'vendor_payouts') return <VendorPayouts onBack={handleBack} />;
 
   const subScreens: Record<string, { title: string; component: React.ReactNode }> = {
     delivery: { title: 'Delivery Management', component: <DeliveryManagement /> },
