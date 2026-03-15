@@ -29,7 +29,7 @@ export default function LoginScreen() {
   const [emailUnconfirmed, setEmailUnconfirmed] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
-  const { signIn, signOut, profile, session, loading } = useAuth();
+  const { signIn, profile, session, loading } = useAuth();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -59,12 +59,7 @@ export default function LoginScreen() {
   useEffect(() => {
     if (loading) return;
     if (!session) return;
-
-    if (!profile) {
-      setError('Your account no longer exists. Please contact support or create a new account.');
-      signOut();
-      return;
-    }
+    if (!profile) return;
 
     const needsApproval =
       (profile.role === 'vendor' || profile.role === 'rider') &&
