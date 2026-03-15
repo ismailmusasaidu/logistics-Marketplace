@@ -112,9 +112,11 @@ export default function CustomerHome() {
   }, []);
 
   useEffect(() => {
+    if (!filtersRestored) return;
     setProducts([]);
     setPage(0);
     setHasMore(true);
+    setIsProductsStale(false);
     fetchProducts(0, true);
   }, [selectedCategory, filters, filtersRestored]);
 
