@@ -17,7 +17,7 @@ import { Fonts } from '@/constants/fonts';
 
 interface VendorEntry {
   vendor_id: string;
-  business_name: string;
+  business_name: string | null;
   logo_url: string | null;
   avg_rating: number;
   total_products: number;
@@ -30,9 +30,9 @@ type LeaderboardTab = 'top_rated' | 'most_ordered';
 const MEDAL_COLORS = ['#f5c518', '#b0bec5', '#cd7f32'];
 const MEDAL_LABELS = ['1st', '2nd', '3rd'];
 
-function VendorAvatar({ name, logoUrl, size = 48 }: { name: string; logoUrl: string | null; size?: number }) {
+function VendorAvatar({ name, logoUrl, size = 48 }: { name: string | null; logoUrl: string | null; size?: number }) {
   const [imgError, setImgError] = useState(false);
-  const initials = name
+  const initials = (name || 'V')
     .split(' ')
     .slice(0, 2)
     .map((w) => w[0])
@@ -126,7 +126,7 @@ function VendorCard({
         <View style={styles.cardInner}>
           <View style={styles.cardLeft}>
             <View style={styles.avatarWrap}>
-              <VendorAvatar name={entry.business_name} logoUrl={entry.logo_url} size={44} />
+              <VendorAvatar name={entry.business_name || 'Vendor'} logoUrl={entry.logo_url} size={44} />
               {rank <= 3 && (
                 <View style={[styles.medalOverlay, { backgroundColor: MEDAL_COLORS[rank - 1] }]}>
                   <Text style={styles.medalOverlayText}>{rank}</Text>
@@ -137,7 +137,7 @@ function VendorCard({
             <View style={styles.cardInfo}>
               <View style={styles.nameRow}>
                 <Text style={[styles.vendorName, { color: colors.text }]} numberOfLines={1}>
-                  {entry.business_name}
+                  {entry.business_name || 'Vendor'}
                 </Text>
                 {isTopRated && (
                   <View style={styles.badgeTopRated}>
