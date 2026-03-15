@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Package, Clock, CircleCheck as CheckCircle, Truck, Circle as XCircle, ShoppingBag, Search, X, Star, Receipt } from 'lucide-react-native';
 import { supabase } from '@/lib/marketplace/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Order, OrderStatus, OrderItem, Product } from '@/types/database';
 import { router } from 'expo-router';
 import ReviewForm from '@/components/marketplace/ReviewForm';
@@ -32,16 +33,6 @@ const statusIcons: Record<OrderStatus, any> = {
   cancelled: XCircle,
 };
 
-const statusColors: Record<OrderStatus, string> = {
-  pending: '#f59e0b',
-  confirmed: '#ff8c00',
-  preparing: '#ff8c00',
-  ready_for_pickup: '#ff8c00',
-  out_for_delivery: '#ff8c00',
-  delivered: '#059669',
-  cancelled: '#ef4444',
-};
-
 interface OrderItemWithProduct extends OrderItem {
   product: Product;
   hasReview: boolean;
@@ -49,6 +40,7 @@ interface OrderItemWithProduct extends OrderItem {
 
 export default function OrdersScreen() {
   const { profile } = useAuth();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,6 +51,16 @@ export default function OrdersScreen() {
   const [receiptItems, setReceiptItems] = useState<any[]>([]);
   const [returnOrder, setReturnOrder] = useState<Order | null>(null);
   const [returnOrderItems, setReturnOrderItems] = useState<any[]>([]);
+
+  const statusColors: Record<OrderStatus, string> = {
+    pending: colors.statusPending,
+    confirmed: colors.statusConfirmed,
+    preparing: colors.statusPreparing,
+    ready_for_pickup: colors.statusPreparing,
+    out_for_delivery: colors.statusDelivery,
+    delivered: colors.statusDelivered,
+    cancelled: colors.statusCancelled,
+  };
 
   useEffect(() => {
     if (profile) {
@@ -237,8 +239,8 @@ export default function OrdersScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#ff8c00" />
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -248,7 +250,7 @@ export default function OrdersScreen() {
 
   if (showEmptyOrders) {
     return (
-      <View style={[styles.emptyContainer, { backgroundColor: '#faf8f5' }]}>
+      <View style={[styles.emptyContainer, { backgroundColor: colors.background }]}>
         <EmptyState
           variant="orders"
           title="No orders yet"
@@ -261,18 +263,18 @@ export default function OrdersScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 20, backgroundColor: colors.primary, shadowColor: colors.primary }]}>
         <Text style={styles.title}>My Orders</Text>
         <Text style={styles.subtitle}>{orders.length} orders</Text>
       </View>
 
-      <View style={styles.searchContainer}>
-        <Search size={20} color="#6b7280" style={styles.searchIcon} />
+      <View style={[styles.searchContainer, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
+        <Search size={20} color={colors.textSecondary} style={styles.searchIcon} />
         <TextInput
-          style={[styles.searchInput, Platform.OS === 'web' && { outlineStyle: 'none' } as any]}
+          style={[styles.searchInput, { color: colors.text }, Platform.OS === 'web' && { outlineStyle: 'none' } as any]}
           placeholder="Search by order number, status, or address..."
-          placeholderTextColor="#9ca3af"
+          placeholderTextColor={colors.textMuted}
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
@@ -281,18 +283,18 @@ export default function OrdersScreen() {
             onPress={() => setSearchQuery('')}
             style={styles.clearButton}
           >
-            <X size={18} color="#6b7280" />
+            <X size={18} color={colors.textSecondary} />
           </TouchableOpacity>
         )}
       </View>
 
       {showNoResults ? (
         <View style={styles.emptyResults}>
-          <Search size={64} color="#9ca3af" />
-          <Text style={styles.emptyResultsTitle}>No orders found</Text>
-          <Text style={styles.emptyResultsText}>Try adjusting your search</Text>
+          <Search size={64} color={colors.textMuted} />
+          <Text style={[styles.emptyResultsTitle, { color: colors.text }]}>No orders found</Text>
+          <Text style={[styles.emptyResultsText, { color: colors.textMuted }]}>Try adjusting your search</Text>
           <TouchableOpacity
-            style={styles.clearSearchButton}
+            style={[styles.clearSearchButton, { backgroundColor: colors.primary, shadowColor: colors.primary }]}
             onPress={() => setSearchQuery('')}
           >
             <Text style={styles.clearSearchText}>Clear Search</Text>
@@ -303,20 +305,20 @@ export default function OrdersScreen() {
           data={filteredOrders}
           keyExtractor={(item) => item.id}
           contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 16 }]}
-          renderItem={({ item, index }) => {
+          renderItem={({ item }) => {
             const StatusIcon = statusIcons[item.status];
             const statusColor = statusColors[item.status];
             const items = orderItems[item.id] || [];
 
             return (
-              <View style={styles.orderCard}>
+              <View style={[styles.orderCard, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
                 <TouchableOpacity
                   onPress={() => router.push(`/order-tracking?orderId=${item.id}`)}
                 >
-                  <View style={styles.orderHeader}>
+                  <View style={[styles.orderHeader, { borderBottomColor: colors.borderLight }]}>
                     <View style={styles.orderInfo}>
-                      <Text style={styles.orderNumber}>Order #{item.order_number}</Text>
-                      <Text style={styles.orderDate}>{formatDate(item.created_at)}</Text>
+                      <Text style={[styles.orderNumber, { color: colors.text }]}>Order #{item.order_number}</Text>
+                      <Text style={[styles.orderDate, { color: colors.textMuted }]}>{formatDate(item.created_at)}</Text>
                     </View>
                     <View style={[styles.statusBadge, { backgroundColor: statusColor + '20' }]}>
                       <StatusIcon size={16} color={statusColor} />
@@ -328,90 +330,90 @@ export default function OrdersScreen() {
 
                   <View style={styles.orderDetails}>
                     <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Subtotal</Text>
-                      <Text style={styles.detailValue}>₦{item.subtotal.toFixed(2)}</Text>
+                      <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Subtotal</Text>
+                      <Text style={[styles.detailValue, { color: colors.text }]}>₦{item.subtotal.toFixed(2)}</Text>
                     </View>
                     <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Delivery Fee</Text>
-                      <Text style={styles.detailValue}>₦{item.delivery_fee.toFixed(2)}</Text>
+                      <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Delivery Fee</Text>
+                      <Text style={[styles.detailValue, { color: colors.text }]}>₦{item.delivery_fee.toFixed(2)}</Text>
                     </View>
                     <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Tax</Text>
-                      <Text style={styles.detailValue}>₦{item.tax.toFixed(2)}</Text>
+                      <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Tax</Text>
+                      <Text style={[styles.detailValue, { color: colors.text }]}>₦{item.tax.toFixed(2)}</Text>
                     </View>
                     <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Payment Method</Text>
+                      <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Payment Method</Text>
                       <View style={styles.paymentContainer}>
-                        <Text style={styles.paymentMethod}>
+                        <Text style={[styles.paymentMethod, { color: colors.primary }]}>
                           {item.payment_method === 'cash_on_delivery' ? 'Cash on Delivery' :
                            item.payment_method === 'wallet' ? 'Wallet' :
                            item.payment_method === 'online' ? 'Online Payment' :
                            'Bank Transfer'}
                         </Text>
                         {item.payment_method === 'transfer' && item.payment_status === 'completed' && (
-                          <View style={styles.paidBadge}>
-                            <CheckCircle size={12} color="#059669" />
-                            <Text style={styles.paidText}>Paid</Text>
+                          <View style={[styles.paidBadge, { backgroundColor: colors.successLight }]}>
+                            <CheckCircle size={12} color={colors.success} />
+                            <Text style={[styles.paidText, { color: colors.success }]}>Paid</Text>
                           </View>
                         )}
                       </View>
                     </View>
-                    <View style={[styles.detailRow, styles.totalRow]}>
-                      <Text style={styles.totalLabel}>Total</Text>
-                      <Text style={styles.totalValue}>₦{item.total.toFixed(2)}</Text>
+                    <View style={[styles.detailRow, styles.totalRow, { borderTopColor: colors.borderLight }]}>
+                      <Text style={[styles.totalLabel, { color: colors.text }]}>Total</Text>
+                      <Text style={[styles.totalValue, { color: colors.primaryDark }]}>₦{item.total.toFixed(2)}</Text>
                     </View>
                   </View>
 
-                  <View style={styles.addressContainer}>
-                    <Text style={styles.addressLabel}>Delivery Address</Text>
-                    <Text style={styles.addressText}>{item.delivery_address}</Text>
+                  <View style={[styles.addressContainer, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderLight }]}>
+                    <Text style={[styles.addressLabel, { color: colors.textMuted }]}>Delivery Address</Text>
+                    <Text style={[styles.addressText, { color: colors.text }]}>{item.delivery_address}</Text>
                   </View>
                 </TouchableOpacity>
 
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   <TouchableOpacity
-                    style={[styles.receiptButton, { flex: 1 }]}
+                    style={[styles.receiptButton, { flex: 1, backgroundColor: colors.primary + '15', borderColor: colors.primary + '40' }]}
                     onPress={() => handleViewReceipt(item)}
                     activeOpacity={0.7}
                   >
-                    <Receipt size={18} color="#ff8c00" />
-                    <Text style={styles.receiptButtonText}>View Receipt</Text>
+                    <Receipt size={18} color={colors.primary} />
+                    <Text style={[styles.receiptButtonText, { color: colors.primary }]}>View Receipt</Text>
                   </TouchableOpacity>
                   {item.status === 'delivered' && (
                     <TouchableOpacity
-                      style={[styles.receiptButton, { flex: 1, borderColor: '#059669' }]}
+                      style={[styles.receiptButton, { flex: 1, backgroundColor: colors.successLight, borderColor: colors.success + '40' }]}
                       onPress={() => handleOpenReturn(item)}
                       activeOpacity={0.7}
                     >
-                      <Receipt size={18} color="#059669" />
-                      <Text style={[styles.receiptButtonText, { color: '#059669' }]}>Return</Text>
+                      <Receipt size={18} color={colors.success} />
+                      <Text style={[styles.receiptButtonText, { color: colors.success }]}>Return</Text>
                     </TouchableOpacity>
                   )}
                 </View>
 
                 {item.status === 'delivered' && items.length > 0 && (
-                  <View style={styles.reviewSection}>
-                    <Text style={styles.reviewSectionTitle}>Rate Your Purchase</Text>
+                  <View style={[styles.reviewSection, { borderTopColor: colors.borderLight }]}>
+                    <Text style={[styles.reviewSectionTitle, { color: colors.text }]}>Rate Your Purchase</Text>
                     {items.map((orderItem) => (
-                      <View key={orderItem.id} style={styles.reviewItem}>
+                      <View key={orderItem.id} style={[styles.reviewItem, { backgroundColor: colors.surfaceSecondary }]}>
                         <View style={styles.reviewItemInfo}>
-                          <Text style={styles.reviewItemName} numberOfLines={1}>
+                          <Text style={[styles.reviewItemName, { color: colors.text }]} numberOfLines={1}>
                             {orderItem.product.name}
                           </Text>
-                          <Text style={styles.reviewItemQuantity}>
+                          <Text style={[styles.reviewItemQuantity, { color: colors.textMuted }]}>
                             Qty: {orderItem.quantity}
                             {(orderItem as any).selected_size ? ` · Size: ${(orderItem as any).selected_size}` : ''}
                             {(orderItem as any).selected_color ? ` · ${(orderItem as any).selected_color}` : ''}
                           </Text>
                         </View>
                         {orderItem.hasReview ? (
-                          <View style={styles.reviewedBadge}>
-                            <CheckCircle size={14} color="#059669" />
-                            <Text style={styles.reviewedText}>Reviewed</Text>
+                          <View style={[styles.reviewedBadge, { backgroundColor: colors.successLight }]}>
+                            <CheckCircle size={14} color={colors.success} />
+                            <Text style={[styles.reviewedText, { color: colors.success }]}>Reviewed</Text>
                           </View>
                         ) : (
                           <TouchableOpacity
-                            style={styles.reviewButton}
+                            style={[styles.reviewButton, { backgroundColor: colors.primary + '15' }]}
                             onPress={() =>
                               setReviewProduct({
                                 productId: orderItem.product_id,
@@ -419,8 +421,8 @@ export default function OrdersScreen() {
                               })
                             }
                           >
-                            <Star size={14} color="#ff8c00" />
-                            <Text style={styles.reviewButtonText}>Review</Text>
+                            <Star size={14} color={colors.primary} />
+                            <Text style={[styles.reviewButtonText, { color: colors.primary }]}>Review</Text>
                           </TouchableOpacity>
                         )}
                       </View>
@@ -440,7 +442,7 @@ export default function OrdersScreen() {
         onRequestClose={() => setReviewProduct(null)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             {reviewProduct && (
               <ReviewForm
                 productId={reviewProduct.productId}
@@ -481,7 +483,6 @@ export default function OrdersScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#faf8f5',
   },
   loadingContainer: {
     flex: 1,
@@ -489,12 +490,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header: {
-    backgroundColor: '#ff8c00',
     paddingHorizontal: 20,
     paddingBottom: 24,
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
-    shadowColor: '#ff8c00',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
@@ -515,7 +514,6 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -523,7 +521,6 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#f0ebe4',
   },
   searchIcon: {
     marginRight: 8,
@@ -532,7 +529,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontFamily: Fonts.spaceMedium,
-    color: '#1a1a1a',
     padding: 0,
     borderWidth: 0,
     outlineWidth: 0,
@@ -550,14 +546,12 @@ const styles = StyleSheet.create({
   emptyResultsTitle: {
     fontSize: 20,
     fontFamily: Fonts.spaceBold,
-    color: '#1a1a1a',
     marginTop: 16,
     letterSpacing: -0.3,
   },
   emptyResultsText: {
     fontSize: 14,
     fontFamily: Fonts.spaceRegular,
-    color: '#999',
     marginTop: 8,
     textAlign: 'center',
   },
@@ -565,9 +559,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingVertical: 12,
     paddingHorizontal: 24,
-    backgroundColor: '#ff8c00',
     borderRadius: 10,
-    shadowColor: '#ff8c00',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
@@ -583,12 +575,10 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   orderCard: {
-    backgroundColor: '#ffffff',
     borderRadius: 18,
     padding: 18,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: '#f0ebe4',
   },
   orderHeader: {
     flexDirection: 'row',
@@ -597,7 +587,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0ebe4',
     gap: 12,
   },
   orderInfo: {
@@ -607,14 +596,12 @@ const styles = StyleSheet.create({
   orderNumber: {
     fontSize: 17,
     fontFamily: Fonts.spaceSemiBold,
-    color: '#1a1a1a',
     letterSpacing: -0.2,
     flexShrink: 1,
   },
   orderDate: {
     fontSize: 13,
     fontFamily: Fonts.spaceMedium,
-    color: '#94a3b8',
     marginTop: 4,
   },
   statusBadge: {
@@ -642,12 +629,10 @@ const styles = StyleSheet.create({
   detailLabel: {
     fontSize: 14,
     fontFamily: Fonts.spaceRegular,
-    color: '#6b7280',
   },
   detailValue: {
     fontSize: 14,
     fontFamily: Fonts.spaceMedium,
-    color: '#1f2937',
   },
   paymentContainer: {
     flexDirection: 'row',
@@ -657,12 +642,10 @@ const styles = StyleSheet.create({
   paymentMethod: {
     fontSize: 14,
     fontFamily: Fonts.spaceSemiBold,
-    color: '#ff8c00',
   },
   paidBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#d1fae5',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 10,
@@ -671,36 +654,29 @@ const styles = StyleSheet.create({
   paidText: {
     fontSize: 10,
     fontFamily: Fonts.spaceSemiBold,
-    color: '#059669',
   },
   totalRow: {
     marginTop: 8,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#f0ebe4',
   },
   totalLabel: {
     fontSize: 16,
     fontFamily: Fonts.spaceSemiBold,
-    color: '#1a1a1a',
   },
   totalValue: {
     fontSize: 22,
     fontFamily: Fonts.spaceBold,
-    color: '#c2410c',
     letterSpacing: -0.5,
   },
   addressContainer: {
-    backgroundColor: '#f8f5f0',
     padding: 14,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#f0ebe4',
   },
   addressLabel: {
     fontSize: 11,
     fontFamily: Fonts.spaceSemiBold,
-    color: '#999',
     marginBottom: 4,
     textTransform: 'uppercase',
     letterSpacing: 1.2,
@@ -708,37 +684,31 @@ const styles = StyleSheet.create({
   addressText: {
     fontSize: 14,
     fontFamily: Fonts.spaceMedium,
-    color: '#1a1a1a',
     flexWrap: 'wrap',
   },
   receiptButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff7ed',
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 12,
     marginTop: 16,
     gap: 8,
     borderWidth: 1,
-    borderColor: '#fed7aa',
   },
   receiptButtonText: {
     fontSize: 15,
     fontFamily: Fonts.spaceSemiBold,
-    color: '#ff8c00',
   },
   reviewSection: {
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#f0ebe4',
   },
   reviewSectionTitle: {
     fontSize: 14,
     fontFamily: Fonts.spaceSemiBold,
-    color: '#1a1a1a',
     marginBottom: 12,
     letterSpacing: 0.2,
   },
@@ -748,7 +718,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
     padding: 12,
-    backgroundColor: '#f8f5f0',
     borderRadius: 10,
   },
   reviewItemInfo: {
@@ -758,18 +727,15 @@ const styles = StyleSheet.create({
   reviewItemName: {
     fontSize: 14,
     fontFamily: Fonts.spaceSemiBold,
-    color: '#1a1a1a',
     marginBottom: 2,
   },
   reviewItemQuantity: {
     fontSize: 12,
     fontFamily: Fonts.spaceMedium,
-    color: '#999',
   },
   reviewButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff7ed',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
@@ -778,12 +744,10 @@ const styles = StyleSheet.create({
   reviewButtonText: {
     fontSize: 12,
     fontFamily: Fonts.spaceSemiBold,
-    color: '#ff8c00',
   },
   reviewedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#d1fae5',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
@@ -792,27 +756,12 @@ const styles = StyleSheet.create({
   reviewedText: {
     fontSize: 12,
     fontFamily: Fonts.spaceSemiBold,
-    color: '#059669',
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 40,
-  },
-  emptyTitle: {
-    fontSize: 24,
-    fontFamily: Fonts.spaceBold,
-    color: '#1a1a1a',
-    marginTop: 16,
-    letterSpacing: -0.5,
-  },
-  emptyText: {
-    fontSize: 16,
-    fontFamily: Fonts.spaceMedium,
-    color: '#999',
-    marginTop: 8,
-    textAlign: 'center',
   },
   modalOverlay: {
     flex: 1,
@@ -824,7 +773,6 @@ const styles = StyleSheet.create({
   modalContent: {
     width: '100%',
     maxWidth: 500,
-    backgroundColor: '#ffffff',
     borderRadius: 16,
     overflow: 'hidden',
   },

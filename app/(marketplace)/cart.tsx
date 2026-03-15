@@ -11,10 +11,11 @@ import {
   ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Trash2, Plus, Minus, Scale, RotateCcw, X, ShieldCheck, Clock, AlertCircle } from 'lucide-react-native';
+import { Trash2, Plus, Minus, Scale, RotateCcw, X, ShieldCheck, Clock, CircleAlert as AlertCircle } from 'lucide-react-native';
 import EmptyState from '@/components/EmptyState';
 import { supabase } from '@/lib/marketplace/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { cartEvents } from '@/lib/marketplace/cartEvents';
 import { router, useFocusEffect } from 'expo-router';
 import ProductDetailModal from '@/components/marketplace/ProductDetailModal';
@@ -47,6 +48,7 @@ interface WeightSurchargeTier {
 
 export default function CartScreen() {
   const { profile } = useAuth();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [cartItems, setCartItems] = useState<CartItemWithProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,7 +70,6 @@ export default function CartScreen() {
   useEffect(() => {
     if (!profile) return;
 
-    // Subscribe to real-time cart changes
     const channel = supabase
       .channel('cart-updates')
       .on(
@@ -253,15 +254,15 @@ export default function CartScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#ff8c00" />
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   if (cartItems.length === 0) {
     return (
-      <View style={styles.emptyContainer}>
+      <View style={[styles.emptyContainer, { backgroundColor: colors.background }]}>
         <EmptyState
           variant="cart"
           title="Your cart is empty"
@@ -274,8 +275,8 @@ export default function CartScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 20, backgroundColor: colors.primary, shadowColor: colors.primary }]}>
         <Text style={styles.title}>My Cart</Text>
         <Text style={styles.itemCount}>{cartItems.length} items</Text>
       </View>
@@ -285,7 +286,7 @@ export default function CartScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
-          <View style={styles.cartItem}>
+          <View style={[styles.cartItem, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => handleViewProduct(item.product_id)}
@@ -294,23 +295,23 @@ export default function CartScreen() {
                 source={{
                   uri: item.product.image_url || 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg',
                 }}
-                style={styles.itemImage}
+                style={[styles.itemImage, { backgroundColor: colors.surfaceSecondary }]}
               />
             </TouchableOpacity>
             <View style={styles.itemInfo}>
               <TouchableOpacity activeOpacity={0.7} onPress={() => handleViewProduct(item.product_id)} style={styles.itemNamePressable}>
-                <Text style={styles.itemName}>{item.product.name}</Text>
-                <Text style={styles.itemPrice}>
+                <Text style={[styles.itemName, { color: colors.text }]}>{item.product.name}</Text>
+                <Text style={[styles.itemPrice, { color: colors.primaryDark }]}>
                   ₦{item.product.price.toFixed(2)} / {item.product.unit}
                 </Text>
               </TouchableOpacity>
               {item.product.weight_kg != null && (
                 <View style={styles.itemWeightRow}>
-                  <Scale size={11} color="#9ca3af" strokeWidth={2} />
-                  <Text style={styles.itemWeightText}>
+                  <Scale size={11} color={colors.textMuted} strokeWidth={2} />
+                  <Text style={[styles.itemWeightText, { color: colors.textMuted }]}>
                     {(item.product.weight_kg * item.quantity).toFixed(3)} kg
                     {item.quantity > 1 && (
-                      <Text style={styles.itemWeightUnit}> ({item.product.weight_kg} kg each)</Text>
+                      <Text style={[styles.itemWeightUnit, { color: colors.textMuted }]}> ({item.product.weight_kg} kg each)</Text>
                     )}
                   </Text>
                 </View>
@@ -318,26 +319,26 @@ export default function CartScreen() {
               <View style={styles.itemBottomRow}>
                 <View style={styles.quantityContainer}>
                   <TouchableOpacity
-                    style={styles.quantityButton}
+                    style={[styles.quantityButton, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderLight }]}
                     onPress={() => updateQuantity(item.id, item.quantity - 1)}
                   >
-                    <Minus size={16} color="#6b7280" />
+                    <Minus size={16} color={colors.textSecondary} />
                   </TouchableOpacity>
-                  <Text style={styles.quantity}>{item.quantity}</Text>
+                  <Text style={[styles.quantity, { color: colors.text }]}>{item.quantity}</Text>
                   <TouchableOpacity
-                    style={styles.quantityButton}
+                    style={[styles.quantityButton, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderLight }]}
                     onPress={() => updateQuantity(item.id, item.quantity + 1)}
                   >
-                    <Plus size={16} color="#6b7280" />
+                    <Plus size={16} color={colors.textSecondary} />
                   </TouchableOpacity>
                 </View>
                 {item.product.return_policy ? (
                   <TouchableOpacity
-                    style={styles.returnPolicyBtn}
+                    style={[styles.returnPolicyBtn, { backgroundColor: colors.successLight, borderColor: colors.success + '40' }]}
                     onPress={() => setReturnPolicyProduct({ name: item.product.name, policy: item.product.return_policy! })}
                   >
-                    <RotateCcw size={11} color="#059669" strokeWidth={2.2} />
-                    <Text style={styles.returnPolicyBtnText}>Return Policy</Text>
+                    <RotateCcw size={11} color={colors.success} strokeWidth={2.2} />
+                    <Text style={[styles.returnPolicyBtnText, { color: colors.success }]}>Return Policy</Text>
                   </TouchableOpacity>
                 ) : null}
               </View>
@@ -346,20 +347,20 @@ export default function CartScreen() {
               style={styles.deleteButton}
               onPress={() => removeItem(item.id)}
             >
-              <Trash2 size={20} color="#ef4444" />
+              <Trash2 size={20} color={colors.error} />
             </TouchableOpacity>
           </View>
         )}
       />
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 20, backgroundColor: colors.surface, borderTopColor: colors.borderLight }]}>
         {hasAnyWeight && (
-          <View style={styles.weightContainer}>
-            <View style={styles.weightIconWrap}>
-              <Scale size={14} color="#ff8c00" strokeWidth={2.2} />
+          <View style={[styles.weightContainer, { backgroundColor: colors.warningLight, borderColor: colors.warning + '40' }]}>
+            <View style={[styles.weightIconWrap, { backgroundColor: colors.surface, borderColor: colors.warning + '40' }]}>
+              <Scale size={14} color={colors.primary} strokeWidth={2.2} />
             </View>
-            <Text style={styles.weightLabel}>Total Weight</Text>
-            <Text style={styles.weightValue}>
+            <Text style={[styles.weightLabel, { color: colors.warning }]}>Total Weight</Text>
+            <Text style={[styles.weightValue, { color: colors.primary }]}>
               {calculateTotalWeight() >= 1
                 ? `${calculateTotalWeight().toFixed(3)} kg`
                 : `${(calculateTotalWeight() * 1000).toFixed(0)} g`}
@@ -370,27 +371,27 @@ export default function CartScreen() {
           const surcharge = getApplicableWeightSurcharge();
           if (!surcharge) return null;
           return (
-            <View style={styles.surchargeContainer}>
+            <View style={[styles.surchargeContainer, { backgroundColor: colors.warningLight, borderColor: colors.warning + '50' }]}>
               <View style={styles.surchargeLeft}>
-                <Scale size={13} color="#b45309" strokeWidth={2} />
+                <Scale size={13} color={colors.warning} strokeWidth={2} />
                 <View>
-                  <Text style={styles.surchargeLabel}>{surcharge.label}</Text>
-                  <Text style={styles.surchargeHint}>Weight-based additional charge</Text>
+                  <Text style={[styles.surchargeLabel, { color: colors.warning }]}>{surcharge.label}</Text>
+                  <Text style={[styles.surchargeHint, { color: colors.textSecondary }]}>Weight-based additional charge</Text>
                 </View>
               </View>
-              <Text style={styles.surchargeAmount}>
+              <Text style={[styles.surchargeAmount, { color: colors.warning }]}>
                 +₦{Number(surcharge.charge_amount).toFixed(2)}
               </Text>
             </View>
           );
         })()}
         <View style={styles.totalContainer}>
-          <Text style={styles.totalLabel}>Total</Text>
-          <Text style={styles.totalAmount}>
+          <Text style={[styles.totalLabel, { color: colors.textMuted }]}>Total</Text>
+          <Text style={[styles.totalAmount, { color: colors.primaryDark }]}>
             ₦{(calculateTotal() + Number(getApplicableWeightSurcharge()?.charge_amount ?? 0)).toFixed(2)}
           </Text>
         </View>
-        <TouchableOpacity style={styles.checkoutButton} onPress={handleCheckout}>
+        <TouchableOpacity style={[styles.checkoutButton, { backgroundColor: colors.primary, shadowColor: colors.primary }]} onPress={handleCheckout}>
           <Text style={styles.checkoutButtonText}>Proceed to Checkout</Text>
         </TouchableOpacity>
       </View>
@@ -412,43 +413,43 @@ export default function CartScreen() {
       >
         <View style={styles.rpOverlay}>
           <TouchableOpacity style={styles.rpBackdrop} onPress={() => setReturnPolicyProduct(null)} />
-          <View style={[styles.rpSheet, { paddingBottom: insets.bottom + 24 }]}>
-            <View style={styles.rpHandle} />
+          <View style={[styles.rpSheet, { backgroundColor: colors.surface, paddingBottom: insets.bottom + 24 }]}>
+            <View style={[styles.rpHandle, { backgroundColor: colors.border }]} />
 
             <View style={styles.rpHeader}>
               <View style={styles.rpHeaderLeft}>
-                <View style={styles.rpIconWrap}>
-                  <ShieldCheck size={22} color="#059669" strokeWidth={2} />
+                <View style={[styles.rpIconWrap, { backgroundColor: colors.successLight, borderColor: colors.success + '40' }]}>
+                  <ShieldCheck size={22} color={colors.success} strokeWidth={2} />
                 </View>
                 <View>
-                  <Text style={styles.rpTitle}>Return Policy</Text>
-                  <Text style={styles.rpProductName} numberOfLines={1}>{returnPolicyProduct?.name}</Text>
+                  <Text style={[styles.rpTitle, { color: colors.text }]}>Return Policy</Text>
+                  <Text style={[styles.rpProductName, { color: colors.textSecondary }]} numberOfLines={1}>{returnPolicyProduct?.name}</Text>
                 </View>
               </View>
-              <TouchableOpacity style={styles.rpCloseBtn} onPress={() => setReturnPolicyProduct(null)}>
-                <X size={18} color="#64748b" strokeWidth={2} />
+              <TouchableOpacity style={[styles.rpCloseBtn, { backgroundColor: colors.surfaceSecondary }]} onPress={() => setReturnPolicyProduct(null)}>
+                <X size={18} color={colors.textSecondary} strokeWidth={2} />
               </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.rpBody} showsVerticalScrollIndicator={false}>
-              <View style={styles.rpNotice}>
-                <AlertCircle size={14} color="#0369a1" strokeWidth={2} />
-                <Text style={styles.rpNoticeText}>
+              <View style={[styles.rpNotice, { backgroundColor: colors.infoLight, borderColor: colors.info + '40' }]}>
+                <AlertCircle size={14} color={colors.info} strokeWidth={2} />
+                <Text style={[styles.rpNoticeText, { color: colors.info }]}>
                   Please read this policy carefully before making a purchase.
                 </Text>
               </View>
 
-              <Text style={styles.rpPolicyText}>{returnPolicyProduct?.policy}</Text>
+              <Text style={[styles.rpPolicyText, { color: colors.text }]}>{returnPolicyProduct?.policy}</Text>
 
-              <View style={styles.rpFooterNote}>
-                <Clock size={13} color="#94a3b8" strokeWidth={2} />
-                <Text style={styles.rpFooterNoteText}>
+              <View style={[styles.rpFooterNote, { borderTopColor: colors.borderLight }]}>
+                <Clock size={13} color={colors.textMuted} strokeWidth={2} />
+                <Text style={[styles.rpFooterNoteText, { color: colors.textMuted }]}>
                   Contact the vendor or support team to initiate a return.
                 </Text>
               </View>
             </ScrollView>
 
-            <TouchableOpacity style={styles.rpDoneBtn} onPress={() => setReturnPolicyProduct(null)}>
+            <TouchableOpacity style={[styles.rpDoneBtn, { backgroundColor: colors.primary, shadowColor: colors.primary }]} onPress={() => setReturnPolicyProduct(null)}>
               <Text style={styles.rpDoneBtnText}>Got it</Text>
             </TouchableOpacity>
           </View>
@@ -461,7 +462,6 @@ export default function CartScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#faf8f5',
   },
   loadingContainer: {
     flex: 1,
@@ -469,12 +469,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header: {
-    backgroundColor: '#ff8c00',
     paddingHorizontal: 20,
     paddingBottom: 16,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
-    shadowColor: '#ff8c00',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
@@ -499,12 +497,10 @@ const styles = StyleSheet.create({
   },
   cartItem: {
     flexDirection: 'row',
-    backgroundColor: '#ffffff',
     borderRadius: 14,
     padding: 10,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#f0ebe4',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
@@ -516,7 +512,6 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 10,
-    backgroundColor: '#f0ebe4',
   },
   itemInfo: {
     flex: 1,
@@ -528,13 +523,11 @@ const styles = StyleSheet.create({
   itemName: {
     fontSize: 14,
     fontFamily: Fonts.spaceSemiBold,
-    color: '#1a1a1a',
     letterSpacing: -0.1,
   },
   itemPrice: {
     fontSize: 14,
     fontFamily: Fonts.spaceBold,
-    color: '#c2410c',
     marginTop: 2,
     letterSpacing: -0.2,
   },
@@ -547,52 +540,43 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 8,
-    backgroundColor: '#f8f5f0',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#f0ebe4',
   },
   quantity: {
     fontSize: 14,
     fontFamily: Fonts.spaceBold,
     marginHorizontal: 10,
-    color: '#1a1a1a',
   },
   deleteButton: {
     justifyContent: 'center',
     padding: 6,
   },
   footer: {
-    backgroundColor: '#ffffff',
     paddingHorizontal: 16,
     paddingTop: 14,
     borderTopWidth: 1,
-    borderTopColor: '#f0ebe4',
   },
   weightContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#fff7ed',
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#ffedd5',
   },
   surchargeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#fffbeb',
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#fde68a',
   },
   surchargeLeft: {
     flexDirection: 'row',
@@ -603,42 +587,35 @@ const styles = StyleSheet.create({
   surchargeLabel: {
     fontSize: 13,
     fontFamily: Fonts.spaceSemiBold,
-    color: '#92400e',
     letterSpacing: -0.1,
   },
   surchargeHint: {
     fontSize: 11,
     fontFamily: Fonts.spaceRegular,
-    color: '#a16207',
     marginTop: 1,
   },
   surchargeAmount: {
     fontSize: 14,
     fontFamily: Fonts.spaceBold,
-    color: '#b45309',
     letterSpacing: -0.3,
   },
   weightIconWrap: {
     width: 24,
     height: 24,
     borderRadius: 6,
-    backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#ffedd5',
   },
   weightLabel: {
     flex: 1,
     fontSize: 13,
     fontFamily: Fonts.spaceMedium,
-    color: '#92400e',
     letterSpacing: 0.1,
   },
   weightValue: {
     fontSize: 14,
     fontFamily: Fonts.spaceBold,
-    color: '#ff8c00',
     letterSpacing: -0.3,
   },
   itemWeightRow: {
@@ -650,12 +627,10 @@ const styles = StyleSheet.create({
   itemWeightText: {
     fontSize: 11,
     fontFamily: Fonts.spaceMedium,
-    color: '#9ca3af',
   },
   itemWeightUnit: {
     fontSize: 10,
     fontFamily: Fonts.spaceRegular,
-    color: '#c4c9d4',
   },
   totalContainer: {
     flexDirection: 'row',
@@ -667,22 +642,18 @@ const styles = StyleSheet.create({
   totalLabel: {
     fontSize: 13,
     fontFamily: Fonts.spaceMedium,
-    color: '#999',
     textTransform: 'uppercase',
     letterSpacing: 1.2,
   },
   totalAmount: {
     fontSize: 24,
     fontFamily: Fonts.spaceBold,
-    color: '#c2410c',
     letterSpacing: -0.8,
   },
   checkoutButton: {
-    backgroundColor: '#ff8c00',
     borderRadius: 14,
     padding: 15,
     alignItems: 'center',
-    shadowColor: '#ff8c00',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.35,
     shadowRadius: 6,
@@ -700,38 +671,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 40,
   },
-  emptyTitle: {
-    fontSize: 24,
-    fontFamily: Fonts.spaceBold,
-    color: '#1a1a1a',
-    marginTop: 16,
-    letterSpacing: -0.5,
-  },
-  emptyText: {
-    fontSize: 15,
-    fontFamily: Fonts.spaceMedium,
-    color: '#999',
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  shopButton: {
-    backgroundColor: '#ff8c00',
-    borderRadius: 16,
-    paddingHorizontal: 32,
-    paddingVertical: 14,
-    marginTop: 24,
-    shadowColor: '#ff8c00',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  shopButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontFamily: Fonts.spaceBold,
-    letterSpacing: 0.3,
-  },
   itemBottomRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -742,9 +681,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#f0fdf4',
     borderWidth: 1,
-    borderColor: '#bbf7d0',
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -753,7 +690,6 @@ const styles = StyleSheet.create({
   returnPolicyBtnText: {
     fontSize: 10,
     fontFamily: Fonts.spaceSemiBold,
-    color: '#059669',
     letterSpacing: 0.1,
   },
   rpOverlay: {
@@ -765,7 +701,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.45)',
   },
   rpSheet: {
-    backgroundColor: '#ffffff',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingHorizontal: 20,
@@ -776,7 +711,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#e2e8f0',
     alignSelf: 'center',
     marginTop: 12,
     marginBottom: 16,
@@ -798,29 +732,24 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 14,
-    backgroundColor: '#f0fdf4',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#bbf7d0',
   },
   rpTitle: {
     fontSize: 17,
     fontFamily: Fonts.spaceBold,
-    color: '#1e293b',
     letterSpacing: -0.3,
   },
   rpProductName: {
     fontSize: 12,
     fontFamily: Fonts.spaceMedium,
-    color: '#64748b',
     marginTop: 1,
   },
   rpCloseBtn: {
     width: 34,
     height: 34,
     borderRadius: 10,
-    backgroundColor: '#f8f9fb',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -831,24 +760,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
-    backgroundColor: '#eff6ff',
     borderRadius: 12,
     padding: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#bfdbfe',
   },
   rpNoticeText: {
     flex: 1,
     fontSize: 12,
     fontFamily: Fonts.spaceMedium,
-    color: '#1d4ed8',
     lineHeight: 18,
   },
   rpPolicyText: {
     fontSize: 14,
     fontFamily: Fonts.spaceRegular,
-    color: '#334155',
     lineHeight: 24,
     letterSpacing: 0.1,
   },
@@ -859,22 +784,18 @@ const styles = StyleSheet.create({
     marginTop: 20,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
     marginBottom: 4,
   },
   rpFooterNoteText: {
     fontSize: 12,
     fontFamily: Fonts.spaceMedium,
-    color: '#94a3b8',
     flex: 1,
     lineHeight: 17,
   },
   rpDoneBtn: {
-    backgroundColor: '#ff8c00',
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: 'center',
-    shadowColor: '#ff8c00',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
