@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
   Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Search, Store, MapPin, Package, Star, X, ChevronRight } from 'lucide-react-native';
+import { Search, Store, MapPin, Package, X, ChevronRight } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '@/lib/marketplace/supabase';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -26,8 +26,6 @@ interface VendorItem {
   business_description?: string;
   avatar_url?: string;
   business_address?: string;
-  vendor_rating?: number;
-  vendor_total_reviews?: number;
   product_count?: number;
 }
 
@@ -82,7 +80,7 @@ export default function VendorListTab() {
 
       let query = supabase
         .from('profiles')
-        .select('id, business_name, business_description, avatar_url, business_address, vendor_rating, vendor_total_reviews', { count: 'exact' })
+        .select('id, business_name, business_description, avatar_url, business_address', { count: 'exact' })
         .eq('role', 'vendor')
         .eq('vendor_status', 'approved')
         .not('business_name', 'is', null);
@@ -91,19 +89,26 @@ export default function VendorListTab() {
         query = query.ilike('business_name', `%${search.trim()}%`);
       }
 
-      query = query.order('vendor_rating', { ascending: false, nullsFirst: false });
+      query = query.order('created_at', { ascending: false });
 
       const { data, error, count } = await query.range(from, to);
       if (error) throw error;
 
-      const vendorList: VendorItem[] = data || [];
+      const vendorList: VendorItem[] = (data || []).map((p) => ({
+        id: p.id,
+        business_name: p.business_name,
+        business_description: p.business_description,
+        avatar_url: p.avatar_url,
+        business_address: p.business_address,
+        product_count: 0,
+      }));
 
       if (vendorList.length > 0) {
-        const ids = vendorList.map((v) => v.id);
+        const profileIds = vendorList.map((v) => v.id);
         const { data: productCounts } = await supabase
           .from('products')
           .select('vendor_id')
-          .in('vendor_id', ids)
+          .in('vendor_id', profileIds)
           .eq('is_available', true);
 
         const countMap: Record<string, number> = {};
@@ -146,11 +151,6 @@ export default function VendorListTab() {
     setStoreVisible(true);
   };
 
-  const renderStars = (rating: number) => {
-    const r = Math.round((rating || 0) * 2) / 2;
-    return r.toFixed(1);
-  };
-
   const getInitials = (name: string) =>
     name
       .split(' ')
@@ -161,8 +161,6 @@ export default function VendorListTab() {
 
   const renderVendorCard = ({ item, index }: { item: VendorItem; index: number }) => {
     const initials = getInitials(item.business_name);
-    const rating = item.vendor_rating || 0;
-    const reviews = item.vendor_total_reviews || 0;
     const productCount = item.product_count || 0;
 
     return (
@@ -228,16 +226,6 @@ export default function VendorListTab() {
               <Package size={13} color={colors.primary} strokeWidth={2} />
               <Text style={[styles.statValue, { color: colors.text }]}>{productCount}</Text>
               <Text style={[styles.statLabel, { color: colors.textMuted }]}>products</Text>
-            </View>
-
-            <View style={[styles.statDivider, { backgroundColor: colors.borderLight }]} />
-
-            <View style={styles.statItem}>
-              <Star size={13} color="#f59e0b" strokeWidth={2} fill="#f59e0b" />
-              <Text style={[styles.statValue, { color: colors.text }]}>{rating > 0 ? renderStars(rating) : '—'}</Text>
-              <Text style={[styles.statLabel, { color: colors.textMuted }]}>
-                {reviews > 0 ? `${reviews} reviews` : 'No reviews'}
-              </Text>
             </View>
 
             <View style={[styles.visitBtn, { backgroundColor: colors.primaryLight + '18', borderColor: colors.primary + '44' }]}>
