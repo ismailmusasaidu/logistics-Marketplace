@@ -16,7 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { coreBackend } from '@/lib/coreBackend';
 import { Fonts } from '@/constants/fonts';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Eye, EyeOff, Mail, Truck } from 'lucide-react-native';
+import { Eye, EyeOff, Mail, Truck, ShoppingBag } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function LoginScreen() {
@@ -142,11 +142,18 @@ export default function LoginScreen() {
             },
           ]}
         >
-          <View style={styles.logoIconWrapper}>
-            <Truck size={36} color="#ffffff" strokeWidth={1.8} />
+          <View style={styles.logoDualWrapper}>
+            <View style={styles.logoIconBox}>
+              <Truck size={28} color="#ffffff" strokeWidth={1.8} />
+              <Text style={styles.logoIconLabel}>Logistics</Text>
+            </View>
+            <View style={styles.logoDivider} />
+            <View style={styles.logoIconBox}>
+              <ShoppingBag size={28} color="#ffffff" strokeWidth={1.8} />
+              <Text style={styles.logoIconLabel}>Marketplace</Text>
+            </View>
           </View>
           <Text style={styles.brandName}>Danhausa</Text>
-          <Text style={styles.brandTagline}>Logistics & Marketplace</Text>
           <Text style={styles.brandSlogan}>Your world, delivered.</Text>
         </Animated.View>
       </LinearGradient>
@@ -322,16 +329,34 @@ const styles = StyleSheet.create({
   logoSection: {
     alignItems: 'center',
   },
-  logoIconWrapper: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+  logoDualWrapper: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 14,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 20,
     borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.3)',
+    borderColor: 'rgba(255,255,255,0.25)',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    marginBottom: 16,
+    gap: 0,
+  },
+  logoIconBox: {
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  logoIconLabel: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 11,
+    marginTop: 5,
+    fontFamily: Fonts.medium,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  logoDivider: {
+    width: 1.5,
+    height: 40,
+    backgroundColor: 'rgba(255,255,255,0.3)',
   },
   brandName: {
     fontSize: 38,
