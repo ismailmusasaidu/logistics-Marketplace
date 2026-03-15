@@ -18,7 +18,7 @@ export function AdminSidebarTabBar({ state, descriptors, navigation }: BottomTab
           const label = options.title ?? route.name;
           const isFocused = state.index === index;
 
-          if (options.href === null) return null;
+          if ((options as any).href === null) return null;
 
           const onPress = () => {
             const event = navigation.emit({

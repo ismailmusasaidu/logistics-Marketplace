@@ -582,8 +582,8 @@ export default function EditProduct({ product, onBack, onSuccess }: EditProductP
               <ProductReviews
                 productId={product.id}
                 vendorId={profile?.id || ''}
-                averageRating={product.average_rating || 0}
-                totalReviews={product.review_count || 0}
+                averageRating={(product as any).average_rating || product.rating || 0}
+                totalReviews={(product as any).review_count || product.total_reviews || 0}
               />
             </View>
           )}

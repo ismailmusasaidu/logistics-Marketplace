@@ -34,6 +34,14 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 
 SplashScreen.preventAutoHideAsync();
 
+if (!__DEV__) {
+  console.log = () => {};
+  console.warn = () => {};
+  console.error = () => {};
+  console.debug = () => {};
+  console.info = () => {};
+}
+
 export default function RootLayout() {
   useFrameworkReady();
 

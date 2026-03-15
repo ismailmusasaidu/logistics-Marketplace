@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Modal, TextInput } from 'react-native';
-import { Package, Truck, Filter, X, Phone, MapPin, User, Clock, Edit2, Search } from 'lucide-react-native';
+import { Package, Truck, ListFilter as Filter, X, Phone, MapPin, User, Clock, CreditCard as Edit2, Search } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { Toast } from '@/components/Toast';
@@ -453,7 +453,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: '#111827',
-    outlineStyle: 'none',
+    outlineStyle: 'none' as any,
   },
   clearButton: {
     padding: 4,

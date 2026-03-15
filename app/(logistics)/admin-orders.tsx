@@ -227,7 +227,7 @@ export default function AdminOrders() {
         .select('id, user_id, vehicle_type, status, rating, total_deliveries, user:profiles!riders_user_id_fkey(full_name, phone)')
         .order('status', { ascending: false });
       if (error) throw error;
-      setRiders(data || []);
+      setRiders((data || []) as any);
     } catch (error) {
       showToast('Failed to load riders', 'error');
     }
@@ -271,13 +271,14 @@ export default function AdminOrders() {
           .eq('id', selectedOrder.id)
           .maybeSingle();
 
-        if (freshOrder && freshOrder.customer?.email) {
+        const customer = freshOrder?.customer as any;
+        if (freshOrder && customer?.email) {
           sendLogisticsOrderStatusEmail(
             editStatus as 'confirmed' | 'out_for_delivery' | 'delivered' | 'cancelled',
             {
               orderNumber: freshOrder.order_number,
-              customerEmail: freshOrder.customer.email,
-              customerName: freshOrder.customer.full_name || 'Customer',
+              customerEmail: customer.email,
+              customerName: customer.full_name || 'Customer',
               totalAmount: freshOrder.total,
               pickupAddress: freshOrder.pickup_address || undefined,
               deliveryAddress: freshOrder.delivery_address || undefined,

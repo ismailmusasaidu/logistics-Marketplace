@@ -74,7 +74,6 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
       await fetchWishlist();
     } catch (error: any) {
       if (error.code === '23505') {
-        console.log('Item already in wishlist');
       } else {
         console.error('Error adding to wishlist:', error);
         alert('Failed to add item to wishlist');

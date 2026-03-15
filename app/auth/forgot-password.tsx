@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
     borderWidth: 1.5,
     borderColor: '#eee',
-    outlineStyle: 'none',
+    outlineStyle: 'none' as any,
   },
   submitButton: {
     borderRadius: 14,

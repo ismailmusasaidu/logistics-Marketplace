@@ -91,7 +91,7 @@ export default function WishlistScreen() {
         if (insertError) throw insertError;
       }
 
-      cartEvents.emit('cartUpdated');
+      cartEvents.emit();
       alert('Added to cart!');
     } catch (error) {
       console.error('Error adding to cart:', error);

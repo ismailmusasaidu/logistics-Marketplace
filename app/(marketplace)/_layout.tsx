@@ -74,7 +74,7 @@ export default function TabLayout() {
           tabBarIcon: ({ size }) => <ArrowLeft size={size} color="#94a3b8" />,
           tabBarButton: (props) => (
             <TouchableOpacity
-              {...props}
+              {...(props as any)}
               onPress={() => router.navigate('/hub')}
             />
           ),
@@ -121,7 +121,7 @@ export default function TabLayout() {
         options={{
           title: 'Stores',
           tabBarIcon: ({ size, color }) => <Store size={size} color={color} />,
-          href: isCustomer ? '/(marketplace)/stores' : null,
+          href: isCustomer ? '/(marketplace)/stores' as any : null,
         }}
       />
 

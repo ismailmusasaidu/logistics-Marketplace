@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, TextInput, ActivityIndicator } from 'react-native';
-import { User, Mail, LogOut, Edit, Save, X, Phone, Calendar, Bike, FileText, Hash, Star, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react-native';
+import { User, Mail, LogOut, CreditCard as Edit, Save, X, Phone, Calendar, Bike, FileText, Hash, Star, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -226,9 +226,7 @@ export default function RiderProfile() {
 
     if (confirmed) {
       try {
-        console.log('Rider profile: Starting sign out...');
         await signOut();
-        console.log('Rider profile: Sign out complete, redirecting...');
         router.replace('/auth/login');
       } catch (error) {
         console.error('Rider profile: Error signing out:', error);

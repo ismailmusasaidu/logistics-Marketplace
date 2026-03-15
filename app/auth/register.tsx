@@ -103,13 +103,12 @@ export default function RegisterScreen() {
       const needsApproval = accountType === 'vendor' || accountType === 'rider';
 
       let emailRedirectTo: string;
-      const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || process.env.EXPO_PUBLIC_CORE_BACKEND_ANON_KEY;
       const supabaseUrl = CORE_URL;
       if (Platform.OS === 'web' && typeof window !== 'undefined') {
         const webUrl = encodeURIComponent(`${window.location.origin}/auth/confirm`);
-        emailRedirectTo = `${supabaseUrl}/functions/v1/email-confirm-redirect?apikey=${anonKey}&web_url=${webUrl}`;
+        emailRedirectTo = `${supabaseUrl}/functions/v1/email-confirm-redirect?web_url=${webUrl}`;
       } else {
-        emailRedirectTo = `${supabaseUrl}/functions/v1/email-confirm-redirect?apikey=${anonKey}`;
+        emailRedirectTo = `${supabaseUrl}/functions/v1/email-confirm-redirect`;
       }
 
       const signUpMetadata: Record<string, string> = {
@@ -847,7 +846,7 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
     borderWidth: 1.5,
     borderColor: '#eee',
-    outlineStyle: 'none',
+    outlineStyle: 'none' as any,
   },
   textArea: {
     minHeight: 88,
@@ -867,7 +866,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: Fonts.regular,
     color: '#1a1a1a',
-    outlineStyle: 'none',
+    outlineStyle: 'none' as any,
   },
   eyeButton: {
     paddingHorizontal: 16,

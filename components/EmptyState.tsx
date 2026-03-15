@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import Svg, { Circle, Path, Rect, Line, Polyline, G, Ellipse } from 'react-native-svg';
+import Svg, { Circle, Path, Rect, Line, Polyline, G, Ellipse, Text as SvgText } from 'react-native-svg';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Fonts } from '@/constants/fonts';
 
@@ -59,7 +59,7 @@ function NotificationsIllustration({ color, size }: { color: string; size: numbe
       <Path d="M50 82 Q50 94 60 94 Q70 94 70 82" fill={color + '30'} stroke={color} strokeWidth="2" />
       <Line x1="60" y1="14" x2="60" y2="22" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
       <Circle cx="88" cy="28" r="10" fill="#ef4444" />
-      <Text x="84" y="32" fontSize="10" fill="white" fontFamily="sans-serif">Z</Text>
+      <SvgText x="84" y="32" fontSize={10} fill="white" fontFamily="sans-serif">Z</SvgText>
     </Svg>
   );
 }

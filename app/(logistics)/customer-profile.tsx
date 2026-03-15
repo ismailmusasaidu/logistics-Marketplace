@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, TextInput, ActivityIndicator } from 'react-native';
-import { User, Mail, Phone, LogOut, Edit, Save, X, Wallet, Plus, TrendingUp, TrendingDown, ArrowDown, Building2, Trash2 } from 'lucide-react-native';
+import { User, Mail, Phone, LogOut, CreditCard as Edit, Save, X, Wallet, Plus, TrendingUp, TrendingDown, ArrowDown, Building2, Trash2 } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
@@ -156,9 +156,7 @@ export default function CustomerProfile() {
       message: 'Are you sure you want to sign out?',
       onConfirm: async () => {
         try {
-          console.log('Customer profile: Starting sign out...');
           await signOut();
-          console.log('Customer profile: Sign out complete, redirecting...');
           router.replace('/auth/login');
         } catch (error) {
           console.error('Customer profile: Error signing out:', error);

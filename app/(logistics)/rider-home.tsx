@@ -269,7 +269,7 @@ export default function RiderHome() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setPendingAssignments(data || []);
+      setPendingAssignments((data || []) as any);
     } catch (error) {
       console.error('Error loading pending assignments:', error);
     }
@@ -316,7 +316,7 @@ export default function RiderHome() {
         console.error('Supabase query error:', JSON.stringify(error));
         throw error;
       }
-      setOrders(data || []);
+      setOrders((data || []) as any);
     } catch (error) {
       console.error('Error loading orders:', error);
       showToast('Failed to load orders', 'error');
@@ -405,11 +405,12 @@ export default function RiderHome() {
         .eq('id', orderId)
         .maybeSingle();
 
-      if (orderData && orderData.customer?.email) {
+      const customer1 = orderData?.customer as any;
+      if (orderData && customer1?.email) {
         sendLogisticsOrderStatusEmail('confirmed', {
           orderNumber: orderData.order_number,
-          customerEmail: orderData.customer.email,
-          customerName: orderData.customer.full_name || 'Customer',
+          customerEmail: customer1.email,
+          customerName: customer1.full_name || 'Customer',
           totalAmount: orderData.total || undefined,
           pickupAddress: orderData.pickup_address || undefined,
           deliveryAddress: orderData.delivery_address || undefined,
@@ -496,13 +497,14 @@ export default function RiderHome() {
           .eq('id', orderId)
           .maybeSingle();
 
-        if (orderData && orderData.customer?.email) {
+        const customer2 = orderData?.customer as any;
+        if (orderData && customer2?.email) {
           sendLogisticsOrderStatusEmail(
             newStatus as 'out_for_delivery' | 'delivered' | 'cancelled',
             {
               orderNumber: orderData.order_number,
-              customerEmail: orderData.customer.email,
-              customerName: orderData.customer.full_name || 'Customer',
+              customerEmail: customer2.email,
+              customerName: customer2.full_name || 'Customer',
               totalAmount: orderData.total || undefined,
               pickupAddress: orderData.pickup_address || undefined,
               deliveryAddress: orderData.delivery_address || undefined,

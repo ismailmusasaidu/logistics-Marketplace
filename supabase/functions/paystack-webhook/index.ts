@@ -92,7 +92,7 @@ Deno.serve(async (req: Request) => {
 
     const event: PaystackChargeEvent = JSON.parse(body);
 
-    console.log("Webhook event received:", event.event);
+    console.log("Webhook event received:", event.event, event.data?.reference);
 
     // Handle charge.success event (for virtual account transfers)
     if (event.event === "charge.success" && event.data.status === "success") {
@@ -102,7 +102,7 @@ Deno.serve(async (req: Request) => {
       const amountInNaira = amountInKobo / 100;
       const reference = data.reference;
 
-      console.log(`Processing payment: ₦${amountInNaira} for customer ${customerCode}`);
+      console.log("Processing charge.success for reference:", reference);
 
       // Find user by customer code
       const { data: virtualAccount, error: accountError } = await supabase
@@ -127,7 +127,7 @@ Deno.serve(async (req: Request) => {
         .maybeSingle();
 
       if (existingRecharge) {
-        console.log("Transaction already processed:", reference);
+        console.log("Transaction already processed, skipping:", reference);
         return new Response(
           JSON.stringify({ message: "Transaction already processed" }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -182,7 +182,7 @@ Deno.serve(async (req: Request) => {
         throw rechargeError;
       }
 
-      console.log(`Wallet credited: ₦${amountInNaira} for user ${virtualAccount.user_id}`);
+      console.log("Wallet credited for reference:", reference);
 
       const { data: userProfile } = await supabase
         .from("profiles")

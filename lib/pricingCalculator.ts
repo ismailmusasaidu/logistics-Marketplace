@@ -110,9 +110,6 @@ export class PricingCalculator {
           base_price: parseFloat(zone.price),
           is_active: zone.is_active,
         }));
-        console.log('Delivery zones loaded:', this.zones.length);
-      } else {
-        console.warn('No delivery zones found in database');
       }
     } catch (err) {
       console.error('Exception loading delivery zones:', err);

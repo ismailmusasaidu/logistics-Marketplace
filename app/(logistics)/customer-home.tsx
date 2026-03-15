@@ -157,8 +157,7 @@ export default function CustomerHome() {
           table: 'orders',
           filter: `customer_id=eq.${profile?.id}`,
         },
-        (payload) => {
-          console.log('Order change detected:', payload);
+        () => {
           loadOrders();
         }
       )
@@ -346,10 +345,8 @@ export default function CustomerHome() {
 
       const result = await response.json();
 
-      if (result.success) {
-        console.log('Rider assigned successfully:', result);
-      } else {
-        console.log('No rider available for assignment:', result.message);
+      if (!result.success) {
+        if (__DEV__) console.log('No rider available for assignment:', result.message);
       }
     } catch (error) {
       console.error('Error assigning rider:', error);
@@ -373,10 +370,7 @@ export default function CustomerHome() {
   };
 
   const verifyAndCreateOrder = async (reference: string, orderDetails: any) => {
-    console.log('=== Starting verification ===');
-    console.log('Reference:', reference);
     setVerifyingPayment(true);
-    console.log('Verifying payment state set to TRUE');
     try {
       const apiUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/verify-payment`;
       const { data: { session } } = await coreBackend.auth.getSession();
@@ -505,21 +499,14 @@ export default function CustomerHome() {
   };
 
   useEffect(() => {
-    console.log('useEffect triggered. pendingPaymentData:', pendingPaymentData);
     if (pendingPaymentData) {
-      console.log('Scheduling verification in 100ms');
       setTimeout(() => {
-        console.log('Now calling verifyAndCreateOrder');
         verifyAndCreateOrder(pendingPaymentData.reference, pendingPaymentData.orderDetails).catch((err: any) => {
           showToast(getUserFriendlyError(err), 'error');
         });
       }, 100);
     }
   }, [pendingPaymentData]);
-
-  useEffect(() => {
-    console.log('verifyingPayment state changed to:', verifyingPayment);
-  }, [verifyingPayment]);
 
   const createOrderWithPayment = async (paymentMethod: PaymentMethod, paystackReference?: string, scheduledTime?: Date) => {
     if (!pricingBreakdown || !profile?.id) {
@@ -553,8 +540,6 @@ export default function CustomerHome() {
           validatedPromo: validatedPromo,
           scheduled_delivery_time: scheduledTime ? scheduledTime.toISOString() : null,
         };
-
-        console.log('Payment completed with reference:', paystackReference);
 
         const verified = await verifyAndCreateOrder(paystackReference, orderDetails);
 
@@ -855,7 +840,7 @@ export default function CustomerHome() {
         {activeTab === 'active' && (
           <>
             <LogisticsBannerSlider />
-            <Text style={styles.sectionTitle}>Active Orders</Text>
+            <Text style={styles.sectionHeading}>Active Orders</Text>
 
             {activeOrders.length === 0 ? (
               <View style={styles.emptyState}>
@@ -1011,7 +996,7 @@ export default function CustomerHome() {
           <>
             <View style={styles.historyHeaderRow}>
               <View>
-                <Text style={styles.sectionTitle}>Order History</Text>
+                <Text style={styles.sectionHeading}>Order History</Text>
                 <Text style={styles.historySubheading}>Your past deliveries</Text>
               </View>
             </View>
@@ -1512,7 +1497,6 @@ export default function CustomerHome() {
 
       {verifyingPayment ? (
         <>
-          {console.log('RENDERING VERIFICATION MODAL')}
           <Modal visible={true} transparent animationType="fade">
             <View style={styles.verifyingOverlay}>
               <View style={styles.verifyingContainer}>
@@ -1670,7 +1654,7 @@ const styles = StyleSheet.create({
     color: '#a8a29e',
     letterSpacing: 0.4,
   },
-  sectionTitle: {
+  sectionHeading: {
     fontSize: 18,
     fontFamily: Fonts.poppinsBold,
     color: '#111827',

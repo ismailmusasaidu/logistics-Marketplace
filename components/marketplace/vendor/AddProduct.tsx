@@ -297,7 +297,6 @@ export default function AddProduct({ onBack, onSuccess }: AddProductProps) {
         .from('product-images')
         .getPublicUrl(filePath);
 
-      console.log('Uploaded image URL:', urlData.publicUrl);
       return urlData.publicUrl;
     } catch (error) {
       console.error('Error uploading image:', error);

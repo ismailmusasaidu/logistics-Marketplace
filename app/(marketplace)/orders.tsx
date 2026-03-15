@@ -11,7 +11,7 @@ import {
   Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Package, Clock, CheckCircle, Truck, XCircle, ShoppingBag, Search, X, Star, Receipt } from 'lucide-react-native';
+import { Package, Clock, CircleCheck as CheckCircle, Truck, Circle as XCircle, ShoppingBag, Search, X, Star, Receipt } from 'lucide-react-native';
 import { supabase } from '@/lib/marketplace/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Order, OrderStatus, OrderItem, Product } from '@/types/database';
@@ -189,9 +189,6 @@ export default function OrdersScreen() {
         .eq('order_id', order.id);
 
       if (itemsError) throw itemsError;
-
-      console.log('Receipt items:', items);
-      console.log('Order:', order);
 
       setReceiptItems(items || []);
       setReceiptOrder(order);

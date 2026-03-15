@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,7 @@ import {
   Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Package, Truck, MapPin, CreditCard, ChevronLeft, CheckCircle, Clock, Wallet, Building2, Banknote } from 'lucide-react-native';
+import { Package, Truck, MapPin, CreditCard, ChevronLeft, CircleCheck as CheckCircle, Clock, Wallet, Building2, Banknote } from 'lucide-react-native';
 import { supabase } from '@/lib/marketplace/supabase';
 import { CORE_URL } from '@/lib/coreBackend';
 import { useAuth } from '@/contexts/AuthContext';
@@ -69,6 +69,7 @@ interface DeliverySpeedOption {
 export default function CheckoutScreen() {
   const { profile } = useAuth();
   const insets = useSafeAreaInsets();
+  const orderSubmittedRef = useRef(false);
   const [cartItems, setCartItems] = useState<CartItemWithProduct[]>([]);
   const [deliveryType, setDeliveryType] = useState<'pickup' | 'delivery'>('pickup');
   const [deliveryAddress, setDeliveryAddress] = useState('');
@@ -623,6 +624,8 @@ export default function CheckoutScreen() {
 
   const handlePlaceOrder = async (paymentMethod: 'transfer' | 'online' | 'wallet' | 'cash_on_delivery', paymentCompleted: boolean = false) => {
     if (!profile) return;
+    if (orderSubmittedRef.current) return;
+    orderSubmittedRef.current = true;
 
     try {
       setSubmitting(true);
@@ -728,7 +731,8 @@ export default function CheckoutScreen() {
         deliveryAddress: deliveryType === 'delivery' ? deliveryAddress : 'Pickup',
       });
     } catch (error) {
-      console.error('Error placing order:', error);
+      orderSubmittedRef.current = false;
+      if (__DEV__) console.error('Error placing order:', error);
       Alert.alert('Error', 'Failed to place order. Please try again.');
     } finally {
       setSubmitting(false);

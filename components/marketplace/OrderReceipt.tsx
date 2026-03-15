@@ -27,9 +27,6 @@ export default function OrderReceipt({
 }: OrderReceiptProps) {
   const insets = useSafeAreaInsets();
 
-  console.log('OrderReceipt - order:', order);
-  console.log('OrderReceipt - orderItems:', orderItems);
-
   if (!order) return null;
 
   const formatDate = (dateString: string) => {
@@ -305,7 +302,7 @@ export default function OrderReceipt({
 
       <div class="section">
         <div class="section-title">Delivery Information</div>
-        ${order.delivery_type ? `<div class="delivery-type">${order.delivery_type === 'home_delivery' ? 'Home Delivery' : 'Self Pickup'}</div>` : ''}
+        ${order.delivery_type ? `<div class="delivery-type">${(order as any).delivery_type === 'home_delivery' || order.delivery_type === 'delivery' ? 'Home Delivery' : 'Self Pickup'}</div>` : ''}
         <div class="address">${order.delivery_address}</div>
       </div>
 
@@ -413,7 +410,7 @@ export default function OrderReceipt({
 
       if (Platform.OS === 'web') {
         // For web, use html2pdf.js to generate and download PDF
-        const html2pdf = (await import('html2pdf.js')).default;
+        const html2pdf = ((await import('html2pdf.js')) as any).default;
         const fileName = `Receipt_${order.order_number}.pdf`;
 
         // Create a temporary div element to hold the HTML
@@ -465,13 +462,10 @@ export default function OrderReceipt({
         document.body.removeChild(tempContainer);
       } else {
         // Use expo-print on mobile
-        console.log('Starting PDF generation...');
         const { uri } = await Print.printToFileAsync({
           html,
           base64: false
         });
-
-        console.log('PDF generated at:', uri);
 
         const fileName = `Receipt_${order.order_number}.pdf`;
 
@@ -594,10 +588,10 @@ export default function OrderReceipt({
                     <Text style={styles.statusText}>{getStatusLabel(order.status)}</Text>
                   </View>
                 </View>
-                {order.delivered_at && (
+                {(order as any).delivered_at && (
                   <View style={styles.infoRow}>
                     <Text style={styles.infoLabel}>Delivered On</Text>
-                    <Text style={styles.infoValue}>{formatDate(order.delivered_at)}</Text>
+                    <Text style={styles.infoValue}>{formatDate((order as any).delivered_at)}</Text>
                   </View>
                 )}
               </View>
@@ -612,7 +606,7 @@ export default function OrderReceipt({
                 {order.delivery_type && (
                   <View style={styles.deliveryTypeBadge}>
                     <Text style={styles.deliveryTypeText}>
-                      {order.delivery_type === 'home_delivery' ? 'Home Delivery' : 'Self Pickup'}
+                      {(order as any).delivery_type === 'home_delivery' ? 'Home Delivery' : order.delivery_type === 'delivery' ? 'Home Delivery' : 'Self Pickup'}
                     </Text>
                   </View>
                 )}
@@ -629,7 +623,6 @@ export default function OrderReceipt({
                 <View style={styles.itemsContainer}>
                   {orderItems.length > 0 ? (
                     orderItems.map((item, index) => {
-                      console.log('Rendering item:', item);
                       return (
                         <View key={item.id} style={styles.itemRow}>
                           <View style={styles.itemInfo}>

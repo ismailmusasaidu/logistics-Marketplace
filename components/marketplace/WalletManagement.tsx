@@ -12,7 +12,7 @@ import {
   Platform,
   Clipboard,
 } from 'react-native';
-import { Wallet, Plus, Minus, ArrowUpRight, ArrowDownRight, Clock, CreditCard, CheckCircle, Copy, Building2 } from 'lucide-react-native';
+import { Wallet, Plus, Minus, ArrowUpRight, ArrowDownRight, Clock, CreditCard, CircleCheck as CheckCircle, Copy, Building2 } from 'lucide-react-native';
 import { supabase } from '@/lib/marketplace/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
@@ -292,24 +292,19 @@ export default function WalletManagement() {
 
       const verifyUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/verify-payment?reference=${paymentReference}`;
 
-      console.log('Verifying payment with reference:', paymentReference);
-
       const response = await fetch(verifyUrl, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
         },
       });
 
-      console.log('Verify response status:', response.status);
-
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Verify response error:', errorText);
+        if (__DEV__) console.error('Verify response error:', errorText);
         throw new Error(`Server error: ${response.status}`);
       }
 
       const result = await response.json();
-      console.log('Verify result:', result);
 
       if (result.success) {
         setShowPaymentWebView(false);

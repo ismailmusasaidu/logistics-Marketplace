@@ -32,7 +32,7 @@ export async function matchAddressToZone(address: string): Promise<string | null
       }
 
       const zoneWords = zoneName.split(/\s+/);
-      const hasAllZoneWords = zoneWords.every(word =>
+      const hasAllZoneWords = zoneWords.every((word: string) =>
         normalizedAddress.includes(word)
       );
 

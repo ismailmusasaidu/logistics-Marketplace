@@ -497,7 +497,7 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
     borderWidth: 1.5,
     borderColor: '#eee',
-    outlineStyle: 'none',
+    outlineStyle: 'none' as any,
   },
   passwordContainer: {
     flexDirection: 'row',
@@ -513,7 +513,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: Fonts.regular,
     color: '#1a1a1a',
-    outlineStyle: 'none',
+    outlineStyle: 'none' as any,
   },
   eyeButton: {
     paddingHorizontal: 16,
