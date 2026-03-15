@@ -157,17 +157,26 @@ export default function RiderPayouts() {
           id, rider_id, rider_user_id, amount, status,
           bank_name, account_number, account_name,
           note, admin_note, period_from, period_to,
-          processed_by, processed_at, created_at,
-          profiles!rider_user_id(full_name, email)
+          processed_by, processed_at, created_at
         `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
+      const userIds = [...new Set((data || []).map((p: any) => p.rider_user_id).filter(Boolean))];
+      let profileMap: Record<string, { full_name: string; email: string }> = {};
+      if (userIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('id, full_name, email')
+          .in('id', userIds);
+        (profilesData || []).forEach((pr: any) => { profileMap[pr.id] = pr; });
+      }
+
       const enriched: Payout[] = (data || []).map((p: any) => ({
         ...p,
-        rider_name: p.profiles?.full_name || 'Unknown',
-        rider_email: p.profiles?.email || '',
+        rider_name: profileMap[p.rider_user_id]?.full_name || 'Unknown',
+        rider_email: profileMap[p.rider_user_id]?.email || '',
       }));
 
       setPayouts(enriched);
