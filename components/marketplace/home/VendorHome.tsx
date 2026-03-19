@@ -9,19 +9,7 @@ import {
   Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  Package,
-  DollarSign,
-  ShoppingBag,
-  TrendingUp,
-  AlertTriangle,
-  Clock,
-  XCircle,
-  Star,
-  ArrowUpRight,
-  BarChart3,
-  ChevronRight,
-} from 'lucide-react-native';
+import { Package, DollarSign, ShoppingBag, TrendingUp, TriangleAlert as AlertTriangle, Clock, Circle as XCircle, Star, ArrowUpRight, ChartBar as BarChart3, ChevronRight } from 'lucide-react-native';
 import { supabase } from '@/lib/marketplace/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { router, useFocusEffect } from 'expo-router';

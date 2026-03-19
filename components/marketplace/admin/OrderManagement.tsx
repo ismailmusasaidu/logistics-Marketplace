@@ -10,25 +10,7 @@ import {
   ScrollView,
   TextInput,
 } from 'react-native';
-import {
-  Package,
-  Clock,
-  CheckCircle,
-  Truck,
-  XCircle,
-  Edit3,
-  X,
-  ArrowLeft,
-  ShoppingBag,
-  Search,
-  Trash2,
-  Receipt,
-  User,
-  Store,
-  MapPin,
-  CreditCard,
-  Filter,
-} from 'lucide-react-native';
+import { Package, Clock, CircleCheck as CheckCircle, Truck, Circle as XCircle, CreditCard as Edit3, X, ArrowLeft, ShoppingBag, Search, Trash2, Receipt, User, Store, MapPin, CreditCard, ListFilter as Filter } from 'lucide-react-native';
 import { supabase } from '@/lib/marketplace/supabase';
 import { Order, OrderStatus, OrderItem, Product } from '@/types/database';
 import { useToast } from '@/contexts/ToastContext';

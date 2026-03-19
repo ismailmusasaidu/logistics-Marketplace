@@ -12,23 +12,7 @@ import {
   ScrollView,
   Platform,
 } from 'react-native';
-import {
-  Shield,
-  ShoppingBag,
-  UserCircle,
-  Bike,
-  Edit3,
-  Trash2,
-  X,
-  ArrowLeft,
-  Lock,
-  Unlock,
-  Search,
-  Mail,
-  Phone,
-  Calendar,
-  User,
-} from 'lucide-react-native';
+import { Shield, ShoppingBag, CircleUser as UserCircle, Bike, CreditCard as Edit3, Trash2, X, ArrowLeft, Lock, Clock as Unlock, Search, Mail, Phone, Calendar, User } from 'lucide-react-native';
 import { supabase } from '@/lib/marketplace/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Fonts } from '@/constants/fonts';

@@ -13,7 +13,7 @@ import {
   Pressable,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Package, Clock, CheckCircle, Truck, XCircle, ArrowLeft, ShoppingBag, Search, Receipt, X, ChevronRight, User, MapPin, CreditCard, Calendar } from 'lucide-react-native';
+import { Package, Clock, CircleCheck as CheckCircle, Truck, Circle as XCircle, ArrowLeft, ShoppingBag, Search, Receipt, X, ChevronRight, User, MapPin, CreditCard, Calendar } from 'lucide-react-native';
 import { supabase } from '@/lib/marketplace/supabase';
 import { Order, OrderStatus, OrderItem, Product } from '@/types/database';
 import { useAuth } from '@/contexts/AuthContext';
