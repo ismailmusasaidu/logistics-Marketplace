@@ -321,7 +321,7 @@ export default function VendorOrderManagement({ onBack }: VendorOrderManagementP
       >
         <View style={styles.orderCardTop}>
           <View style={styles.orderIdRow}>
-            <Text style={styles.orderId}>#{item.id.slice(0, 8)}</Text>
+            <Text style={styles.orderId}>#{item.order_number}</Text>
             <View style={[styles.statusBadge, { backgroundColor: statusBg }]}>
               <StatusIcon size={13} color={statusColor} />
               <Text style={[styles.statusText, { color: statusColor }]}>
@@ -540,8 +540,8 @@ export default function VendorOrderManagement({ onBack }: VendorOrderManagementP
                   </View>
                   <View style={styles.detailCard}>
                     <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Order ID</Text>
-                      <Text style={styles.detailValue}>#{selectedOrder.id.slice(0, 8)}</Text>
+                      <Text style={styles.detailLabel}>Order No.</Text>
+                      <Text style={styles.detailValue}>#{selectedOrder.order_number}</Text>
                     </View>
                     <View style={styles.detailRow}>
                       <Text style={styles.detailLabel}>Status</Text>
