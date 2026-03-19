@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -49,6 +49,15 @@ interface UserManagementProps {
   onBack?: () => void;
 }
 
+interface RoleCounts {
+  all: number;
+  customer: number;
+  vendor: number;
+  rider: number;
+  admin: number;
+  suspended: number;
+}
+
 const roleIcons: Record<string, any> = {
   admin: Shield,
   vendor: ShoppingBag,
@@ -86,12 +95,18 @@ const FILTER_TABS = [
   { key: 'suspended', label: 'Suspended' },
 ];
 
+const PAGE_SIZE = 20;
+
 export default function UserManagement({ onBack }: UserManagementProps) {
   const { profile: currentUser } = useAuth();
   const insets = useSafeAreaInsets();
   const [users, setUsers] = useState<UserProfile[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [roleCounts, setRoleCounts] = useState<RoleCounts>({ all: 0, customer: 0, vendor: 0, rider: 0, admin: 0, suspended: 0 });
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -106,64 +121,120 @@ export default function UserManagement({ onBack }: UserManagementProps) {
   const [showSuspendModal, setShowSuspendModal] = useState(false);
   const [userToSuspend, setUserToSuspend] = useState<UserProfile | null>(null);
 
-  useEffect(() => {
-    fetchUsers();
+  const searchRef = useRef(searchQuery);
+  const filterRef = useRef(activeFilter);
+  searchRef.current = searchQuery;
+  filterRef.current = activeFilter;
 
-    const channel = supabase
-      .channel('user-management')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
-        fetchUsers();
-      })
-      .subscribe();
+  const buildQuery = useCallback((search: string, filter: string, from: number, to: number) => {
+    let q = supabase
+      .from('profiles')
+      .select('id, full_name, email, phone, role, created_at, is_suspended, suspended_at', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(from, to);
 
-    return () => { supabase.removeChannel(channel); };
+    if (filter === 'suspended') {
+      q = q.eq('is_suspended', true);
+    } else if (filter !== 'all') {
+      q = q.eq('role', filter);
+    }
+
+    if (search.trim()) {
+      q = q.or(`full_name.ilike.%${search.trim()}%,email.ilike.%${search.trim()}%,phone.ilike.%${search.trim()}%`);
+    }
+
+    return q;
   }, []);
 
-  useEffect(() => {
-    applyFilters();
-  }, [searchQuery, activeFilter, users]);
+  const fetchRoleCounts = useCallback(async () => {
+    const roles = ['customer', 'vendor', 'rider', 'admin'] as const;
+    const [allRes, suspendedRes, ...roleRes] = await Promise.all([
+      supabase.from('profiles').select('*', { count: 'exact', head: true }),
+      supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('is_suspended', true),
+      ...roles.map((r) => supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', r)),
+    ]);
 
-  const applyFilters = () => {
-    let result = [...users];
+    setRoleCounts({
+      all: allRes.count ?? 0,
+      suspended: suspendedRes.count ?? 0,
+      customer: roleRes[0].count ?? 0,
+      vendor: roleRes[1].count ?? 0,
+      rider: roleRes[2].count ?? 0,
+      admin: roleRes[3].count ?? 0,
+    });
+  }, []);
 
-    if (activeFilter !== 'all') {
-      if (activeFilter === 'suspended') {
-        result = result.filter((u) => u.is_suspended);
-      } else {
-        result = result.filter((u) => u.role === activeFilter);
-      }
-    }
-
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(
-        (u) =>
-          u.full_name.toLowerCase().includes(q) ||
-          u.email.toLowerCase().includes(q) ||
-          (u.phone && u.phone.toLowerCase().includes(q)) ||
-          u.role.toLowerCase().includes(q)
-      );
-    }
-
-    setFilteredUsers(result);
-  };
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async (search: string, filter: string) => {
+    setLoading(true);
+    setPage(0);
     try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, email, phone, role, created_at, is_suspended, suspended_at')
-        .order('created_at', { ascending: false });
-
+      const { data, error, count } = await buildQuery(search, filter, 0, PAGE_SIZE - 1);
       if (error) throw error;
       setUsers(data || []);
+      setTotalCount(count ?? 0);
+      setHasMore((data?.length ?? 0) === PAGE_SIZE);
     } catch (error) {
       console.error('Error fetching users:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [buildQuery]);
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    const nextPage = page + 1;
+    const from = nextPage * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+    try {
+      const { data, error } = await buildQuery(searchRef.current, filterRef.current, from, to);
+      if (error) throw error;
+      setUsers((prev) => [...prev, ...(data || [])]);
+      setPage(nextPage);
+      setHasMore((data?.length ?? 0) === PAGE_SIZE);
+    } catch (error) {
+      console.error('Error loading more users:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMore, page, buildQuery]);
+
+  useEffect(() => {
+    fetchUsers(searchQuery, activeFilter);
+    fetchRoleCounts();
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchUsers(searchQuery, activeFilter);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchQuery, activeFilter]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('user-management-changes')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'profiles' }, (payload) => {
+        const newUser = payload.new as UserProfile;
+        setUsers((prev) => [newUser, ...prev]);
+        setTotalCount((c) => c + 1);
+        fetchRoleCounts();
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, (payload) => {
+        const updated = payload.new as UserProfile;
+        setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
+        fetchRoleCounts();
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'profiles' }, (payload) => {
+        const deleted = payload.old as UserProfile;
+        setUsers((prev) => prev.filter((u) => u.id !== deleted.id));
+        setTotalCount((c) => Math.max(0, c - 1));
+        fetchRoleCounts();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [fetchRoleCounts]);
 
   const openEditModal = (user: UserProfile) => {
     setSelectedUser(user);
@@ -202,7 +273,6 @@ export default function UserManagement({ onBack }: UserManagementProps) {
       if (error) throw error;
       Alert.alert('Success', 'User updated successfully');
       closeEditModal();
-      await fetchUsers();
     } catch (error: any) {
       console.error('Error updating user:', error);
       Alert.alert('Error', error.message || 'Failed to update user');
@@ -236,7 +306,6 @@ export default function UserManagement({ onBack }: UserManagementProps) {
 
               if (error) throw error;
               Alert.alert('Success', 'User deleted successfully');
-              await fetchUsers();
             } catch (error: any) {
               console.error('Error deleting user:', error);
               Alert.alert('Error', error.message || 'Failed to delete user');
@@ -297,7 +366,6 @@ export default function UserManagement({ onBack }: UserManagementProps) {
 
       if (error) throw error;
       Alert.alert('Success', `User ${action}ed successfully`);
-      await fetchUsers();
     } catch (error: any) {
       console.error(`Error ${action}ing user:`, error);
       Alert.alert('Error', error.message || `Failed to ${action} user`);
@@ -316,10 +384,8 @@ export default function UserManagement({ onBack }: UserManagementProps) {
     });
   };
 
-  const getFilterCount = (key: string) => {
-    if (key === 'all') return users.length;
-    if (key === 'suspended') return users.filter((u) => u.is_suspended).length;
-    return users.filter((u) => u.role === key).length;
+  const handleFilterChange = (key: string) => {
+    setActiveFilter(key);
   };
 
   if (loading) {
@@ -342,7 +408,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
           <View style={styles.headerTextContainer}>
             <Text style={styles.title}>Users</Text>
             <Text style={styles.subtitle}>
-              {filteredUsers.length} of {users.length} users
+              {users.length} of {totalCount.toLocaleString()} users
             </Text>
           </View>
         </View>
@@ -369,13 +435,13 @@ export default function UserManagement({ onBack }: UserManagementProps) {
           contentContainerStyle={styles.filterRow}
         >
           {FILTER_TABS.map((tab) => {
-            const count = getFilterCount(tab.key);
+            const count = roleCounts[tab.key as keyof RoleCounts] ?? 0;
             const isActive = activeFilter === tab.key;
             return (
               <TouchableOpacity
                 key={tab.key}
                 style={[styles.filterTab, isActive && styles.filterTabActive]}
-                onPress={() => setActiveFilter(tab.key)}
+                onPress={() => handleFilterChange(tab.key)}
                 activeOpacity={0.7}
               >
                 <Text style={[styles.filterTabText, isActive && styles.filterTabTextActive]}>
@@ -383,7 +449,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                 </Text>
                 <View style={[styles.filterBadge, isActive && styles.filterBadgeActive]}>
                   <Text style={[styles.filterBadgeText, isActive && styles.filterBadgeTextActive]}>
-                    {count}
+                    {count.toLocaleString()}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -403,7 +469,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
                 <Icon size={18} color={color} />
               </View>
               <Text style={[styles.statNumber, { color }]}>
-                {users.filter((u) => u.role === role).length}
+                {(roleCounts[role] ?? 0).toLocaleString()}
               </Text>
               <Text style={styles.statLabel}>{roleLabels[role]}s</Text>
             </View>
@@ -412,10 +478,19 @@ export default function UserManagement({ onBack }: UserManagementProps) {
       </View>
 
       <FlatList
-        data={filteredUsers}
+        data={users}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.3}
+        ListFooterComponent={
+          loadingMore ? (
+            <View style={styles.footerLoader}>
+              <ActivityIndicator size="small" color="#ff8c00" />
+            </View>
+          ) : null
+        }
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <User size={48} color="#d1d5db" />
@@ -543,7 +618,6 @@ export default function UserManagement({ onBack }: UserManagementProps) {
         }}
       />
 
-      {/* Edit User Modal */}
       <Modal visible={showEditModal} transparent animationType="slide" onRequestClose={closeEditModal}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -632,7 +706,6 @@ export default function UserManagement({ onBack }: UserManagementProps) {
         </View>
       </Modal>
 
-      {/* Suspension Confirmation Modal */}
       <Modal
         visible={showSuspendModal}
         transparent
@@ -837,6 +910,10 @@ const styles = StyleSheet.create({
   list: {
     padding: 16,
     paddingBottom: 32,
+  },
+  footerLoader: {
+    paddingVertical: 16,
+    alignItems: 'center',
   },
   emptyState: {
     alignItems: 'center',

@@ -67,51 +67,20 @@ export default function VendorHome() {
         setLoading(true);
       }
 
-      const [productsResult, ordersResult, reviewsResult] = await Promise.all([
-        supabase.from('products').select('*').eq('vendor_id', vendorId),
-        supabase
-          .from('orders')
-          .select('*, order_items(product_id, quantity, unit_price)')
-          .eq('vendor_id', vendorId),
-        supabase
-          .from('reviews')
-          .select('rating')
-          .in('product_id',
-            (await supabase.from('products').select('id').eq('vendor_id', vendorId)).data?.map(p => p.id) || []
-          ),
-      ]);
+      const { data, error } = await supabase.rpc('get_vendor_dashboard_stats', { p_vendor_id: vendorId });
 
-      if (productsResult.error) throw productsResult.error;
-      if (ordersResult.error) throw ordersResult.error;
+      if (error) throw error;
 
-      const products = productsResult.data || [];
-      const orders = ordersResult.data || [];
-
-      const activeProducts = products.filter((p) => p.is_available).length;
-      const lowStockProducts = products.filter((p) => p.stock_quantity < 10).length;
-      const completedOrders = orders.filter((o) => o.status === 'delivered').length;
-      const pendingOrders = orders.filter(
-        (o) => o.status === 'pending' || o.status === 'confirmed' || o.status === 'preparing'
-      ).length;
-      const totalRevenue = orders
-        .filter((o) => o.status === 'delivered')
-        .reduce((sum, order) => sum + parseFloat(order.total.toString()), 0);
-
-      const reviews = reviewsResult.data || [];
-      const totalReviews = reviews.length;
-      const averageRating = totalReviews > 0
-        ? reviews.reduce((sum, review) => sum + review.rating, 0) / totalReviews
-        : 0;
-
+      const result = data as DashboardStats;
       setStats({
-        totalProducts: products.length,
-        activeProducts,
-        lowStockProducts,
-        totalRevenue,
-        pendingOrders,
-        completedOrders,
-        totalReviews,
-        averageRating,
+        totalProducts: result.totalProducts ?? 0,
+        activeProducts: result.activeProducts ?? 0,
+        lowStockProducts: result.lowStockProducts ?? 0,
+        totalRevenue: result.totalRevenue ?? 0,
+        pendingOrders: result.pendingOrders ?? 0,
+        completedOrders: result.completedOrders ?? 0,
+        totalReviews: result.totalReviews ?? 0,
+        averageRating: result.averageRating ?? 0,
       });
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);

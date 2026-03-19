@@ -128,41 +128,36 @@ export default function OrdersScreen() {
   };
 
   const fetchOrderItems = async (orderId: string) => {
+    if (!profile) return;
     try {
       const { data: items, error } = await supabase
         .from('order_items')
-        .select(`
-          *,
-          products (*)
-        `)
+        .select(`*, products (*)`)
         .eq('order_id', orderId);
 
       if (error) throw error;
 
-      const itemsWithReviewStatus = await Promise.all(
-        (items || []).map(async (item: any) => {
-          let hasReview = false;
+      const productIds = (items || [])
+        .filter((item: any) => item.product_id && item.products)
+        .map((item: any) => item.product_id);
 
-          if (item.product_id && item.products) {
-            const { data: existingReview } = await supabase
-              .from('reviews')
-              .select('id')
-              .eq('user_id', profile!.id)
-              .eq('product_id', item.product_id)
-              .maybeSingle();
+      let reviewedProductIds = new Set<string>();
+      if (productIds.length > 0) {
+        const { data: reviews } = await supabase
+          .from('reviews')
+          .select('product_id')
+          .eq('user_id', profile.id)
+          .in('product_id', productIds);
+        (reviews || []).forEach((r: any) => reviewedProductIds.add(r.product_id));
+      }
 
-            hasReview = !!existingReview;
-          }
+      const itemsWithReviewStatus = (items || []).map((item: any) => ({
+        ...item,
+        product: item.products,
+        hasReview: reviewedProductIds.has(item.product_id),
+      }));
 
-          return {
-            ...item,
-            product: item.products,
-            hasReview,
-          };
-        })
-      );
-
-      const validItems = itemsWithReviewStatus.filter(item => item.product !== null);
+      const validItems = itemsWithReviewStatus.filter((item: any) => item.product !== null);
 
       setOrderItems((prev) => ({
         ...prev,

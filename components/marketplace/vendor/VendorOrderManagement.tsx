@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -76,11 +76,17 @@ interface VendorOrderManagementProps {
   onBack?: () => void;
 }
 
+const PAGE_SIZE = 20;
+
 export default function VendorOrderManagement({ onBack }: VendorOrderManagementProps) {
   const { profile } = useAuth();
   const insets = useSafeAreaInsets();
   const [orders, setOrders] = useState<OrderWithCustomer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<OrderWithCustomer | null>(null);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
@@ -91,6 +97,10 @@ export default function VendorOrderManagement({ onBack }: VendorOrderManagementP
   const [orderItems, setOrderItems] = useState<OrderItemWithProduct[]>([]);
   const [selectedOrderItems, setSelectedOrderItems] = useState<OrderItemWithProduct[]>([]);
   const [loadingItems, setLoadingItems] = useState(false);
+  const [orderItemsCache, setOrderItemsCache] = useState<Record<string, OrderItemWithProduct[]>>({});
+
+  const searchRef = useRef(searchQuery);
+  searchRef.current = searchQuery;
 
   useEffect(() => {
     if (profile) {
@@ -98,72 +108,107 @@ export default function VendorOrderManagement({ onBack }: VendorOrderManagementP
     }
   }, [profile]);
 
-  useEffect(() => {
-    if (vendorId) {
-      fetchOrders();
+  const buildQuery = useCallback((vid: string, search: string, from: number, to: number) => {
+    let q = supabase
+      .from('orders')
+      .select(`*, customer:profiles!orders_customer_id_fkey(full_name, email, phone)`, { count: 'exact' })
+      .eq('vendor_id', vid)
+      .eq('order_source', 'marketplace')
+      .order('created_at', { ascending: false })
+      .range(from, to);
 
-      const channel = supabase
-        .channel('vendor-orders')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'orders',
-            filter: `vendor_id=eq.${vendorId}`,
-          },
-          () => {
-            fetchOrders();
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
+    if (search.trim()) {
+      q = q.or(`order_number.ilike.%${search.trim()}%,id.ilike.%${search.trim()}%`);
     }
-  }, [vendorId]);
+    return q;
+  }, []);
 
-  const fetchOrders = async () => {
-    if (!vendorId) return;
-
+  const fetchOrders = useCallback(async (vid: string, search: string) => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('orders')
-        .select(
-          `
-          *,
-          customer:profiles!orders_customer_id_fkey (
-            full_name,
-            email,
-            phone
-          )
-        `
-        )
-        .eq('vendor_id', vendorId)
-        .eq('order_source', 'marketplace')
-        .order('created_at', { ascending: false });
-
+      setPage(0);
+      const { data, error, count } = await buildQuery(vid, search, 0, PAGE_SIZE - 1);
       if (error) throw error;
-
-      if (!data) {
-        setOrders([]);
-        return;
-      }
-
-      const formattedOrders: OrderWithCustomer[] = data.map((order: any) => ({
-        ...order,
-        customer: order.customer || { full_name: 'Unknown', email: 'N/A', phone: null },
+      const formatted: OrderWithCustomer[] = (data || []).map((o: any) => ({
+        ...o,
+        customer: o.customer || { full_name: 'Unknown', email: 'N/A', phone: null },
       }));
-
-      setOrders(formattedOrders);
+      setOrders(formatted);
+      setTotalCount(count ?? 0);
+      setHasMore((data?.length ?? 0) === PAGE_SIZE);
     } catch (error) {
       console.error('Error fetching orders:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [buildQuery]);
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore || !vendorId) return;
+    setLoadingMore(true);
+    const nextPage = page + 1;
+    const from = nextPage * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+    try {
+      const { data, error } = await buildQuery(vendorId, searchRef.current, from, to);
+      if (error) throw error;
+      const formatted: OrderWithCustomer[] = (data || []).map((o: any) => ({
+        ...o,
+        customer: o.customer || { full_name: 'Unknown', email: 'N/A', phone: null },
+      }));
+      setOrders((prev) => [...prev, ...formatted]);
+      setPage(nextPage);
+      setHasMore((data?.length ?? 0) === PAGE_SIZE);
+    } catch (error) {
+      console.error('Error loading more orders:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMore, vendorId, page, buildQuery]);
+
+  useEffect(() => {
+    if (!vendorId) return;
+    fetchOrders(vendorId, searchQuery);
+  }, [vendorId]);
+
+  useEffect(() => {
+    if (!vendorId) return;
+    const timer = setTimeout(() => {
+      fetchOrders(vendorId, searchQuery);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    if (!vendorId) return;
+
+    const channel = supabase
+      .channel('vendor-orders-realtime')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders', filter: `vendor_id=eq.${vendorId}` }, (payload) => {
+        const newOrder = payload.new as any;
+        const formatted: OrderWithCustomer = {
+          ...newOrder,
+          customer: { full_name: 'Unknown', email: 'N/A', phone: null },
+        };
+        setOrders((prev) => [formatted, ...prev]);
+        setTotalCount((c) => c + 1);
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `vendor_id=eq.${vendorId}` }, (payload) => {
+        const updated = payload.new as any;
+        setOrders((prev) => prev.map((o) => o.id === updated.id ? { ...o, ...updated } : o));
+        if (selectedOrder?.id === updated.id) {
+          setSelectedOrder((prev) => prev ? { ...prev, ...updated } : prev);
+        }
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'orders' }, (payload) => {
+        const deleted = payload.old as Order;
+        setOrders((prev) => prev.filter((o) => o.id !== deleted.id));
+        setTotalCount((c) => Math.max(0, c - 1));
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [vendorId, selectedOrder?.id]);
 
   const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
     try {
@@ -177,7 +222,6 @@ export default function VendorOrderManagement({ onBack }: VendorOrderManagementP
 
       setShowStatusModal(false);
       setSelectedOrder(null);
-      await fetchOrders();
     } catch (error) {
       console.error('Error updating order status:', error);
     } finally {
@@ -193,7 +237,6 @@ export default function VendorOrderManagement({ onBack }: VendorOrderManagementP
         .eq('id', orderId);
 
       if (error) throw error;
-      await fetchOrders();
 
       if (selectedOrder && selectedOrder.id === orderId) {
         setSelectedOrder({ ...selectedOrder, payment_status: 'completed' });
@@ -203,22 +246,37 @@ export default function VendorOrderManagement({ onBack }: VendorOrderManagementP
     }
   };
 
-  const fetchSelectedOrderItems = async (orderId: string) => {
+  const fetchSelectedOrderItems = useCallback(async (orderId: string) => {
+    if (orderItemsCache[orderId]) {
+      setSelectedOrderItems(orderItemsCache[orderId]);
+      return;
+    }
     try {
       setLoadingItems(true);
       const { data, error } = await supabase
         .from('order_items')
         .select('*, products(*)')
         .eq('order_id', orderId);
-      if (!error) setSelectedOrderItems((data as OrderItemWithProduct[]) || []);
+      if (!error) {
+        const items = (data as OrderItemWithProduct[]) || [];
+        setSelectedOrderItems(items);
+        setOrderItemsCache((prev) => ({ ...prev, [orderId]: items }));
+      }
     } catch {
       setSelectedOrderItems([]);
     } finally {
       setLoadingItems(false);
     }
-  };
+  }, [orderItemsCache]);
 
   const handleViewReceipt = async (order: Order) => {
+    const cached = orderItemsCache[order.id];
+    if (cached) {
+      setOrderItems(cached);
+      setReceiptOrder(order);
+      setShowReceipt(true);
+      return;
+    }
     try {
       const { data, error } = await supabase
         .from('order_items')
@@ -227,7 +285,9 @@ export default function VendorOrderManagement({ onBack }: VendorOrderManagementP
 
       if (error) throw error;
 
-      setOrderItems(data as OrderItemWithProduct[] || []);
+      const items = data as OrderItemWithProduct[] || [];
+      setOrderItemsCache((prev) => ({ ...prev, [order.id]: items }));
+      setOrderItems(items);
       setReceiptOrder(order);
       setShowReceipt(true);
     } catch (error) {
@@ -244,27 +304,6 @@ export default function VendorOrderManagement({ onBack }: VendorOrderManagementP
       minute: '2-digit',
     });
   };
-
-  const filteredOrders = orders.filter((order) => {
-    if (!searchQuery.trim()) return true;
-
-    const query = searchQuery.toLowerCase();
-    const orderId = order.id.toLowerCase();
-    const customerName = order.customer.full_name.toLowerCase();
-    const customerEmail = order.customer.email.toLowerCase();
-    const status = order.status.toLowerCase().replace('_', ' ');
-    const total = order.total.toString();
-    const deliveryType = (order.delivery_type || '').toLowerCase();
-
-    return (
-      orderId.includes(query) ||
-      customerName.includes(query) ||
-      customerEmail.includes(query) ||
-      status.includes(query) ||
-      total.includes(query) ||
-      deliveryType.includes(query)
-    );
-  });
 
   const renderOrderItem = ({ item }: { item: OrderWithCustomer }) => {
     const StatusIcon = statusIcons[item.status];
@@ -347,9 +386,9 @@ export default function VendorOrderManagement({ onBack }: VendorOrderManagementP
         )}
         <View style={styles.headerTitleWrap}>
           <Text style={styles.headerTitle}>Orders</Text>
-          {orders.length > 0 && (
+          {totalCount > 0 && (
             <View style={styles.orderCountBadge}>
-              <Text style={styles.orderCountText}>{orders.length}</Text>
+              <Text style={styles.orderCountText}>{totalCount.toLocaleString()}</Text>
             </View>
           )}
         </View>
@@ -373,34 +412,40 @@ export default function VendorOrderManagement({ onBack }: VendorOrderManagementP
         </View>
       </View>
 
-      {orders.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <View style={styles.emptyIconWrap}>
-            <Package size={48} color="#d6d3d1" />
-          </View>
-          <Text style={styles.emptyTitle}>No orders yet</Text>
-          <Text style={styles.emptySubtitle}>Orders from customers will appear here</Text>
-        </View>
-      ) : filteredOrders.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <View style={styles.emptyIconWrap}>
-            <Search size={48} color="#d6d3d1" />
-          </View>
-          <Text style={styles.emptyTitle}>No results</Text>
-          <Text style={styles.emptySubtitle}>Try a different search term</Text>
-          <TouchableOpacity style={styles.clearSearchBtn} onPress={() => setSearchQuery('')}>
-            <Text style={styles.clearSearchText}>Clear Search</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <FlatList
-          data={filteredOrders}
-          renderItem={renderOrderItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+      <FlatList
+        data={orders}
+        renderItem={renderOrderItem}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.3}
+        ListFooterComponent={
+          loadingMore ? (
+            <View style={{ paddingVertical: 16, alignItems: 'center' }}>
+              <ActivityIndicator size="small" color="#ff8c00" />
+            </View>
+          ) : null
+        }
+        ListEmptyComponent={
+          loading ? null : (
+            <View style={styles.emptyContainer}>
+              <View style={styles.emptyIconWrap}>
+                {searchQuery ? <Search size={48} color="#d6d3d1" /> : <Package size={48} color="#d6d3d1" />}
+              </View>
+              <Text style={styles.emptyTitle}>{searchQuery ? 'No results' : 'No orders yet'}</Text>
+              <Text style={styles.emptySubtitle}>
+                {searchQuery ? 'Try a different search term' : 'Orders from customers will appear here'}
+              </Text>
+              {searchQuery.length > 0 && (
+                <TouchableOpacity style={styles.clearSearchBtn} onPress={() => setSearchQuery('')}>
+                  <Text style={styles.clearSearchText}>Clear Search</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )
+        }
+      />
 
       {/* Status Update Modal */}
       <Modal

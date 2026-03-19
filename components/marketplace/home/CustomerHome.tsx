@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -16,7 +16,7 @@ import { Search, ShoppingBag, SlidersHorizontal } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '@/lib/marketplace/supabase';
-import { Product, Category, Advert } from '@/types/database';
+import { Product, Category, Advert, ProductImage } from '@/types/database';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { cartEvents } from '@/lib/marketplace/cartEvents';
@@ -59,6 +59,7 @@ export default function CustomerHome() {
   const [vendorStoreVisible, setVendorStoreVisible] = useState(false);
   const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
   const [selectedVendorName, setSelectedVendorName] = useState('');
+  const [productImages, setProductImages] = useState<Record<string, ProductImage[]>>({});
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(16)).current;
@@ -170,6 +171,7 @@ export default function CustomerHome() {
       const newProducts = data || [];
       if (reset) {
         setProducts(newProducts);
+        setProductImages({});
         const cacheKey = `cache_products_${selectedCategory || 'all'}`;
         try {
           const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
@@ -179,6 +181,7 @@ export default function CustomerHome() {
         setProducts((prev) => [...prev, ...newProducts]);
       }
 
+      fetchImagesForProducts(newProducts);
       setHasMore(newProducts.length === PAGE_SIZE && (count ? (from + PAGE_SIZE) < count : true));
       setIsProductsStale(false);
     } catch (error) {
@@ -199,6 +202,26 @@ export default function CustomerHome() {
       setLoading(false);
       setLoadingMore(false);
     }
+  };
+
+  const fetchImagesForProducts = async (prods: Product[]) => {
+    if (prods.length === 0) return;
+    const ids = prods.map((p) => p.id);
+    try {
+      const { data } = await supabase
+        .from('product_images')
+        .select('*')
+        .in('product_id', ids)
+        .order('display_order');
+      if (data) {
+        const grouped: Record<string, ProductImage[]> = {};
+        for (const img of data) {
+          if (!grouped[img.product_id]) grouped[img.product_id] = [];
+          grouped[img.product_id].push(img);
+        }
+        setProductImages((prev) => ({ ...prev, ...grouped }));
+      }
+    } catch {}
   };
 
   const checkAndShowAdvert = async () => {
@@ -285,8 +308,9 @@ export default function CustomerHome() {
 
   const handleApplyFilters = (newFilters: FilterState) => { setFilters(newFilters); };
 
-  const filteredProducts = products.filter((product) =>
-    product.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredProducts = useMemo(
+    () => products.filter((product) => product.name.toLowerCase().includes(searchQuery.toLowerCase())),
+    [products, searchQuery]
   );
 
   const firstName = profile?.full_name?.split(' ')[0] || 'there';
@@ -417,6 +441,7 @@ export default function CustomerHome() {
                 product={item}
                 onPress={() => openProductDetail(item)}
                 onAddToCart={(e) => addToCart(item.id, e)}
+                images={productImages[item.id] || []}
               />
             </View>
           )}

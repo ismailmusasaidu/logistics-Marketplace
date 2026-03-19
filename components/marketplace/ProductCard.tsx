@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, memo } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,6 @@ import {
 } from 'react-native';
 import { Star, ShoppingCart, Heart } from 'lucide-react-native';
 import { Product, ProductImage } from '@/types/database';
-import { supabase } from '@/lib/marketplace/supabase';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { Fonts } from '@/constants/fonts';
 
@@ -17,51 +16,30 @@ interface ProductCardProps {
   product: Product;
   onPress: () => void;
   onAddToCart: (e: any) => void;
+  images?: ProductImage[];
 }
 
-export default function ProductCard({ product, onPress, onAddToCart }: ProductCardProps) {
-  const [images, setImages] = useState<ProductImage[]>([]);
+function ProductCard({ product, onPress, onAddToCart, images: imagesProp = [] }: ProductCardProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { isInWishlist, toggleWishlist } = useWishlist();
 
   useEffect(() => {
-    fetchProductImages();
+    if (imagesProp.length > 1) startAutoSlide();
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, []);
-
-  useEffect(() => {
-    if (images.length > 1) startAutoSlide();
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [images]);
-
-  const fetchProductImages = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('product_images')
-        .select('*')
-        .eq('product_id', product.id)
-        .order('display_order');
-      if (error) { console.error('Error fetching product images:', error); return; }
-      if (data && data.length > 0) setImages(data);
-    } catch (error) {
-      console.error('Error fetching product images:', error);
-    }
-  };
+  }, [imagesProp]);
 
   const startAutoSlide = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = setInterval(() => {
-      setCurrentImageIndex((prev) => (prev + 1) % images.length);
+      setCurrentImageIndex((prev) => (prev + 1) % imagesProp.length);
     }, 2000);
   };
 
-  const displayImages = images.length > 0 ? images : [{
+  const displayImages = imagesProp.length > 0 ? imagesProp : [{
     id: 'default',
     image_url: product.image_url || 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg',
     display_order: 0,
@@ -123,9 +101,9 @@ export default function ProductCard({ product, onPress, onAddToCart }: ProductCa
           />
         </TouchableOpacity>
 
-        {images.length > 1 && (
+        {imagesProp.length > 1 && (
           <View style={styles.dots}>
-            {images.map((_, i) => (
+            {imagesProp.map((_, i) => (
               <View
                 key={i}
                 style={[styles.dot, i === currentImageIndex && styles.dotActive]}
@@ -169,6 +147,8 @@ export default function ProductCard({ product, onPress, onAddToCart }: ProductCa
     </TouchableOpacity>
   );
 }
+
+export default memo(ProductCard);
 
 const styles = StyleSheet.create({
   card: {

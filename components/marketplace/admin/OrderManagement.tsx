@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -100,16 +100,30 @@ interface OrderItemWithProduct extends OrderItem {
   products: Product;
 }
 
+interface StatusCounts {
+  all: number;
+  pending: number;
+  confirmed: number;
+  delivered: number;
+  cancelled: number;
+}
+
 interface OrderManagementProps {
   onBack?: () => void;
 }
+
+const PAGE_SIZE = 20;
 
 export default function OrderManagement({ onBack }: OrderManagementProps) {
   const { showToast } = useToast();
   const insets = useSafeAreaInsets();
   const [orders, setOrders] = useState<OrderWithCustomer[]>([]);
-  const [filteredOrders, setFilteredOrders] = useState<OrderWithCustomer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [statusCounts, setStatusCounts] = useState<StatusCounts>({ all: 0, pending: 0, confirmed: 0, delivered: 0, cancelled: 0 });
   const [selectedOrder, setSelectedOrder] = useState<OrderWithCustomer | null>(null);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
@@ -123,90 +137,144 @@ export default function OrderManagement({ onBack }: OrderManagementProps) {
   const [orderItems, setOrderItems] = useState<OrderItemWithProduct[]>([]);
   const [selectedOrderItems, setSelectedOrderItems] = useState<OrderItemWithProduct[]>([]);
   const [loadingItems, setLoadingItems] = useState(false);
+  const [orderItemsCache, setOrderItemsCache] = useState<Record<string, OrderItemWithProduct[]>>({});
 
-  useEffect(() => {
-    fetchOrders();
+  const searchRef = useRef(searchQuery);
+  const filterRef = useRef(activeFilter);
+  searchRef.current = searchQuery;
+  filterRef.current = activeFilter;
 
-    const channel = supabase
-      .channel('admin-orders')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'orders' },
-        () => { fetchOrders(); }
-      )
-      .subscribe();
+  const buildQuery = useCallback((search: string, filter: string, from: number, to: number) => {
+    let q = supabase
+      .from('orders')
+      .select(`*, customer:profiles!orders_customer_id_fkey(full_name, email, phone)`, { count: 'exact' })
+      .eq('order_source', 'marketplace')
+      .order('created_at', { ascending: false })
+      .range(from, to);
 
-    return () => { supabase.removeChannel(channel); };
+    if (filter === 'confirmed') {
+      q = q.in('status', ['confirmed', 'preparing', 'ready_for_pickup', 'out_for_delivery']);
+    } else if (filter !== 'all') {
+      q = q.eq('status', filter);
+    }
+
+    if (search.trim()) {
+      q = q.or(`order_number.ilike.%${search.trim()}%,id.ilike.%${search.trim()}%`);
+    }
+
+    return q;
   }, []);
 
-  useEffect(() => {
-    applyFilters();
-  }, [searchQuery, activeFilter, orders]);
-
-  const applyFilters = () => {
-    let result = [...orders];
-
-    if (activeFilter !== 'all') {
-      if (activeFilter === 'confirmed') {
-        result = result.filter((o) =>
-          ['confirmed', 'preparing', 'ready_for_pickup', 'out_for_delivery'].includes(o.status)
-        );
-      } else {
-        result = result.filter((o) => o.status === activeFilter);
-      }
+  const attachVendors = useCallback(async (data: any[]): Promise<OrderWithCustomer[]> => {
+    const vendorUserIds = [...new Set(data.map((o: any) => o.vendor_user_id).filter(Boolean))];
+    let vendorMap: Record<string, string> = {};
+    if (vendorUserIds.length > 0) {
+      const { data: vendors } = await supabase
+        .from('vendors')
+        .select('user_id, business_name')
+        .in('user_id', vendorUserIds);
+      (vendors || []).forEach((v: any) => { vendorMap[v.user_id] = v.business_name; });
     }
+    return data.map((order: any) => ({
+      ...order,
+      customer: order.customer || { full_name: 'Unknown', email: 'N/A', phone: null },
+      vendor: { business_name: vendorMap[order.vendor_user_id] || 'Unknown' },
+    }));
+  }, []);
 
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(
-        (o) =>
-          o.order_number.toLowerCase().includes(q) ||
-          o.id.toLowerCase().includes(q) ||
-          o.customer.full_name.toLowerCase().includes(q)
-      );
-    }
+  const fetchStatusCounts = useCallback(async () => {
+    const [allRes, pendingRes, confirmedRes, deliveredRes, cancelledRes] = await Promise.all([
+      supabase.from('orders').select('*', { count: 'exact', head: true }).eq('order_source', 'marketplace'),
+      supabase.from('orders').select('*', { count: 'exact', head: true }).eq('order_source', 'marketplace').eq('status', 'pending'),
+      supabase.from('orders').select('*', { count: 'exact', head: true }).eq('order_source', 'marketplace').in('status', ['confirmed', 'preparing', 'ready_for_pickup', 'out_for_delivery']),
+      supabase.from('orders').select('*', { count: 'exact', head: true }).eq('order_source', 'marketplace').eq('status', 'delivered'),
+      supabase.from('orders').select('*', { count: 'exact', head: true }).eq('order_source', 'marketplace').eq('status', 'cancelled'),
+    ]);
+    setStatusCounts({
+      all: allRes.count ?? 0,
+      pending: pendingRes.count ?? 0,
+      confirmed: confirmedRes.count ?? 0,
+      delivered: deliveredRes.count ?? 0,
+      cancelled: cancelledRes.count ?? 0,
+    });
+  }, []);
 
-    setFilteredOrders(result);
-  };
-
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async (search: string, filter: string) => {
+    setLoading(true);
+    setPage(0);
     try {
-      setLoading(true);
-
-      const { data, error } = await supabase
-        .from('orders')
-        .select(`
-          *,
-          customer:profiles!orders_customer_id_fkey(full_name, email, phone)
-        `)
-        .eq('order_source', 'marketplace')
-        .order('created_at', { ascending: false });
-
+      const { data, error, count } = await buildQuery(search, filter, 0, PAGE_SIZE - 1);
       if (error) throw new Error(error.message);
-
-      const vendorUserIds = [...new Set((data || []).map((o: any) => o.vendor_user_id).filter(Boolean))];
-      let vendorMap: Record<string, string> = {};
-      if (vendorUserIds.length > 0) {
-        const { data: vendors } = await supabase
-          .from('vendors')
-          .select('user_id, business_name')
-          .in('user_id', vendorUserIds);
-        (vendors || []).forEach((v: any) => { vendorMap[v.user_id] = v.business_name; });
-      }
-
-      const formattedOrders: OrderWithCustomer[] = (data || []).map((order: any) => ({
-        ...order,
-        customer: order.customer || { full_name: 'Unknown', email: 'N/A', phone: null },
-        vendor: { business_name: vendorMap[order.vendor_user_id] || 'Unknown' },
-      }));
-
-      setOrders(formattedOrders);
+      const formatted = await attachVendors(data || []);
+      setOrders(formatted);
+      setTotalCount(count ?? 0);
+      setHasMore((data?.length ?? 0) === PAGE_SIZE);
     } catch (error) {
       console.error('Error fetching orders:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [buildQuery, attachVendors]);
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    const nextPage = page + 1;
+    const from = nextPage * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+    try {
+      const { data, error } = await buildQuery(searchRef.current, filterRef.current, from, to);
+      if (error) throw error;
+      const formatted = await attachVendors(data || []);
+      setOrders((prev) => [...prev, ...formatted]);
+      setPage(nextPage);
+      setHasMore((data?.length ?? 0) === PAGE_SIZE);
+    } catch (error) {
+      console.error('Error loading more orders:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, hasMore, page, buildQuery, attachVendors]);
+
+  useEffect(() => {
+    fetchOrders(searchQuery, activeFilter);
+    fetchStatusCounts();
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchOrders(searchQuery, activeFilter);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchQuery, activeFilter]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-orders-changes')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders', filter: 'order_source=eq.marketplace' }, async (payload) => {
+        const formatted = await attachVendors([payload.new]);
+        setOrders((prev) => [formatted[0], ...prev]);
+        setTotalCount((c) => c + 1);
+        fetchStatusCounts();
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: 'order_source=eq.marketplace' }, async (payload) => {
+        const formatted = await attachVendors([payload.new]);
+        setOrders((prev) => prev.map((o) => (o.id === formatted[0].id ? { ...o, ...formatted[0] } : o)));
+        if (selectedOrder?.id === formatted[0].id) {
+          setSelectedOrder((prev) => prev ? { ...prev, ...formatted[0] } : prev);
+        }
+        fetchStatusCounts();
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'orders' }, (payload) => {
+        const deleted = payload.old as Order;
+        setOrders((prev) => prev.filter((o) => o.id !== deleted.id));
+        setTotalCount((c) => Math.max(0, c - 1));
+        fetchStatusCounts();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [attachVendors, fetchStatusCounts, selectedOrder?.id]);
 
   const deleteOrder = async (orderId: string) => {
     try {
@@ -221,7 +289,6 @@ export default function OrderManagement({ onBack }: OrderManagementProps) {
 
       setShowStatusModal(false);
       setSelectedOrder(null);
-      await fetchOrders();
       showToast('Order deleted successfully', 'success');
     } catch (error) {
       console.error('Error deleting order:', error);
@@ -238,22 +305,37 @@ export default function OrderManagement({ onBack }: OrderManagementProps) {
     setShowDeleteConfirmation(true);
   };
 
-  const fetchSelectedOrderItems = async (orderId: string) => {
+  const fetchSelectedOrderItems = useCallback(async (orderId: string) => {
+    if (orderItemsCache[orderId]) {
+      setSelectedOrderItems(orderItemsCache[orderId]);
+      return;
+    }
     try {
       setLoadingItems(true);
       const { data, error } = await supabase
         .from('order_items')
         .select('*, products(*)')
         .eq('order_id', orderId);
-      if (!error) setSelectedOrderItems((data as OrderItemWithProduct[]) || []);
+      if (!error) {
+        const items = (data as OrderItemWithProduct[]) || [];
+        setSelectedOrderItems(items);
+        setOrderItemsCache((prev) => ({ ...prev, [orderId]: items }));
+      }
     } catch {
       setSelectedOrderItems([]);
     } finally {
       setLoadingItems(false);
     }
-  };
+  }, [orderItemsCache]);
 
   const handleViewReceipt = async (order: Order) => {
+    const cached = orderItemsCache[order.id];
+    if (cached) {
+      setOrderItems(cached);
+      setReceiptOrder(order);
+      setShowReceipt(true);
+      return;
+    }
     try {
       const { data, error } = await supabase
         .from('order_items')
@@ -262,7 +344,9 @@ export default function OrderManagement({ onBack }: OrderManagementProps) {
 
       if (error) throw error;
 
-      setOrderItems(data as OrderItemWithProduct[] || []);
+      const items = data as OrderItemWithProduct[] || [];
+      setOrderItemsCache((prev) => ({ ...prev, [order.id]: items }));
+      setOrderItems(items);
       setReceiptOrder(order);
       setShowReceipt(true);
     } catch (error) {
@@ -296,7 +380,6 @@ export default function OrderManagement({ onBack }: OrderManagementProps) {
 
       setShowStatusModal(false);
       setSelectedOrder(null);
-      await fetchOrders();
     } catch (error) {
       console.error('Error updating order status:', error);
     } finally {
@@ -320,7 +403,6 @@ export default function OrderManagement({ onBack }: OrderManagementProps) {
         totalAmount: order.total,
       });
 
-      await fetchOrders();
       showToast('Payment marked as paid', 'success');
     } catch (error) {
       console.error('Error marking payment as paid:', error);
@@ -352,16 +434,6 @@ export default function OrderManagement({ onBack }: OrderManagementProps) {
     }
   };
 
-  const getFilterCount = (key: string) => {
-    if (key === 'all') return orders.length;
-    if (key === 'confirmed') {
-      return orders.filter((o) =>
-        ['confirmed', 'preparing', 'ready_for_pickup', 'out_for_delivery'].includes(o.status)
-      ).length;
-    }
-    return orders.filter((o) => o.status === key).length;
-  };
-
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -382,7 +454,7 @@ export default function OrderManagement({ onBack }: OrderManagementProps) {
           <View style={styles.headerTextContainer}>
             <Text style={styles.title}>Orders</Text>
             <Text style={styles.subtitle}>
-              {filteredOrders.length} of {orders.length} orders
+              {orders.length} of {totalCount.toLocaleString()} orders
             </Text>
           </View>
         </View>
@@ -409,7 +481,7 @@ export default function OrderManagement({ onBack }: OrderManagementProps) {
           contentContainerStyle={styles.filterRow}
         >
           {FILTER_TABS.map((tab) => {
-            const count = getFilterCount(tab.key);
+            const count = statusCounts[tab.key as keyof StatusCounts] ?? 0;
             const isActive = activeFilter === tab.key;
             return (
               <TouchableOpacity
@@ -423,7 +495,7 @@ export default function OrderManagement({ onBack }: OrderManagementProps) {
                 </Text>
                 <View style={[styles.filterBadge, isActive && styles.filterBadgeActive]}>
                   <Text style={[styles.filterBadgeText, isActive && styles.filterBadgeTextActive]}>
-                    {count}
+                    {count.toLocaleString()}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -433,10 +505,19 @@ export default function OrderManagement({ onBack }: OrderManagementProps) {
       </View>
 
       <FlatList
-        data={filteredOrders}
+        data={orders}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.3}
+        ListFooterComponent={
+          loadingMore ? (
+            <View style={styles.footerLoader}>
+              <ActivityIndicator size="small" color="#ff8c00" />
+            </View>
+          ) : null
+        }
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Package size={48} color="#d1d5db" />
@@ -887,6 +968,10 @@ const styles = StyleSheet.create({
   list: {
     padding: 16,
     paddingBottom: 32,
+  },
+  footerLoader: {
+    paddingVertical: 16,
+    alignItems: 'center',
   },
   emptyState: {
     alignItems: 'center',
