@@ -41,12 +41,16 @@ Deno.serve(async (req: Request) => {
     const amountInKobo = Math.round(amount * 100);
 
     const initializeUrl = "https://api.paystack.co/transaction/initialize";
+    const safeReference = orderId
+      ? orderId.replace(/[^a-zA-Z0-9]/g, "").substring(0, 100)
+      : undefined;
+
     const payload: Record<string, unknown> = {
       email,
       amount: amountInKobo,
     };
-    if (orderId) {
-      payload.reference = orderId;
+    if (safeReference) {
+      payload.reference = safeReference;
     }
     if (metadata || orderId) {
       payload.metadata = { ...metadata, orderId };

@@ -142,7 +142,7 @@ export function CheckoutModal({ visible, onClose, onConfirm, pricing, userId, us
     setError(null);
 
     try {
-      const tempOrderId = orderId || `order_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+      const tempOrderId = orderId || `ORD${Date.now()}${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
       const { data, error: invokeError } = await supabase.functions.invoke('initialize-payment', {
         body: {
