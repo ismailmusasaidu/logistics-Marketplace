@@ -26,8 +26,17 @@ import {
   Bike,
   Mail,
   CircleCheck,
+  Car,
 } from 'lucide-react-native';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const VEHICLE_TYPES = [
+  { value: 'bike', label: 'Motorcycle' },
+  { value: 'bicycle', label: 'Bicycle' },
+  { value: 'car', label: 'Car' },
+  { value: 'van', label: 'Van/Truck' },
+];
 
 export default function RegisterScreen() {
   const insets = useSafeAreaInsets();
@@ -44,6 +53,9 @@ export default function RegisterScreen() {
   const [businessAddress, setBusinessAddress] = useState('');
   const [businessPhone, setBusinessPhone] = useState('');
   const [businessLicense, setBusinessLicense] = useState('');
+  const [vehicleType, setVehicleType] = useState('bike');
+  const [vehicleNumber, setVehicleNumber] = useState('');
+  const [licenseNumber, setLicenseNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [registered, setRegistered] = useState(false);
@@ -86,6 +98,13 @@ export default function RegisterScreen() {
       }
     }
 
+    if (accountType === 'rider') {
+      if (!vehicleNumber || !licenseNumber) {
+        setError('Please fill in your vehicle and license information');
+        return;
+      }
+    }
+
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       return;
@@ -124,6 +143,12 @@ export default function RegisterScreen() {
         signUpMetadata.business_address = businessAddress;
         signUpMetadata.business_phone = businessPhone;
         if (businessLicense) signUpMetadata.business_license = businessLicense;
+      }
+
+      if (accountType === 'rider') {
+        signUpMetadata.vehicle_type = vehicleType;
+        signUpMetadata.vehicle_number = vehicleNumber;
+        signUpMetadata.license_number = licenseNumber;
       }
 
       const { data: authData, error: authError } = await coreBackend.auth.signUp({
@@ -536,11 +561,62 @@ export default function RegisterScreen() {
             )}
 
             {accountType === 'rider' && (
-              <View style={styles.vendorNote}>
-                <Text style={styles.vendorNoteText}>
-                  Your rider account will be reviewed and approved by our team. This usually takes 24-48 hours.
-                </Text>
-              </View>
+              <>
+                <View style={styles.sectionDivider} />
+
+                <View style={styles.sectionHeader}>
+                  <Car size={16} color="#f97316" strokeWidth={2.5} />
+                  <Text style={styles.sectionTitle}>Vehicle Information</Text>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Vehicle Type *</Text>
+                  <View style={styles.vehicleTypeRow}>
+                    {VEHICLE_TYPES.map((vt) => (
+                      <TouchableOpacity
+                        key={vt.value}
+                        style={[styles.vehicleTypeBtn, vehicleType === vt.value && styles.vehicleTypeBtnActive]}
+                        onPress={() => setVehicleType(vt.value)}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={[styles.vehicleTypeBtnText, vehicleType === vt.value && styles.vehicleTypeBtnTextActive]}>
+                          {vt.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Vehicle Number *</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="e.g. ABC-123-XY"
+                    placeholderTextColor="#b0b0b0"
+                    value={vehicleNumber}
+                    onChangeText={setVehicleNumber}
+                    autoCapitalize="characters"
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>License Number *</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Your driver's license number"
+                    placeholderTextColor="#b0b0b0"
+                    value={licenseNumber}
+                    onChangeText={setLicenseNumber}
+                    autoCapitalize="characters"
+                  />
+                </View>
+
+                <View style={styles.vendorNote}>
+                  <Text style={styles.vendorNoteText}>
+                    Your rider application will be reviewed by our team before activation. This usually takes 24-48 hours.
+                  </Text>
+                </View>
+              </>
             )}
 
             <TouchableOpacity
@@ -871,6 +947,31 @@ const styles = StyleSheet.create({
   eyeButton: {
     paddingHorizontal: 16,
     paddingVertical: 14,
+  },
+  vehicleTypeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  vehicleTypeBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#eee',
+    backgroundColor: '#f8f8f8',
+  },
+  vehicleTypeBtnActive: {
+    borderColor: '#f97316',
+    backgroundColor: '#fff7ed',
+  },
+  vehicleTypeBtnText: {
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
+    color: '#555',
+  },
+  vehicleTypeBtnTextActive: {
+    color: '#c2410c',
   },
   vendorNote: {
     backgroundColor: '#fff7ed',

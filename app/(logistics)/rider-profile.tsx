@@ -65,27 +65,24 @@ export default function RiderProfile() {
 
       const { data, error: rErr } = await supabase
         .from('ratings')
-        .select('id, rating, comment, created_at, customer_id, order_id')
+        .select(`
+          id, rating, comment, created_at, order_id,
+          customer:profiles!ratings_customer_id_fkey(full_name)
+        `)
         .eq('rider_id', riderRow.id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(100);
 
       if (rErr || !data) return;
 
-      const enriched: RiderReview[] = await Promise.all(
-        data.map(async (r) => {
-          const [custRes] = await Promise.all([
-            supabase.from('profiles').select('full_name').eq('id', r.customer_id).maybeSingle(),
-          ]);
-          return {
-            id: r.id,
-            rating: r.rating,
-            comment: r.comment,
-            created_at: r.created_at,
-            customer_name: custRes.data?.full_name || 'Customer',
-            order_ref: r.order_id.slice(0, 8).toUpperCase(),
-          };
-        })
-      );
+      const enriched: RiderReview[] = (data as any[]).map((r) => ({
+        id: r.id,
+        rating: r.rating,
+        comment: r.comment,
+        created_at: r.created_at,
+        customer_name: r.customer?.full_name || 'Customer',
+        order_ref: r.order_id.slice(0, 8).toUpperCase(),
+      }));
 
       setReviews(enriched);
       const total = enriched.length;
