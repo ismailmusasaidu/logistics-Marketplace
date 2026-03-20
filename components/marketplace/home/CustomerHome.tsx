@@ -98,11 +98,14 @@ export default function CustomerHome() {
     const subscription = supabase
       .channel('products_updates')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'products' }, (payload) => {
-        setProducts((prev) =>
-          prev.map((product) =>
+        setProducts((prev) => {
+          const exists = prev.some((p) => p.id === payload.new.id);
+          if (!exists) return prev;
+          return prev.map((product) =>
             product.id === payload.new.id ? (payload.new as Product) : product
-          )
-        );
+          );
+        });
+        setIsProductsStale(true);
       })
       .subscribe();
 

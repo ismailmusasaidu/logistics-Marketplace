@@ -116,7 +116,8 @@ export default function OrdersScreen() {
         .select('*')
         .eq('customer_id', profile.id)
         .eq('order_source', 'marketplace')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(50);
 
       if (error) throw error;
       setOrders(data || []);

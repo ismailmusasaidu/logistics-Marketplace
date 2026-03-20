@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { Star, Search, X, ChevronDown, MessageSquare, User, Bike, Package, Trash2, Filter } from 'lucide-react-native';
+import { Star, Search, X, ChevronDown, MessageSquare, User, Bike, Package, Trash2, ListFilter as Filter } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Toast } from '@/components/Toast';
@@ -91,9 +91,12 @@ export default function AdminReviews() {
           customer_id,
           rating,
           comment,
-          created_at
+          created_at,
+          rider:riders(user_id, profile:profiles!riders_user_id_fkey(full_name)),
+          customer:profiles!ratings_customer_id_fkey(full_name)
         `)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(500);
 
       if (error) throw error;
 
@@ -103,51 +106,18 @@ export default function AdminReviews() {
         return;
       }
 
-      const enriched: Rating[] = await Promise.all(
-        data.map(async (r) => {
-          let riderName = 'Unknown Rider';
-          let customerName = 'Unknown Customer';
-          let orderRef = r.order_id.slice(0, 8).toUpperCase();
-
-          const [riderRes, customerRes, orderRes] = await Promise.all([
-            supabase
-              .from('riders')
-              .select('user_id')
-              .eq('id', r.rider_id)
-              .maybeSingle(),
-            supabase
-              .from('profiles')
-              .select('full_name')
-              .eq('id', r.customer_id)
-              .maybeSingle(),
-            supabase
-              .from('orders')
-              .select('id')
-              .eq('id', r.order_id)
-              .maybeSingle(),
-          ]);
-
-          if (riderRes.data?.user_id) {
-            const { data: riderProfile } = await supabase
-              .from('profiles')
-              .select('full_name')
-              .eq('id', riderRes.data.user_id)
-              .maybeSingle();
-            if (riderProfile?.full_name) riderName = riderProfile.full_name;
-          }
-
-          if (customerRes.data?.full_name) {
-            customerName = customerRes.data.full_name;
-          }
-
-          return {
-            ...r,
-            rider_name: riderName,
-            customer_name: customerName,
-            order_ref: orderRef,
-          };
-        })
-      );
+      const enriched: Rating[] = data.map((r: any) => ({
+        id: r.id,
+        order_id: r.order_id,
+        rider_id: r.rider_id,
+        customer_id: r.customer_id,
+        rating: r.rating,
+        comment: r.comment,
+        created_at: r.created_at,
+        rider_name: r.rider?.profile?.full_name ?? 'Unknown Rider',
+        customer_name: r.customer?.full_name ?? 'Unknown Customer',
+        order_ref: r.order_id.slice(0, 8).toUpperCase(),
+      }));
 
       setRatings(enriched);
 

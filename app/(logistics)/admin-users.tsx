@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Modal, TextInput } from 'react-native';
-import { Users, Mail, Phone, Shield, Edit2, Trash2, X, Search, UserCheck, UserX, ChevronRight } from 'lucide-react-native';
+import { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Modal, TextInput, ActivityIndicator } from 'react-native';
+import { Users, Mail, Phone, Shield, CreditCard as Edit2, Trash2, X, Search, UserCheck, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase, Profile } from '@/lib/supabase';
 import { Toast } from '@/components/Toast';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Fonts } from '@/constants/fonts';
+
+const PAGE_SIZE = 50;
 
 const ROLE_CONFIG: Record<string, { bg: string; text: string; border: string; label: string }> = {
   admin:    { bg: '#fef3c7', text: '#92400e', border: '#fcd34d', label: 'Admin' },
@@ -24,22 +26,35 @@ export default function AdminUsers() {
   const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
   const [toast, setToast] = useState<{ visible: boolean; message: string; type: 'success' | 'error' | 'info' | 'warning' }>({ visible: false, message: '', type: 'success' });
   const [confirmDialog, setConfirmDialog] = useState<{ visible: boolean; title: string; message: string; onConfirm: () => void }>({ visible: false, title: '', message: '', onConfirm: () => {} });
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+  const [loadingPage, setLoadingPage] = useState(false);
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'success') => setToast({ visible: true, message, type });
 
-  useEffect(() => { loadUsers(); }, []);
+  useEffect(() => { loadUsers(0); }, []);
 
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async (page: number) => {
     try {
-      const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+      setLoadingPage(true);
+      const from = page * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+      const { data, error, count } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(from, to);
       if (error) throw error;
       setUsers(data || []);
+      setTotalCount(count ?? 0);
+      setCurrentPage(page);
     } catch (error) {
       console.error('Error loading users:', error);
     } finally {
       setRefreshing(false);
+      setLoadingPage(false);
     }
-  };
+  }, []);
 
   const handleEdit = (user: Profile) => { setSelectedUser(user); setEditModalVisible(true); };
 
@@ -65,7 +80,7 @@ export default function AdminUsers() {
       setEditModalVisible(false);
       setSelectedUser(null);
       showToast('User updated successfully!', 'success');
-      loadUsers();
+      loadUsers(currentPage);
     } catch (error) {
       console.error('Error updating user:', error);
       showToast('Failed to update user', 'error');
@@ -82,7 +97,7 @@ export default function AdminUsers() {
           const { error } = await supabase.from('profiles').delete().eq('id', userId);
           if (error) throw error;
           showToast('User deleted successfully', 'success');
-          loadUsers();
+          loadUsers(currentPage);
         } catch (error) {
           console.error('Error deleting user:', error);
           showToast('Failed to delete user', 'error');
@@ -97,7 +112,8 @@ export default function AdminUsers() {
     return user.full_name.toLowerCase().includes(q) || user.email.toLowerCase().includes(q) || (user.phone?.toLowerCase().includes(q) ?? false) || user.role.toLowerCase().includes(q);
   });
 
-  const counts = { total: users.length, admin: users.filter(u => u.role === 'admin').length, rider: users.filter(u => u.role === 'rider').length, customer: users.filter(u => u.role === 'customer').length };
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+  const counts = { total: totalCount, admin: users.filter(u => u.role === 'admin').length, rider: users.filter(u => u.role === 'rider').length, customer: users.filter(u => u.role === 'customer').length };
 
   return (
     <View style={styles.container}>
@@ -149,7 +165,7 @@ export default function AdminUsers() {
         style={styles.content}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadUsers(); }} tintColor="#3b82f6" />}>
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadUsers(0); }} tintColor="#3b82f6" />}>
 
         {filteredUsers.length === 0 ? (
           <View style={styles.emptyState}>
@@ -212,6 +228,28 @@ export default function AdminUsers() {
             );
           })
         )}
+        {totalPages > 1 && (
+          <View style={styles.paginationRow}>
+            <TouchableOpacity
+              style={[styles.pageBtn, currentPage === 0 && styles.pageBtnDisabled]}
+              onPress={() => { if (currentPage > 0) loadUsers(currentPage - 1); }}
+              disabled={currentPage === 0 || loadingPage}
+            >
+              <ChevronLeft size={16} color={currentPage === 0 ? '#d1d5db' : '#3b82f6'} />
+            </TouchableOpacity>
+            <Text style={styles.pageLabel}>
+              Page {currentPage + 1} of {totalPages}
+            </Text>
+            <TouchableOpacity
+              style={[styles.pageBtn, currentPage >= totalPages - 1 && styles.pageBtnDisabled]}
+              onPress={() => { if (currentPage < totalPages - 1) loadUsers(currentPage + 1); }}
+              disabled={currentPage >= totalPages - 1 || loadingPage}
+            >
+              <ChevronRight size={16} color={currentPage >= totalPages - 1 ? '#d1d5db' : '#3b82f6'} />
+            </TouchableOpacity>
+          </View>
+        )}
+        {loadingPage && <ActivityIndicator style={{ marginVertical: 16 }} color="#3b82f6" />}
         <View style={{ height: 32 }} />
       </ScrollView>
 
@@ -508,6 +546,29 @@ const styles = StyleSheet.create({
     backgroundColor: '#f9fafb',
   },
   roleChipText: { fontSize: 13, fontFamily: Fonts.semiBold, color: '#9ca3af' },
+
+  paginationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    paddingVertical: 16,
+  },
+  pageBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#eff6ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+  },
+  pageBtnDisabled: {
+    backgroundColor: '#f3f4f6',
+    borderColor: '#e5e7eb',
+  },
+  pageLabel: { fontSize: 14, fontFamily: Fonts.semiBold, color: '#374151' },
 
   sheetFooter: {
     flexDirection: 'row',

@@ -8,18 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  Users,
-  Store,
-  Package,
-  DollarSign,
-  TrendingUp,
-  ShoppingBag,
-  ChevronRight,
-  ArrowUpRight,
-  Shield,
-  BarChart3,
-} from 'lucide-react-native';
+import { Users, Store, Package, DollarSign, TrendingUp, ShoppingBag, ChevronRight, ArrowUpRight, Shield, ChartBar as BarChart3 } from 'lucide-react-native';
 import { supabase } from '@/lib/marketplace/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFocusEffect, router } from 'expo-router';
@@ -54,31 +43,18 @@ export default function AdminHome() {
   useEffect(() => {
     fetchPlatformStats();
 
-    const productsChannel = supabase
-      .channel('admin-products-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
-        fetchPlatformStats();
-      })
-      .subscribe();
-
     const ordersChannel = supabase
       .channel('admin-orders-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, () => {
         fetchPlatformStats();
       })
-      .subscribe();
-
-    const profilesChannel = supabase
-      .channel('admin-profiles-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, () => {
         fetchPlatformStats();
       })
       .subscribe();
 
     return () => {
-      supabase.removeChannel(productsChannel);
       supabase.removeChannel(ordersChannel);
-      supabase.removeChannel(profilesChannel);
     };
   }, []);
 
@@ -92,40 +68,35 @@ export default function AdminHome() {
     try {
       setLoading(true);
 
-      const [profilesResult, productsResult, ordersResult] = await Promise.all([
-        supabase.from('profiles').select('role'),
-        supabase.from('products').select('is_available'),
-        supabase.from('orders').select('status, total'),
+      const [
+        totalUsersRes,
+        totalCustomersRes,
+        totalVendorsRes,
+        totalProductsRes,
+        activeProductsRes,
+        totalOrdersRes,
+        pendingOrdersRes,
+        revenueRes,
+      ] = await Promise.all([
+        supabase.from('profiles').select('*', { count: 'exact', head: true }),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'customer'),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'vendor'),
+        supabase.from('products').select('*', { count: 'exact', head: true }),
+        supabase.from('products').select('*', { count: 'exact', head: true }).eq('is_available', true),
+        supabase.from('orders').select('*', { count: 'exact', head: true }),
+        supabase.from('orders').select('*', { count: 'exact', head: true }).in('status', ['pending', 'confirmed', 'preparing']),
+        supabase.rpc('get_marketplace_revenue'),
       ]);
 
-      if (profilesResult.error) throw profilesResult.error;
-      if (productsResult.error) throw productsResult.error;
-      if (ordersResult.error) throw ordersResult.error;
-
-      const profiles = profilesResult.data || [];
-      const products = productsResult.data || [];
-      const orders = ordersResult.data || [];
-
-      const totalCustomers = profiles.filter((p) => p.role === 'customer').length;
-      const totalVendors = profiles.filter((p) => p.role === 'vendor').length;
-      const activeProducts = products.filter((p) => p.is_available).length;
-      const pendingOrders = orders.filter(
-        (o) => o.status === 'pending' || o.status === 'confirmed' || o.status === 'preparing'
-      ).length;
-
-      const platformRevenue = orders
-        .filter((o) => o.status === 'delivered')
-        .reduce((sum, order) => sum + parseFloat(order.total.toString()), 0);
-
       setStats({
-        totalUsers: profiles.length,
-        totalCustomers,
-        totalVendors,
-        totalProducts: products.length,
-        totalOrders: orders.length,
-        platformRevenue,
-        pendingOrders,
-        activeProducts,
+        totalUsers: totalUsersRes.count ?? 0,
+        totalCustomers: totalCustomersRes.count ?? 0,
+        totalVendors: totalVendorsRes.count ?? 0,
+        totalProducts: totalProductsRes.count ?? 0,
+        totalOrders: totalOrdersRes.count ?? 0,
+        platformRevenue: revenueRes.data ?? 0,
+        pendingOrders: pendingOrdersRes.count ?? 0,
+        activeProducts: activeProductsRes.count ?? 0,
       });
     } catch (error) {
       console.error('Error fetching platform stats:', error);
