@@ -21,7 +21,7 @@ Deno.serve(async (req: Request) => {
       return new Response(
         JSON.stringify({ success: false, error: "Email and amount are required" }),
         {
-          status: 400,
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
@@ -32,7 +32,7 @@ Deno.serve(async (req: Request) => {
       return new Response(
         JSON.stringify({ success: false, error: "Paystack secret key not configured" }),
         {
-          status: 500,
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
@@ -68,15 +68,15 @@ Deno.serve(async (req: Request) => {
     const initializeData = await initializeResponse.json();
 
     if (!initializeResponse.ok || !initializeData.status) {
-      console.error("Paystack API Error:", initializeResponse.status, initializeData?.message);
+      console.error("Paystack API Error:", initializeResponse.status, JSON.stringify(initializeData));
       return new Response(
         JSON.stringify({
           success: false,
           error: initializeData.message || "Failed to initialize payment",
-          details: initializeData,
+          paystackStatus: initializeResponse.status,
         }),
         {
-          status: 400,
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
@@ -104,7 +104,7 @@ Deno.serve(async (req: Request) => {
         error: error.message || "An error occurred during payment initialization",
       }),
       {
-        status: 500,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
