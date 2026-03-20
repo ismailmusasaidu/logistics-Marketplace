@@ -74,6 +74,11 @@ export default function EditProduct({ product, onBack, onSuccess }: EditProductP
   const [expectedDeliveryDays, setExpectedDeliveryDays] = useState(
     product.expected_delivery_days != null ? String(product.expected_delivery_days) : ''
   );
+  const [pricingOptions, setPricingOptions] = useState<{ label: string; price: number }[]>(
+    product.pricing_options || []
+  );
+  const [pricingLabelInput, setPricingLabelInput] = useState('');
+  const [pricingPriceInput, setPricingPriceInput] = useState('');
 
   useEffect(() => {
     fetchCategories();
@@ -112,6 +117,19 @@ export default function EditProduct({ product, onBack, onSuccess }: EditProductP
 
   const removeColor = (c: string) => setColors(colors.filter((x) => x !== c));
 
+  const addPricingOption = () => {
+    const label = pricingLabelInput.trim();
+    const price = parseFloat(pricingPriceInput);
+    if (!label || isNaN(price) || price <= 0) return;
+    if (pricingOptions.find((o) => o.label.toLowerCase() === label.toLowerCase())) return;
+    setPricingOptions([...pricingOptions, { label, price }]);
+    setPricingLabelInput('');
+    setPricingPriceInput('');
+  };
+
+  const removePricingOption = (label: string) =>
+    setPricingOptions(pricingOptions.filter((o) => o.label !== label));
+
   const handleUpdate = async () => {
     if (!name.trim() || !price || !stockQuantity) {
       Alert.alert('Error', 'Please fill in all required fields');
@@ -137,6 +155,7 @@ export default function EditProduct({ product, onBack, onSuccess }: EditProductP
           discount_active: discountActive && discountPct > 0,
           sizes: sizes.length > 0 ? sizes : null,
           colors: colors.length > 0 ? colors : null,
+          pricing_options: pricingOptions.length > 0 ? pricingOptions : null,
           return_policy: returnPolicy.trim() || null,
           expected_delivery_days: expectedDeliveryDays ? parseInt(expectedDeliveryDays) : null,
         })
@@ -443,6 +462,65 @@ export default function EditProduct({ product, onBack, onSuccess }: EditProductP
                     </View>
                   )}
                   <Text style={styles.helperText}>Add color options customers can choose from</Text>
+                </View>
+              </View>
+
+              <View style={styles.sectionCard}>
+                <View style={styles.sectionCardHeader}>
+                  <View style={styles.sectionIconWrap}>
+                    <DollarSign size={18} color="#ff8c00" strokeWidth={2.2} />
+                  </View>
+                  <Text style={styles.sectionCardTitle}>Pricing Options</Text>
+                </View>
+                <View style={styles.inputGroup}>
+                  <View style={styles.labelRow}>
+                    <DollarSign size={14} color="#888" />
+                    <Text style={styles.label}>Pricing Options</Text>
+                    <Text style={styles.optionalTag}>optional</Text>
+                  </View>
+                  <View style={{ marginTop: 10, gap: 10 }}>
+                    <View style={styles.tagInputRow}>
+                      <TextInput
+                        style={[styles.input, styles.tagInput, Platform.OS === 'web' && { outlineStyle: 'none' } as any]}
+                        placeholder="Label (e.g. Small)"
+                        placeholderTextColor="#b0b0b0"
+                        value={pricingLabelInput}
+                        onChangeText={setPricingLabelInput}
+                      />
+                      <TextInput
+                        style={[styles.input, { flex: 0.8, marginLeft: 6 }, Platform.OS === 'web' && { outlineStyle: 'none' } as any]}
+                        placeholder="₦ Price"
+                        placeholderTextColor="#b0b0b0"
+                        value={pricingPriceInput}
+                        onChangeText={setPricingPriceInput}
+                        keyboardType="decimal-pad"
+                      />
+                      <TouchableOpacity
+                        onPress={addPricingOption}
+                        activeOpacity={0.7}
+                        style={styles.addTagBtn}
+                      >
+                        <Plus size={16} color="#ff8c00" strokeWidth={2.5} />
+                      </TouchableOpacity>
+                    </View>
+                    {pricingOptions.length > 0 && (
+                      <View style={{ gap: 6 }}>
+                        {pricingOptions.map((opt) => (
+                          <View
+                            key={opt.label}
+                            style={[styles.tag, { justifyContent: 'space-between', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 14 }]}
+                          >
+                            <Text style={styles.tagText}>{opt.label}</Text>
+                            <Text style={[styles.tagText, { marginLeft: 'auto', marginRight: 8 }]}>₦{opt.price.toLocaleString()}</Text>
+                            <TouchableOpacity onPress={() => removePricingOption(opt.label)} activeOpacity={0.7}>
+                              <X size={12} color="#ff8c00" strokeWidth={2.5} />
+                            </TouchableOpacity>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.helperText}>Add variant pricing (e.g. Small, Medium, Large) with different prices</Text>
                 </View>
               </View>
 
@@ -981,5 +1059,16 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     borderWidth: 1,
     borderColor: 'rgba(0,0,0,0.1)',
+  },
+  addTagBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#fff7ed',
+    borderWidth: 1.5,
+    borderColor: '#ffedd5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 6,
   },
 });

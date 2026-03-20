@@ -94,6 +94,7 @@ export interface Product {
   weight_kg?: number;
   sizes?: string[] | null;
   colors?: string[] | null;
+  pricing_options?: { label: string; price: number }[] | null;
   return_policy?: string | null;
   expected_delivery_days?: number | null;
   created_at: string;

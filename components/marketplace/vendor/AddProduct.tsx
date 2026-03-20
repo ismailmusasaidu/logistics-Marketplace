@@ -80,6 +80,10 @@ export default function AddProduct({ onBack, onSuccess }: AddProductProps) {
   const [colorInput, setColorInput] = useState('');
   const [colors, setColors] = useState<string[]>([]);
 
+  const [pricingLabelInput, setPricingLabelInput] = useState('');
+  const [pricingPriceInput, setPricingPriceInput] = useState('');
+  const [pricingOptions, setPricingOptions] = useState<{ label: string; price: number }[]>([]);
+
   useEffect(() => {
     fetchCategories();
     requestPermissions();
@@ -208,6 +212,19 @@ export default function AddProduct({ onBack, onSuccess }: AddProductProps) {
   };
 
   const removeColor = (c: string) => setColors(colors.filter((x) => x !== c));
+
+  const addPricingOption = () => {
+    const label = pricingLabelInput.trim();
+    const price = parseFloat(pricingPriceInput);
+    if (!label || isNaN(price) || price <= 0) return;
+    if (pricingOptions.find((o) => o.label.toLowerCase() === label.toLowerCase())) return;
+    setPricingOptions([...pricingOptions, { label, price }]);
+    setPricingLabelInput('');
+    setPricingPriceInput('');
+  };
+
+  const removePricingOption = (label: string) =>
+    setPricingOptions(pricingOptions.filter((o) => o.label !== label));
 
   const validateForm = () => {
     if (!formData.name.trim()) {
@@ -340,6 +357,7 @@ export default function AddProduct({ onBack, onSuccess }: AddProductProps) {
           discount_active: formData.discount_active && discountPct > 0,
           sizes: sizes.length > 0 ? sizes : null,
           colors: colors.length > 0 ? colors : null,
+          pricing_options: pricingOptions.length > 0 ? pricingOptions : null,
           return_policy: formData.return_policy.trim() || null,
           expected_delivery_days: formData.expected_delivery_days ? parseInt(formData.expected_delivery_days) : null,
         })
@@ -738,6 +756,61 @@ export default function AddProduct({ onBack, onSuccess }: AddProductProps) {
                 </View>
               )}
               <Text style={styles.helperText}>Add color options customers can choose from</Text>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <View style={styles.labelRow}>
+                <DollarSign size={14} color="#888" />
+                <Text style={styles.label}>Pricing Options</Text>
+                <Text style={styles.optionalTag}>optional</Text>
+              </View>
+              <View style={styles.pricingOptionsBody}>
+                <View style={styles.pricingInputRow}>
+                  <TextInput
+                    style={[styles.pricingLabelInput, Platform.OS === 'web' && { outlineStyle: 'none' } as any]}
+                    placeholder="Option label (e.g. Small)"
+                    placeholderTextColor="#b0b0b0"
+                    value={pricingLabelInput}
+                    onChangeText={setPricingLabelInput}
+                  />
+                  <View style={styles.pricingPriceWrap}>
+                    <Text style={styles.pricingPrefix}>₦</Text>
+                    <TextInput
+                      style={[styles.pricingPriceInput, Platform.OS === 'web' && { outlineStyle: 'none' } as any]}
+                      placeholder="Price"
+                      placeholderTextColor="#b0b0b0"
+                      value={pricingPriceInput}
+                      onChangeText={setPricingPriceInput}
+                      keyboardType="decimal-pad"
+                    />
+                  </View>
+                  <TouchableOpacity
+                    onPress={addPricingOption}
+                    activeOpacity={0.7}
+                    style={styles.addTagBtn}
+                  >
+                    <Plus size={18} color="#ff8c00" strokeWidth={2.5} />
+                  </TouchableOpacity>
+                </View>
+                {pricingOptions.length > 0 && (
+                  <View style={styles.pricingOptionsList}>
+                    {pricingOptions.map((opt) => (
+                      <View key={opt.label} style={styles.pricingOptionItem}>
+                        <Text style={styles.pricingOptionLabel}>{opt.label}</Text>
+                        <Text style={styles.pricingOptionPrice}>₦{opt.price.toLocaleString()}</Text>
+                        <TouchableOpacity
+                          onPress={() => removePricingOption(opt.label)}
+                          activeOpacity={0.7}
+                          style={styles.pricingOptionRemove}
+                        >
+                          <X size={14} color="#c2410c" strokeWidth={2.5} />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
+              <Text style={styles.helperText}>Add variant pricing (e.g. Small, Medium, Large) with different prices</Text>
             </View>
 
             <View style={styles.inputGroup}>
