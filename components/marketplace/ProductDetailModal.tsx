@@ -273,12 +273,28 @@ export default function ProductDetailModal({
     }
   };
 
+  const fetchFullProduct = async (productId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', productId)
+        .maybeSingle();
+      if (!error && data) {
+        setCurrentProduct(data as Product);
+      }
+    } catch (err) {
+      console.error('Error re-fetching product:', err);
+    }
+  };
+
   useEffect(() => {
     if (visible && product) {
       setCurrentProduct(product);
       setCurrentImageIndex(0);
       fetchVendorInfo();
       fetchProductImages();
+      fetchFullProduct(product.id);
 
       const subscription = supabase
         .channel(`product_${product.id}`)
@@ -306,6 +322,7 @@ export default function ProductDetailModal({
       setCurrentProduct(null);
       setSelectedSize(null);
       setSelectedColor(null);
+      setSelectedPricingOption(null);
     }
   }, [visible, product]);
 
