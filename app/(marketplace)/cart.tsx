@@ -26,6 +26,8 @@ interface CartItemWithProduct {
   id: string;
   quantity: number;
   product_id: string;
+  selected_option: string | null;
+  option_price: number | null;
   product: {
     id: string;
     name: string;
@@ -106,6 +108,8 @@ export default function CartScreen() {
           id,
           quantity,
           product_id,
+          selected_option,
+          option_price,
           products (
             id,
             name,
@@ -126,6 +130,8 @@ export default function CartScreen() {
         id: item.id,
         quantity: item.quantity,
         product_id: item.product_id,
+        selected_option: item.selected_option,
+        option_price: item.option_price,
         product: item.products,
       }));
 
@@ -189,7 +195,10 @@ export default function CartScreen() {
   };
 
   const calculateTotal = () => {
-    return cartItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+    return cartItems.reduce((sum, item) => {
+      const unitPrice = item.option_price ?? item.product.price;
+      return sum + unitPrice * item.quantity;
+    }, 0);
   };
 
   const calculateTotalWeight = () => {
@@ -301,8 +310,13 @@ export default function CartScreen() {
             <View style={styles.itemInfo}>
               <TouchableOpacity activeOpacity={0.7} onPress={() => handleViewProduct(item.product_id)} style={styles.itemNamePressable}>
                 <Text style={[styles.itemName, { color: colors.text }]}>{item.product.name}</Text>
+                {item.selected_option && (
+                  <View style={[styles.optionBadge, { backgroundColor: colors.primaryLight ?? '#fff7ed', borderColor: colors.primary + '30' }]}>
+                    <Text style={[styles.optionBadgeText, { color: colors.primary }]}>{item.selected_option}</Text>
+                  </View>
+                )}
                 <Text style={[styles.itemPrice, { color: colors.primaryDark }]}>
-                  ₦{item.product.price.toFixed(2)} / {item.product.unit}
+                  ₦{(item.option_price ?? item.product.price).toFixed(2)} / {item.product.unit}
                 </Text>
               </TouchableOpacity>
               {item.product.weight_kg != null && (
@@ -530,6 +544,20 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.spaceBold,
     marginTop: 2,
     letterSpacing: -0.2,
+  },
+  optionBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    marginTop: 3,
+    marginBottom: 1,
+  },
+  optionBadgeText: {
+    fontSize: 11,
+    fontFamily: Fonts.spaceSemiBold,
+    letterSpacing: 0.1,
   },
   quantityContainer: {
     flexDirection: 'row',

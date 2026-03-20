@@ -15,7 +15,7 @@ import {
   Platform,
   Share,
 } from 'react-native';
-import { X, Star, ShoppingCart, Plus, Minus, MapPin, ZoomIn, ChevronLeft, ChevronRight, Percent, Ruler, Palette, RotateCcw, Truck, Package, Award, ShieldCheck, AlertCircle, Clock, Share2 } from 'lucide-react-native';
+import { X, Star, ShoppingCart, Plus, Minus, MapPin, ZoomIn, ChevronLeft, ChevronRight, Percent, Ruler, Palette, RotateCcw, Truck, Package, Award, ShieldCheck, CircleAlert as AlertCircle, Clock, Share2, DollarSign } from 'lucide-react-native';
 import * as ExpoSharing from 'expo-sharing';
 import { Product, Review } from '@/types/database';
 import { supabase } from '@/lib/marketplace/supabase';
@@ -69,6 +69,7 @@ export default function ProductDetailModal({
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [selectedPricingOption, setSelectedPricingOption] = useState<{ label: string; price: number } | null>(null);
   const [showReturnPolicy, setShowReturnPolicy] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const fullScreenFlatListRef = useRef<FlatList>(null);
@@ -232,6 +233,11 @@ export default function ProductDetailModal({
       } else {
         query = query.is('selected_color', null);
       }
+      if (selectedPricingOption) {
+        query = query.eq('selected_option', selectedPricingOption.label);
+      } else {
+        query = query.is('selected_option', null);
+      }
 
       const { data: existingItem } = await query.maybeSingle();
 
@@ -251,6 +257,8 @@ export default function ProductDetailModal({
             quantity: quantity,
             selected_size: selectedSize || null,
             selected_color: selectedColor || null,
+            selected_option: selectedPricingOption ? selectedPricingOption.label : null,
+            option_price: selectedPricingOption ? selectedPricingOption.price : null,
           });
 
         if (error) throw error;
@@ -332,9 +340,10 @@ export default function ProductDetailModal({
   if (!currentProduct) return null;
 
   const hasDiscount = currentProduct.discount_active && currentProduct.discount_percentage > 0;
+  const basePrice = selectedPricingOption ? selectedPricingOption.price : currentProduct.price;
   const salePrice = hasDiscount
-    ? currentProduct.price * (1 - currentProduct.discount_percentage / 100)
-    : currentProduct.price;
+    ? basePrice * (1 - currentProduct.discount_percentage / 100)
+    : basePrice;
   const subtotal = salePrice * quantity;
 
   return (
@@ -557,6 +566,35 @@ export default function ProductDetailModal({
                         >
                           <View style={[styles.colorSwatch, { backgroundColor: c.toLowerCase() }]} />
                           <Text style={[styles.chipText, selectedColor === c && styles.chipTextActive]}>{c}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                )}
+
+                {/* Pricing Options */}
+                {currentProduct.pricing_options && currentProduct.pricing_options.length > 0 && (
+                  <View style={styles.section}>
+                    <View style={styles.sectionTitleRow}>
+                      <DollarSign size={15} color="#ff8c00" strokeWidth={2.2} />
+                      <Text style={styles.sectionTitle}>Pricing Options</Text>
+                      {selectedPricingOption && (
+                        <View style={styles.selectedPill}>
+                          <Text style={styles.selectedPillText}>{selectedPricingOption.label}</Text>
+                        </View>
+                      )}
+                    </View>
+                    <View style={styles.chipGrid}>
+                      {currentProduct.pricing_options.map((opt) => (
+                        <TouchableOpacity
+                          key={opt.label}
+                          style={[styles.chip, selectedPricingOption?.label === opt.label && styles.chipActive]}
+                          onPress={() => setSelectedPricingOption(selectedPricingOption?.label === opt.label ? null : opt)}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={[styles.chipText, selectedPricingOption?.label === opt.label && styles.chipTextActive]}>
+                            {opt.label} · ₦{opt.price.toLocaleString()}
+                          </Text>
                         </TouchableOpacity>
                       ))}
                     </View>
