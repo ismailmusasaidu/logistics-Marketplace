@@ -28,6 +28,8 @@ interface CartItemWithProduct {
   product_id: string;
   selected_size: string | null;
   selected_color: string | null;
+  selected_option: string | null;
+  option_price: number | null;
   product: {
     id: string;
     name: string;
@@ -301,6 +303,8 @@ export default function CheckoutScreen() {
           product_id,
           selected_size,
           selected_color,
+          selected_option,
+          option_price,
           products (
             id,
             name,
@@ -321,6 +325,8 @@ export default function CheckoutScreen() {
         product_id: item.product_id,
         selected_size: item.selected_size ?? null,
         selected_color: item.selected_color ?? null,
+        selected_option: item.selected_option ?? null,
+        option_price: item.option_price ?? null,
         product: item.products,
       }));
 
@@ -353,7 +359,10 @@ export default function CheckoutScreen() {
   };
 
   const calculateSubtotal = () => {
-    return cartItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+    return cartItems.reduce((sum, item) => {
+      const unitPrice = item.option_price ?? item.product.price;
+      return sum + unitPrice * item.quantity;
+    }, 0);
   };
 
   const getSpeedCost = () => {
@@ -645,27 +654,28 @@ export default function CheckoutScreen() {
     try {
       setSubmitting(true);
 
-      const vendorId = cartItems[0].product.vendor_id;
-      const orderNumber = `ORD-${Date.now()}`;
       const subtotal = calculateSubtotal();
       const deliveryFee = deliveryType === 'delivery' ? calculatedDeliveryFee : 0;
       const discount = calculateDiscount();
       const weightSurchargeAmount = getWeightSurchargeAmount();
       const appliedWeightSurcharge = getApplicableWeightSurcharge();
       const total = calculateTotal();
+      const batchTimestamp = Date.now();
 
       if (paymentMethod === 'wallet') {
         if (walletBalance < total) {
           Alert.alert('Insufficient Balance', `Your wallet balance is ₦${walletBalance.toFixed(2)}. You need ₦${total.toFixed(2)} to complete this order.`);
           setSubmitting(false);
+          orderSubmittedRef.current = false;
           return;
         }
 
+        const batchOrderNumber = `ORD-${batchTimestamp}`;
         const { data: debitResult, error: debitError } = await supabase
           .rpc('debit_wallet', {
             p_user_id: profile.id,
             p_amount: total,
-            p_description: `Payment for order ${orderNumber}`,
+            p_description: `Payment for order ${batchOrderNumber}`,
             p_reference_type: 'order'
           });
 
@@ -674,47 +684,80 @@ export default function CheckoutScreen() {
         }
       }
 
-      const { data: orderData, error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          customer_id: profile.id,
-          vendor_id: vendorId,
-          order_number: orderNumber,
-          subtotal: subtotal,
-          delivery_fee: deliveryFee,
-          discount_amount: discount,
-          promo_code: appliedPromo?.code || null,
-          promo_id: appliedPromo?.id || null,
-          total: total,
-          delivery_type: deliveryType,
-          delivery_address: deliveryType === 'delivery' ? `${deliveryName}\n${deliveryPhone}\n${deliveryAddress}` : 'N/A',
-          delivery_speed: deliveryType === 'delivery' ? (selectedSpeed?.name || null) : null,
-          delivery_speed_cost: deliveryType === 'delivery' ? getSpeedCost() : 0,
-          weight_surcharge_amount: weightSurchargeAmount,
-          weight_surcharge_label: appliedWeightSurcharge?.label || null,
-          status: 'pending',
-          payment_method: paymentMethod,
-          payment_status: (paymentMethod === 'wallet' || paymentCompleted) ? 'completed' : 'pending',
-          order_source: 'marketplace',
-        })
-        .select()
-        .single();
+      const vendorGroups: Record<string, CartItemWithProduct[]> = {};
+      for (const item of cartItems) {
+        const vid = item.product.vendor_id;
+        if (!vendorGroups[vid]) vendorGroups[vid] = [];
+        vendorGroups[vid].push(item);
+      }
 
-      if (orderError) throw orderError;
+      const vendorIds = Object.keys(vendorGroups);
+      const vendorCount = vendorIds.length;
+      const sharedDeliveryFee = deliveryFee / vendorCount;
+      const sharedDiscount = discount / vendorCount;
+      const sharedWeightSurcharge = weightSurchargeAmount / vendorCount;
 
-      const orderItems = cartItems.map((item) => ({
-        order_id: orderData.id,
-        product_id: item.product_id,
-        quantity: item.quantity,
-        unit_price: item.product.price,
-        subtotal: item.product.price * item.quantity,
-        selected_size: item.selected_size ?? null,
-        selected_color: item.selected_color ?? null,
-      }));
+      const createdOrderNumbers: string[] = [];
+      let indexCounter = 0;
 
-      const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
+      for (const vendorId of vendorIds) {
+        const vendorItems = vendorGroups[vendorId];
+        const vendorSubtotal = vendorItems.reduce((sum, item) => {
+          const unitPrice = item.option_price ?? item.product.price;
+          return sum + unitPrice * item.quantity;
+        }, 0);
+        const vendorTotal = vendorSubtotal + sharedDeliveryFee + sharedWeightSurcharge - sharedDiscount;
+        const vendorOrderNumber = vendorCount > 1
+          ? `ORD-${batchTimestamp}-${indexCounter + 1}`
+          : `ORD-${batchTimestamp}`;
 
-      if (itemsError) throw itemsError;
+        const { data: orderData, error: orderError } = await supabase
+          .from('orders')
+          .insert({
+            customer_id: profile.id,
+            vendor_id: vendorId,
+            order_number: vendorOrderNumber,
+            subtotal: vendorSubtotal,
+            delivery_fee: sharedDeliveryFee,
+            discount_amount: sharedDiscount,
+            promo_code: appliedPromo?.code || null,
+            promo_id: appliedPromo?.id || null,
+            total: Math.max(0, vendorTotal),
+            delivery_type: deliveryType,
+            delivery_address: deliveryType === 'delivery' ? `${deliveryName}\n${deliveryPhone}\n${deliveryAddress}` : 'N/A',
+            delivery_speed: deliveryType === 'delivery' ? (selectedSpeed?.name || null) : null,
+            delivery_speed_cost: deliveryType === 'delivery' ? (getSpeedCost() / vendorCount) : 0,
+            weight_surcharge_amount: sharedWeightSurcharge,
+            weight_surcharge_label: appliedWeightSurcharge?.label || null,
+            status: 'pending',
+            payment_method: paymentMethod,
+            payment_status: (paymentMethod === 'wallet' || paymentCompleted) ? 'completed' : 'pending',
+            order_source: 'marketplace',
+          })
+          .select()
+          .single();
+
+        if (orderError) throw orderError;
+
+        const orderItems = vendorItems.map((item) => {
+          const unitPrice = item.option_price ?? item.product.price;
+          return {
+            order_id: orderData.id,
+            product_id: item.product_id,
+            quantity: item.quantity,
+            unit_price: unitPrice,
+            subtotal: unitPrice * item.quantity,
+            selected_size: item.selected_size ?? null,
+            selected_color: item.selected_color ?? null,
+          };
+        });
+
+        const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
+        if (itemsError) throw itemsError;
+
+        createdOrderNumbers.push(vendorOrderNumber);
+        indexCounter++;
+      }
 
       const { error: deleteError } = await supabase
         .from('carts')
@@ -730,7 +773,8 @@ export default function CheckoutScreen() {
           .eq('id', appliedPromo.id);
       }
 
-      setOrderNumber(orderNumber);
+      const primaryOrderNumber = createdOrderNumbers[0];
+      setOrderNumber(primaryOrderNumber);
       setOrderPlaced(true);
       setShowPaymentOptions(false);
       if (paymentMethod === 'wallet') {
@@ -738,7 +782,7 @@ export default function CheckoutScreen() {
       }
 
       sendMarketplaceOrderPlacedEmail({
-        orderNumber,
+        orderNumber: primaryOrderNumber,
         customerEmail: profile.email,
         customerName: profile.full_name || 'Customer',
         totalAmount: total,
@@ -1061,16 +1105,19 @@ export default function CheckoutScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Order Summary</Text>
           <View style={styles.summaryCard}>
-            {cartItems.map((item) => (
-              <View key={item.id} style={styles.summaryRow}>
-                <Text style={styles.summaryText}>
-                  {item.product.name} x{item.quantity}
-                </Text>
-                <Text style={styles.summaryPrice}>
-                  ₦{(item.product.price * item.quantity).toFixed(2)}
-                </Text>
-              </View>
-            ))}
+            {cartItems.map((item) => {
+              const unitPrice = item.option_price ?? item.product.price;
+              return (
+                <View key={item.id} style={styles.summaryRow}>
+                  <Text style={styles.summaryText}>
+                    {item.product.name}{item.selected_option ? ` (${item.selected_option})` : ''} x{item.quantity}
+                  </Text>
+                  <Text style={styles.summaryPrice}>
+                    ₦{(unitPrice * item.quantity).toFixed(2)}
+                  </Text>
+                </View>
+              );
+            })}
 
             <View style={styles.divider} />
 
