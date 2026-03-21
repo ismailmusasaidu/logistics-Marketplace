@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Modal, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Bike, Phone, ShieldOff, ShieldCheck, Filter, CheckCircle, XCircle, Eye, AlertCircle, MapPin, Calendar, Wifi } from 'lucide-react-native';
+import { Bike, Phone, ShieldOff, ShieldCheck, ListFilter as Filter, CircleCheck as CheckCircle, Circle as XCircle, Eye, CircleAlert as AlertCircle, MapPin, Calendar, Wifi, Car, Hash, CreditCard } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Toast } from '@/components/Toast';
@@ -27,6 +27,10 @@ interface RiderDetails extends RiderProfile {
   rating: number;
   zone_id: string | null;
   zone_name: string | null;
+  vehicle_type: string | null;
+  vehicle_number: string | null;
+  license_number: string | null;
+  active_orders: number;
 }
 
 export default function AdminRiders() {
@@ -121,7 +125,7 @@ export default function AdminRiders() {
 
       const riderRes = await supabase
         .from('riders')
-        .select('rating, zone_id, total_deliveries, zones(name)')
+        .select('rating, zone_id, total_deliveries, vehicle_type, vehicle_number, license_number, active_orders, zones(name)')
         .eq('user_id', riderId)
         .maybeSingle();
 
@@ -140,6 +144,10 @@ export default function AdminRiders() {
         rating: riderRes.data?.rating || 0,
         zone_id: riderRes.data?.zone_id || null,
         zone_name: zoneName,
+        vehicle_type: riderRes.data?.vehicle_type || null,
+        vehicle_number: riderRes.data?.vehicle_number || null,
+        license_number: riderRes.data?.license_number || null,
+        active_orders: riderRes.data?.active_orders ?? 0,
       };
 
       setSelectedRider(details);
@@ -471,10 +479,53 @@ export default function AdminRiders() {
                 </View>
 
                 <View style={styles.detailsSection}>
+                  <Text style={styles.detailsSectionTitle}>Vehicle Information</Text>
+                  <View style={styles.vehicleCard}>
+                    <View style={styles.vehicleRow}>
+                      <View style={styles.vehicleIconWrap}>
+                        <Car size={16} color="#f97316" />
+                      </View>
+                      <View style={styles.vehicleInfo}>
+                        <Text style={styles.vehicleFieldLabel}>Vehicle Type</Text>
+                        <Text style={styles.vehicleFieldValue}>{selectedRider.vehicle_type || 'Not Provided'}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.vehicleDivider} />
+                    <View style={styles.vehicleRow}>
+                      <View style={styles.vehicleIconWrap}>
+                        <Hash size={16} color="#f97316" />
+                      </View>
+                      <View style={styles.vehicleInfo}>
+                        <Text style={styles.vehicleFieldLabel}>Plate / Vehicle Number</Text>
+                        <Text style={[styles.vehicleFieldValue, styles.vehicleNumberText]}>
+                          {selectedRider.vehicle_number || 'Not Provided'}
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={styles.vehicleDivider} />
+                    <View style={styles.vehicleRow}>
+                      <View style={styles.vehicleIconWrap}>
+                        <CreditCard size={16} color="#f97316" />
+                      </View>
+                      <View style={styles.vehicleInfo}>
+                        <Text style={styles.vehicleFieldLabel}>Driver's License Number</Text>
+                        <Text style={[styles.vehicleFieldValue, styles.vehicleNumberText]}>
+                          {selectedRider.license_number || 'Not Provided'}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.detailsSection}>
                   <Text style={styles.detailsSectionTitle}>Performance</Text>
                   <View style={styles.detailRow}>
                     <Text style={styles.detailLabel}>Total Deliveries</Text>
                     <Text style={styles.detailValue}>{selectedRider.total_deliveries}</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Active Orders</Text>
+                    <Text style={styles.detailValue}>{selectedRider.active_orders}</Text>
                   </View>
                   <View style={styles.detailRow}>
                     <Text style={styles.detailLabel}>Rating</Text>
@@ -951,6 +1002,50 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Fonts.semiBold,
     color: '#111827',
+  },
+  vehicleCard: {
+    backgroundColor: '#fff7ed',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+    overflow: 'hidden',
+  },
+  vehicleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    gap: 12,
+  },
+  vehicleIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#ffedd5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  vehicleInfo: {
+    flex: 1,
+  },
+  vehicleFieldLabel: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: '#9a3412',
+    marginBottom: 2,
+  },
+  vehicleFieldValue: {
+    fontSize: 15,
+    fontFamily: Fonts.semiBold,
+    color: '#1c1917',
+  },
+  vehicleNumberText: {
+    letterSpacing: 0.8,
+    fontFamily: Fonts.bold,
+  },
+  vehicleDivider: {
+    height: 1,
+    backgroundColor: '#fed7aa',
+    marginHorizontal: 14,
   },
   rejectionDetailBox: {
     backgroundColor: '#fef2f2',
