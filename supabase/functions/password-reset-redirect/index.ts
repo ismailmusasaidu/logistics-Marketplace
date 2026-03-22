@@ -69,7 +69,8 @@ Deno.serve(async (req: Request) => {
       access_token = data.session.access_token;
       refresh_token = data.session.refresh_token;
     }
-    const deepLinkPath = `/auth/reset-password#access_token=${access_token}&refresh_token=${refresh_token}&type=recovery`;
+    const tokenParams = `access_token=${encodeURIComponent(access_token)}&refresh_token=${encodeURIComponent(refresh_token)}&type=recovery`;
+    const deepLinkPath = `/auth/reset-password?${tokenParams}`;
 
     if (webUrl) {
       const decodedWebUrl = decodeURIComponent(webUrl);
