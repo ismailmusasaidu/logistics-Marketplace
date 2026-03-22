@@ -8,6 +8,11 @@
     "scheme": "danhausa",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1a1a1a"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.danhausa.app",
@@ -19,6 +24,11 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#f97316"
+      },
+      "splash": {
+        "image": "./assets/images/splash-icon.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#1a1a1a"
       }
     },
     "web": {
