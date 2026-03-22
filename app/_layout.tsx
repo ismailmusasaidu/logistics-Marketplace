@@ -110,34 +110,34 @@ export default function RootLayout() {
     }
   }, []);
 
-  if (!fontsLoaded && !fontError) {
-    return null;
-  }
-
   return (
     <ThemeProvider>
       <ToastProvider>
         <AuthProvider>
           <WishlistProvider>
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="index" />
-              <Stack.Screen name="hub" />
-              <Stack.Screen name="auth/login" />
-              <Stack.Screen name="auth/register" />
-              <Stack.Screen name="auth/forgot-password" />
-              <Stack.Screen name="auth/reset-password" />
-              <Stack.Screen name="auth/vendor-pending" />
-              <Stack.Screen name="auth/confirm" />
-              <Stack.Screen name="(logistics)" />
-              <Stack.Screen name="(marketplace)" />
-              <Stack.Screen name="checkout" />
-              <Stack.Screen name="order-tracking" />
-              <Stack.Screen name="help-center" />
-              <Stack.Screen name="privacy-policy" />
-              <Stack.Screen name="terms-of-service" />
-              <Stack.Screen name="+not-found" />
-            </Stack>
-            <StatusBar style="auto" />
+            {fontsLoaded || fontError ? (
+              <>
+                <Stack screenOptions={{ headerShown: false }}>
+                  <Stack.Screen name="index" />
+                  <Stack.Screen name="hub" />
+                  <Stack.Screen name="auth/login" />
+                  <Stack.Screen name="auth/register" />
+                  <Stack.Screen name="auth/forgot-password" />
+                  <Stack.Screen name="auth/reset-password" />
+                  <Stack.Screen name="auth/vendor-pending" />
+                  <Stack.Screen name="auth/confirm" />
+                  <Stack.Screen name="(logistics)" />
+                  <Stack.Screen name="(marketplace)" />
+                  <Stack.Screen name="checkout" />
+                  <Stack.Screen name="order-tracking" />
+                  <Stack.Screen name="help-center" />
+                  <Stack.Screen name="privacy-policy" />
+                  <Stack.Screen name="terms-of-service" />
+                  <Stack.Screen name="+not-found" />
+                </Stack>
+                <StatusBar style="auto" />
+              </>
+            ) : null}
           </WishlistProvider>
         </AuthProvider>
       </ToastProvider>
