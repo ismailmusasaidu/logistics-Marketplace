@@ -11,7 +11,6 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import * as Linking from 'expo-linking';
 import { Link, router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { CORE_URL } from '@/lib/coreBackend';
@@ -68,10 +67,14 @@ export default function ForgotPasswordScreen() {
     setError('');
 
     try {
-      let redirectTo: string;
-      const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || process.env.EXPO_PUBLIC_CORE_BACKEND_ANON_KEY;
       const supabaseUrl = CORE_URL;
-      redirectTo = `${supabaseUrl}/functions/v1/password-reset-redirect?apikey=${anonKey}`;
+      let redirectTo: string;
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        const webUrl = encodeURIComponent(`${window.location.origin}/auth/reset-password`);
+        redirectTo = `${supabaseUrl}/functions/v1/password-reset-redirect?web_url=${webUrl}`;
+      } else {
+        redirectTo = `${supabaseUrl}/functions/v1/password-reset-redirect`;
+      }
 
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo,

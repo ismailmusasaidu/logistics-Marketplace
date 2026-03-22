@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 import { Session, User } from '@supabase/supabase-js';
 import { Profile } from '@/lib/supabase';
 import { coreBackend } from '@/lib/coreBackend';
@@ -32,7 +33,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isPasswordRecovery = React.useRef(false);
 
   useEffect(() => {
+    const isWebRecoveryUrl = Platform.OS === 'web' && typeof window !== 'undefined' && (
+      window.location.pathname.includes('/auth/reset-password') ||
+      window.location.hash.includes('type=recovery')
+    );
+
+    if (isWebRecoveryUrl) {
+      isPasswordRecovery.current = true;
+    }
+
     coreBackend.auth.getSession().then(({ data: { session } }) => {
+      if (isPasswordRecovery.current) {
+        initialLoadDone.current = true;
+        setLoading(false);
+        return;
+      }
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -63,6 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (event === 'PASSWORD_RECOVERY') {
         isPasswordRecovery.current = true;
+        setLoading(false);
         return;
       }
 
