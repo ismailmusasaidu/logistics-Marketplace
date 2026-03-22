@@ -29,6 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { locationState, requestAndSaveLocation, loadSavedLocation } = useLocation();
   const isSigningIn = React.useRef(false);
   const initialLoadDone = React.useRef(false);
+  const isPasswordRecovery = React.useRef(false);
 
   useEffect(() => {
     coreBackend.auth.getSession().then(({ data: { session } }) => {
@@ -56,10 +57,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
         setProfile(null);
         setLoading(false);
+        isPasswordRecovery.current = false;
         return;
       }
 
       if (event === 'PASSWORD_RECOVERY') {
+        isPasswordRecovery.current = true;
+        return;
+      }
+
+      if (isPasswordRecovery.current) {
         return;
       }
 
