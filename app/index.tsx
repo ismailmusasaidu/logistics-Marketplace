@@ -27,6 +27,15 @@ export default function Index() {
           router.replace('/auth/reset-password');
           return;
         }
+
+        const isEmailConfirm =
+          url.includes('/auth/confirm') ||
+          url.includes('type=email') ||
+          url.includes('type=signup');
+        if (isEmailConfirm) {
+          router.replace('/auth/confirm');
+          return;
+        }
       }
 
       if (!session) {

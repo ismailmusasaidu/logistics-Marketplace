@@ -50,7 +50,8 @@ Deno.serve(async (req: Request) => {
     }
 
     const { access_token, refresh_token } = data.session;
-    const deepLinkPath = `/auth/confirm#access_token=${access_token}&refresh_token=${refresh_token}&type=${otpType}`;
+    const tokenParams = `access_token=${encodeURIComponent(access_token)}&refresh_token=${encodeURIComponent(refresh_token)}&type=${otpType}`;
+    const deepLinkPath = `/auth/confirm?${tokenParams}`;
 
     if (webUrl) {
       const decodedWebUrl = decodeURIComponent(webUrl);
