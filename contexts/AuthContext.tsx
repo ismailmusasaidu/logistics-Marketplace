@@ -42,6 +42,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isPasswordRecovery.current = true;
     }
 
+    if (Platform.OS !== 'web') {
+      const { Linking } = require('react-native');
+      Linking.getInitialURL().then((url: string | null) => {
+        if (url && url.includes('reset-password')) {
+          isPasswordRecovery.current = true;
+        }
+      }).catch(() => {});
+    }
+
     coreBackend.auth.getSession().then(({ data: { session } }) => {
       if (isPasswordRecovery.current) {
         initialLoadDone.current = true;

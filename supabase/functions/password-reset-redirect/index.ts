@@ -94,7 +94,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const appDeepLink = `${APP_SCHEME}://${deepLinkPath}`;
+    const appDeepLink = `${APP_SCHEME}:///${deepLinkPath}`;
 
     return new Response(buildRedirectPage(appDeepLink), {
       status: 200,
@@ -174,7 +174,7 @@ function buildFragmentBridgePage(): string {
       }
 
       if ((tokenHash || accessToken) && type) {
-        var query = new URLSearchParams();
+        var query = new URLSearchParams(window.location.search);
         if (tokenHash) query.set('token_hash', tokenHash);
         if (accessToken) query.set('access_token', accessToken);
         if (refreshToken) query.set('refresh_token', refreshToken);
