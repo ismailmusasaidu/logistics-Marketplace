@@ -94,9 +94,10 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const appDeepLink = `${APP_SCHEME}:///${deepLinkPath}`;
+    const iosDeepLink = `${APP_SCHEME}:///${deepLinkPath}`;
+    const androidIntentLink = `intent://${deepLinkPath}#Intent;scheme=${APP_SCHEME};package=com.danhausa.app;end`;
 
-    return new Response(buildRedirectPage(appDeepLink), {
+    return new Response(buildRedirectPage(iosDeepLink, androidIntentLink), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "text/html" },
     });
@@ -189,8 +190,7 @@ function buildFragmentBridgePage(): string {
 </html>`;
 }
 
-function buildRedirectPage(appDeepLink: string): string {
-  const deepPath = appDeepLink.replace(`${APP_SCHEME}:/`, "");
+function buildRedirectPage(iosDeepLink: string, androidIntentLink: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -262,17 +262,23 @@ function buildRedirectPage(appDeepLink: string): string {
     <div class="icon">&#128272;</div>
     <h1>Reset Your Password</h1>
     <p>Opening the Danhausa app to let you set a new password...</p>
-    <a href="${appDeepLink}" class="btn" id="openBtn">
+    <a href="#" class="btn" id="openBtn">
       <span class="spinner"></span> Opening App...
     </a>
     <p class="status" id="status">If the app doesn't open automatically, tap the button above.</p>
   </div>
   <script>
     (function() {
-      var appLink = "${appDeepLink}";
+      var isAndroid = /android/i.test(navigator.userAgent);
+      var appLink = isAndroid ? "${androidIntentLink}" : "${iosDeepLink}";
+
+      var btn = document.getElementById('openBtn');
+      btn.href = appLink;
+
       window.location.href = appLink;
+
       setTimeout(function() {
-        document.getElementById('openBtn').innerHTML = 'Open Danhausa App';
+        btn.innerHTML = 'Open Danhausa App';
         document.getElementById('status').textContent = 'App did not open automatically. Tap the button above.';
       }, 2500);
     })();
