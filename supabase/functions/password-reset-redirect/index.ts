@@ -94,7 +94,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const appDeepLink = `${APP_SCHEME}:/${deepLinkPath}`;
+    const appDeepLink = `${APP_SCHEME}://${deepLinkPath}`;
 
     return new Response(buildRedirectPage(appDeepLink), {
       status: 200,
