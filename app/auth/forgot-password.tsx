@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import { Link, router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { CORE_URL } from '@/lib/coreBackend';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, Mail, KeyRound } from 'lucide-react-native';
 import { Fonts } from '@/constants/fonts';
@@ -67,14 +66,9 @@ export default function ForgotPasswordScreen() {
     setError('');
 
     try {
-      const supabaseUrl = CORE_URL;
-      let redirectTo: string;
-      if (Platform.OS === 'web' && typeof window !== 'undefined') {
-        const webUrl = encodeURIComponent(`${window.location.origin}/auth/reset-password`);
-        redirectTo = `${supabaseUrl}/functions/v1/password-reset-redirect?web_url=${webUrl}`;
-      } else {
-        redirectTo = `${supabaseUrl}/functions/v1/password-reset-redirect`;
-      }
+      const redirectTo = Platform.OS === 'web' && typeof window !== 'undefined'
+        ? `${window.location.origin}/auth/reset-password`
+        : 'danhausa://auth/reset-password';
 
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo,

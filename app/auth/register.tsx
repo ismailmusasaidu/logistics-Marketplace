@@ -12,7 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { Link, router } from 'expo-router';
-import { coreBackend, CORE_URL } from '@/lib/coreBackend';
+import { coreBackend } from '@/lib/coreBackend';
 import { UserRole } from '@/types/database';
 import { Fonts } from '@/constants/fonts';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -121,14 +121,9 @@ export default function RegisterScreen() {
     try {
       const needsApproval = accountType === 'vendor' || accountType === 'rider';
 
-      let emailRedirectTo: string;
-      const supabaseUrl = CORE_URL;
-      if (Platform.OS === 'web' && typeof window !== 'undefined') {
-        const webUrl = encodeURIComponent(`${window.location.origin}/auth/confirm`);
-        emailRedirectTo = `${supabaseUrl}/functions/v1/email-confirm-redirect?web_url=${webUrl}`;
-      } else {
-        emailRedirectTo = `${supabaseUrl}/functions/v1/email-confirm-redirect`;
-      }
+      const emailRedirectTo = Platform.OS === 'web' && typeof window !== 'undefined'
+        ? `${window.location.origin}/auth/confirm`
+        : 'danhausa://auth/confirm';
 
       const signUpMetadata: Record<string, string> = {
         full_name: fullName,
