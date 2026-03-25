@@ -14,16 +14,23 @@ import {
 import { Link, router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, Mail, KeyRound } from 'lucide-react-native';
+import { ArrowLeft, Mail, KeyRound, ShieldCheck } from 'lucide-react-native';
 import { Fonts } from '@/constants/fonts';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+type Step = 'email' | 'otp' | 'password';
+
 export default function ForgotPasswordScreen() {
   const insets = useSafeAreaInsets();
+  const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -31,57 +38,121 @@ export default function ForgotPasswordScreen() {
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 700,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 700,
-        useNativeDriver: true,
-      }),
-      Animated.spring(iconScale, {
-        toValue: 1,
-        friction: 5,
-        tension: 40,
-        useNativeDriver: true,
-      }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 700, useNativeDriver: true }),
+      Animated.spring(iconScale, { toValue: 1, friction: 5, tension: 40, useNativeDriver: true }),
     ]).start();
   }, []);
 
-  const handleResetPassword = async () => {
-    if (!email) {
-      setError('Please enter your email address');
-      return;
-    }
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setTimeout(() => setResendCooldown(c => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldown]);
 
+  const handleSendOtp = async () => {
+    if (!email) { setError('Please enter your email address'); return; }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setError('Please enter a valid email address');
-      return;
-    }
+    if (!emailRegex.test(email)) { setError('Please enter a valid email address'); return; }
 
     setLoading(true);
     setError('');
-
     try {
-      const redirectTo = Platform.OS === 'web' && typeof window !== 'undefined'
-        ? `${window.location.origin}/auth/reset-password`
-        : 'https://uutsoqjcbsiplwhkgstz.supabase.co/functions/v1/password-reset-redirect';
-
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo,
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email,
+        options: { shouldCreateUser: false },
       });
-
-      if (resetError) throw resetError;
-
-      setSuccess(true);
+      if (otpError) throw otpError;
+      setStep('otp');
+      setResendCooldown(60);
     } catch (err: any) {
-      setError(err.message || 'Failed to send reset email');
+      if (err.message?.toLowerCase().includes('user not found') || err.message?.toLowerCase().includes('no user')) {
+        setError('No account found with this email address');
+      } else {
+        setError(err.message || 'Failed to send verification code');
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otp || otp.length < 6) { setError('Please enter the 6-digit code'); return; }
+
+    setLoading(true);
+    setError('');
+    try {
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email,
+        token: otp,
+        type: 'email',
+      });
+      if (verifyError) throw verifyError;
+      setStep('password');
+    } catch (err: any) {
+      if (err.message?.toLowerCase().includes('invalid') || err.message?.toLowerCase().includes('expired')) {
+        setError('Invalid or expired code. Please try again.');
+      } else {
+        setError(err.message || 'Failed to verify code');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSetPassword = async () => {
+    if (!password) { setError('Please enter a new password'); return; }
+    if (password.length < 6) { setError('Password must be at least 6 characters'); return; }
+    if (password !== confirmPassword) { setError('Passwords do not match'); return; }
+
+    setLoading(true);
+    setError('');
+    try {
+      const { error: updateError } = await supabase.auth.updateUser({ password });
+      if (updateError) throw updateError;
+      setSuccess(true);
+      setTimeout(() => router.replace('/auth/login'), 2500);
+    } catch (err: any) {
+      setError(err.message || 'Failed to update password');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (resendCooldown > 0) return;
+    setLoading(true);
+    setError('');
+    try {
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email,
+        options: { shouldCreateUser: false },
+      });
+      if (otpError) throw otpError;
+      setResendCooldown(60);
+    } catch (err: any) {
+      setError(err.message || 'Failed to resend code');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getHeaderIcon = () => {
+    if (step === 'otp') return <ShieldCheck size={32} color="#f97316" strokeWidth={2} />;
+    if (step === 'password') return <KeyRound size={32} color="#f97316" strokeWidth={2} />;
+    return <KeyRound size={32} color="#f97316" strokeWidth={2} />;
+  };
+
+  const getHeaderTitle = () => {
+    if (step === 'otp') return 'Enter Verification Code';
+    if (step === 'password') return 'Set New Password';
+    return 'Forgot Password?';
+  };
+
+  const getHeaderSubtitle = () => {
+    if (step === 'otp') return `We sent a 6-digit code to ${email}`;
+    if (step === 'password') return 'Almost done! Choose a strong password';
+    return "No worries, we'll send you a verification code";
   };
 
   if (success) {
@@ -95,69 +166,27 @@ export default function ForgotPasswordScreen() {
         >
           <View style={styles.decorCircle1} />
           <View style={styles.decorCircle2} />
-
-          <Animated.View
-            style={[
-              styles.successIconWrap,
-              { transform: [{ scale: iconScale }] },
-            ]}
-          >
+          <Animated.View style={[styles.successIconWrap, { transform: [{ scale: iconScale }] }]}>
             <View style={styles.successIconCircle}>
-              <Mail size={40} color="#f97316" strokeWidth={2} />
+              <ShieldCheck size={40} color="#f97316" strokeWidth={2} />
             </View>
           </Animated.View>
-
           <Animated.View style={{ opacity: fadeAnim }}>
-            <Text style={styles.headerTitle}>Check Your Email</Text>
-            <Text style={styles.headerSubtitle}>
-              We've sent a password reset link
-            </Text>
+            <Text style={styles.headerTitle}>Password Reset!</Text>
+            <Text style={styles.headerSubtitle}>Your password has been updated successfully</Text>
           </Animated.View>
         </LinearGradient>
 
-        <Animated.View
-          style={[
-            styles.successBody,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            },
-          ]}
-        >
+        <Animated.View style={[styles.successBody, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
           <View style={styles.successCard}>
-            <View style={styles.emailSentBadge}>
-              <Mail size={18} color="#f97316" strokeWidth={2} />
-              <Text style={styles.emailSentText}>{email}</Text>
-            </View>
-
             <Text style={styles.successMessage}>
-              Please check your inbox and click the reset link to create a new password.
+              You can now sign in with your new password.
             </Text>
-
-            <Text style={styles.successHint}>
-              Didn't receive the email? Check your spam folder or try again.
-            </Text>
-
-            <TouchableOpacity
-              style={styles.primaryButton}
-              onPress={() => router.replace('/auth/login')}
-              activeOpacity={0.85}
-            >
-              <LinearGradient
-                colors={['#f97316', '#e85d04']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.primaryButtonGradient}
-              >
-                <Text style={styles.primaryButtonText}>Back to Sign In</Text>
+            <Text style={styles.successHint}>Redirecting to sign in...</Text>
+            <TouchableOpacity style={styles.primaryButton} onPress={() => router.replace('/auth/login')} activeOpacity={0.85}>
+              <LinearGradient colors={['#f97316', '#e85d04']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryButtonGradient}>
+                <Text style={styles.primaryButtonText}>Sign In Now</Text>
               </LinearGradient>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.retryButton}
-              onPress={() => setSuccess(false)}
-            >
-              <Text style={styles.retryButtonText}>Try a different email</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -171,7 +200,7 @@ export default function ForgotPasswordScreen() {
         colors={['#1a1a1a', '#2d1a00', '#3d2200']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={styles.headerGradient}
+        style={[styles.headerGradient, { paddingTop: insets.top + 16 }]}
       >
         <View style={styles.decorCircle1} />
         <View style={styles.decorCircle2} />
@@ -179,101 +208,195 @@ export default function ForgotPasswordScreen() {
         <Animated.View style={[styles.headerContent, { opacity: fadeAnim }]}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.back()}
+            onPress={() => {
+              if (step === 'otp') setStep('email');
+              else if (step === 'password') setStep('otp');
+              else router.back();
+              setError('');
+            }}
           >
             <ArrowLeft size={22} color="#ffffff" strokeWidth={2.5} />
           </TouchableOpacity>
 
-          <Animated.View
-            style={[
-              styles.headerIconWrap,
-              { transform: [{ scale: iconScale }] },
-            ]}
-          >
-            <View style={styles.headerIconCircle}>
-              <KeyRound size={32} color="#f97316" strokeWidth={2} />
-            </View>
+          <Animated.View style={[styles.headerIconWrap, { transform: [{ scale: iconScale }] }]}>
+            <View style={styles.headerIconCircle}>{getHeaderIcon()}</View>
           </Animated.View>
 
-          <Text style={styles.headerTitle}>Forgot Password?</Text>
-          <Text style={styles.headerSubtitle}>
-            No worries, we'll send you reset instructions
-          </Text>
+          <Text style={styles.headerTitle}>{getHeaderTitle()}</Text>
+          <Text style={styles.headerSubtitle}>{getHeaderSubtitle()}</Text>
+
+          {step === 'otp' && (
+            <View style={styles.stepIndicator}>
+              <View style={[styles.stepDot, styles.stepDotDone]} />
+              <View style={styles.stepLine} />
+              <View style={[styles.stepDot, styles.stepDotActive]} />
+              <View style={styles.stepLine} />
+              <View style={styles.stepDot} />
+            </View>
+          )}
+          {step === 'password' && (
+            <View style={styles.stepIndicator}>
+              <View style={[styles.stepDot, styles.stepDotDone]} />
+              <View style={[styles.stepLine, styles.stepLineDone]} />
+              <View style={[styles.stepDot, styles.stepDotDone]} />
+              <View style={[styles.stepLine, styles.stepLineDone]} />
+              <View style={[styles.stepDot, styles.stepDotActive]} />
+            </View>
+          )}
         </Animated.View>
       </LinearGradient>
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.formSection}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          <Animated.View
-            style={[
-              styles.formCard,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }],
-              },
-            ]}
-          >
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.formSection}>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <Animated.View style={[styles.formCard, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
             {error ? (
               <View style={styles.errorBox}>
                 <Text style={styles.errorText}>{error}</Text>
               </View>
             ) : null}
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Email Address</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your email"
-                placeholderTextColor="#b0b0b0"
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                autoFocus
-              />
-            </View>
+            {step === 'email' && (
+              <>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Email Address</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter your email"
+                    placeholderTextColor="#b0b0b0"
+                    value={email}
+                    onChangeText={setEmail}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    autoFocus
+                  />
+                </View>
 
-            <TouchableOpacity
-              style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-              onPress={handleResetPassword}
-              disabled={loading}
-              activeOpacity={0.85}
-            >
-              <LinearGradient
-                colors={loading ? ['#ccc', '#bbb'] : ['#f97316', '#e85d04']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.submitGradient}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#ffffff" />
-                ) : (
-                  <Text style={styles.submitText}>Send Reset Link</Text>
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
-
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            <View style={styles.footer}>
-              <Text style={styles.footerText}>Remember your password? </Text>
-              <Link href="/auth/login" asChild>
-                <TouchableOpacity>
-                  <Text style={styles.footerLink}>Sign In</Text>
+                <TouchableOpacity
+                  style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+                  onPress={handleSendOtp}
+                  disabled={loading}
+                  activeOpacity={0.85}
+                >
+                  <LinearGradient
+                    colors={loading ? ['#ccc', '#bbb'] : ['#f97316', '#e85d04']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.submitGradient}
+                  >
+                    {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.submitText}>Send Code</Text>}
+                  </LinearGradient>
                 </TouchableOpacity>
-              </Link>
-            </View>
+
+                <View style={styles.divider}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>or</Text>
+                  <View style={styles.dividerLine} />
+                </View>
+
+                <View style={styles.footer}>
+                  <Text style={styles.footerText}>Remember your password? </Text>
+                  <Link href="/auth/login" asChild>
+                    <TouchableOpacity>
+                      <Text style={styles.footerLink}>Sign In</Text>
+                    </TouchableOpacity>
+                  </Link>
+                </View>
+              </>
+            )}
+
+            {step === 'otp' && (
+              <>
+                <View style={styles.otpHintBox}>
+                  <Mail size={16} color="#f97316" strokeWidth={2} />
+                  <Text style={styles.otpHintText}>Check your inbox at <Text style={styles.otpHintEmail}>{email}</Text></Text>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>6-Digit Verification Code</Text>
+                  <TextInput
+                    style={[styles.input, styles.otpInput]}
+                    placeholder="000000"
+                    placeholderTextColor="#b0b0b0"
+                    value={otp}
+                    onChangeText={t => setOtp(t.replace(/[^0-9]/g, '').slice(0, 6))}
+                    keyboardType="number-pad"
+                    maxLength={6}
+                    autoFocus
+                  />
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.submitButton, (loading || otp.length < 6) && styles.submitButtonDisabled]}
+                  onPress={handleVerifyOtp}
+                  disabled={loading || otp.length < 6}
+                  activeOpacity={0.85}
+                >
+                  <LinearGradient
+                    colors={(loading || otp.length < 6) ? ['#ccc', '#bbb'] : ['#f97316', '#e85d04']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.submitGradient}
+                  >
+                    {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.submitText}>Verify Code</Text>}
+                  </LinearGradient>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.resendButton}
+                  onPress={handleResend}
+                  disabled={resendCooldown > 0 || loading}
+                >
+                  <Text style={[styles.resendText, resendCooldown > 0 && styles.resendTextDisabled]}>
+                    {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : "Didn't receive a code? Resend"}
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            {step === 'password' && (
+              <>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>New Password</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="At least 6 characters"
+                    placeholderTextColor="#b0b0b0"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                    autoFocus
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Confirm Password</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Re-enter your password"
+                    placeholderTextColor="#b0b0b0"
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry
+                  />
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+                  onPress={handleSetPassword}
+                  disabled={loading}
+                  activeOpacity={0.85}
+                >
+                  <LinearGradient
+                    colors={loading ? ['#ccc', '#bbb'] : ['#f97316', '#e85d04']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.submitGradient}
+                  >
+                    {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.submitText}>Reset Password</Text>}
+                  </LinearGradient>
+                </TouchableOpacity>
+              </>
+            )}
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -343,18 +466,48 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 26,
     fontFamily: Fonts.displayBold,
     color: '#ffffff',
     textAlign: 'center',
     letterSpacing: 0.3,
   },
   headerSubtitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: Fonts.medium,
     color: 'rgba(255, 255, 255, 0.85)',
     textAlign: 'center',
     marginTop: 6,
+    paddingHorizontal: 16,
+  },
+  stepIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+    gap: 0,
+  },
+  stepDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+  stepDotActive: {
+    backgroundColor: '#ffffff',
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  stepDotDone: {
+    backgroundColor: '#f97316',
+  },
+  stepLine: {
+    width: 32,
+    height: 2,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+  stepLineDone: {
+    backgroundColor: '#f97316',
   },
   formSection: {
     flex: 1,
@@ -390,7 +543,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   inputGroup: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   inputLabel: {
     fontSize: 13,
@@ -409,6 +562,35 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#eee',
     outlineStyle: 'none' as any,
+  },
+  otpInput: {
+    fontSize: 28,
+    fontFamily: Fonts.bold,
+    textAlign: 'center',
+    letterSpacing: 12,
+    paddingVertical: 20,
+  },
+  otpHintBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#fff7ed',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+  },
+  otpHintText: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: '#9a3412',
+    flex: 1,
+  },
+  otpHintEmail: {
+    fontFamily: Fonts.semiBold,
+    color: '#c2410c',
   },
   submitButton: {
     borderRadius: 14,
@@ -433,6 +615,18 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontFamily: Fonts.headingBold,
     letterSpacing: 0.5,
+  },
+  resendButton: {
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  resendText: {
+    color: '#f97316',
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
+  },
+  resendTextDisabled: {
+    color: '#bbb',
   },
   divider: {
     flexDirection: 'row',
@@ -496,23 +690,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
   },
-  emailSentBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#fff7ed',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#fed7aa',
-  },
-  emailSentText: {
-    fontSize: 14,
-    fontFamily: Fonts.semiBold,
-    color: '#c2410c',
-  },
   successMessage: {
     fontSize: 15,
     fontFamily: Fonts.regular,
@@ -550,13 +727,5 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontFamily: Fonts.headingBold,
     letterSpacing: 0.5,
-  },
-  retryButton: {
-    paddingVertical: 12,
-  },
-  retryButtonText: {
-    color: '#888',
-    fontSize: 14,
-    fontFamily: Fonts.semiBold,
   },
 });
