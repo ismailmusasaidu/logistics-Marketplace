@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Link, router } from 'expo-router';
 import { coreBackend } from '@/lib/coreBackend';
+import { supabase } from '@/lib/supabase';
 import { UserRole } from '@/types/database';
 import { Fonts } from '@/constants/fonts';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -59,6 +60,10 @@ export default function RegisterScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [registered, setRegistered] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpError, setOtpError] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -84,6 +89,53 @@ export default function RegisterScreen() {
       }),
     ]).start();
   }, []);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setTimeout(() => setResendCooldown(c => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldown]);
+
+  const handleVerifyOtp = async () => {
+    if (!otp || otp.length < 6) { setOtpError('Please enter the 6-digit code'); return; }
+    setOtpLoading(true);
+    setOtpError('');
+    try {
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email,
+        token: otp,
+        type: 'signup',
+      });
+      if (verifyError) throw verifyError;
+      router.replace('/auth/login');
+    } catch (err: any) {
+      if (err.message?.toLowerCase().includes('invalid') || err.message?.toLowerCase().includes('expired')) {
+        setOtpError('Invalid or expired code. Please try again or resend.');
+      } else {
+        setOtpError(err.message || 'Failed to verify code');
+      }
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    if (resendCooldown > 0) return;
+    setOtpLoading(true);
+    setOtpError('');
+    try {
+      const { error: resendError } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+      });
+      if (resendError) throw resendError;
+      setResendCooldown(60);
+    } catch (err: any) {
+      setOtpError(err.message || 'Failed to resend code');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
 
   const handleRegister = async () => {
     if (!fullName || !email || !password || !confirmPassword) {
@@ -163,6 +215,7 @@ export default function RegisterScreen() {
           router.replace('/auth/vendor-pending');
         } else {
           setRegistered(true);
+          setResendCooldown(60);
         }
       }
     } catch (err: any) {
@@ -174,7 +227,7 @@ export default function RegisterScreen() {
 
   if (registered) {
     return (
-      <View style={[styles.container, styles.confirmContainer]}>
+      <View style={styles.container}>
         <LinearGradient
           colors={['#1a1a1a', '#2d1a00', '#3d2200']}
           start={{ x: 0, y: 0 }}
@@ -185,39 +238,73 @@ export default function RegisterScreen() {
           <View style={styles.decorCircle2} />
           <View style={styles.logoSection}>
             <View style={styles.logoIcon}>
-              <Layers size={28} color="#f97316" strokeWidth={2.5} />
+              <CircleCheck size={28} color="#f97316" strokeWidth={2.5} />
             </View>
-            <Text style={styles.brandName}>Danhausa</Text>
-            <Text style={styles.brandTagline}>Logistics & Marketplace</Text>
+            <Text style={styles.brandName}>Verify Your Email</Text>
+            <Text style={styles.brandTagline}>One last step to activate your account</Text>
           </View>
         </LinearGradient>
 
-        <View style={styles.confirmCard}>
-          <View style={styles.confirmIconWrap}>
-            <Mail size={48} color="#f97316" />
-          </View>
-          <Text style={styles.confirmTitle}>Check Your Email</Text>
-          <Text style={styles.confirmBody}>
-            We sent a confirmation link to{'\n'}
-            <Text style={styles.confirmEmail}>{email}</Text>
-          </Text>
-          <Text style={styles.confirmHint}>
-            Click the link in the email to activate your account, then come back and sign in.
-          </Text>
-          <TouchableOpacity
-            style={styles.confirmSignInBtn}
-            onPress={() => router.replace('/auth/login')}
-          >
-            <LinearGradient
-              colors={['#f97316', '#e85d04']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.confirmSignInGradient}
-            >
-              <Text style={styles.confirmSignInText}>Go to Sign In</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <ScrollView contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingBottom: 32 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            <View style={styles.confirmCard}>
+              <View style={styles.otpEmailBadge}>
+                <Mail size={16} color="#f97316" strokeWidth={2} />
+                <Text style={styles.otpEmailText}>
+                  Code sent to <Text style={styles.otpEmailBold}>{email}</Text>
+                </Text>
+              </View>
+
+              {otpError ? (
+                <View style={styles.otpErrorBox}>
+                  <Text style={styles.otpErrorText}>{otpError}</Text>
+                </View>
+              ) : null}
+
+              <Text style={styles.otpLabel}>6-Digit Verification Code</Text>
+              <TextInput
+                style={styles.otpInput}
+                placeholder="000000"
+                placeholderTextColor="#b0b0b0"
+                value={otp}
+                onChangeText={t => setOtp(t.replace(/[^0-9]/g, '').slice(0, 6))}
+                keyboardType="number-pad"
+                maxLength={6}
+                autoFocus
+              />
+
+              <TouchableOpacity
+                style={[styles.confirmSignInBtn, (otpLoading || otp.length < 6) && styles.confirmSignInBtnDisabled]}
+                onPress={handleVerifyOtp}
+                disabled={otpLoading || otp.length < 6}
+                activeOpacity={0.85}
+              >
+                <LinearGradient
+                  colors={(otpLoading || otp.length < 6) ? ['#ccc', '#bbb'] : ['#f97316', '#e85d04']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.confirmSignInGradient}
+                >
+                  {otpLoading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.confirmSignInText}>Verify & Activate</Text>}
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.resendBtn}
+                onPress={handleResendCode}
+                disabled={resendCooldown > 0 || otpLoading}
+              >
+                <Text style={[styles.resendText, resendCooldown > 0 && styles.resendTextDisabled]}>
+                  {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : "Didn't receive a code? Resend"}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={() => router.replace('/auth/login')} style={styles.skipBtn}>
+                <Text style={styles.skipText}>Verify later — Go to Sign In</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </View>
     );
   }
@@ -666,20 +753,97 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   confirmCard: {
-    flex: 1,
-    margin: 24,
     marginTop: -16,
     backgroundColor: '#ffffff',
     borderRadius: 24,
-    padding: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 16,
+    padding: 28,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 16,
     elevation: 3,
+  },
+  otpEmailBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#fff7ed',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+  },
+  otpEmailText: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: '#9a3412',
+    flex: 1,
+  },
+  otpEmailBold: {
+    fontFamily: Fonts.semiBold,
+    color: '#c2410c',
+  },
+  otpErrorBox: {
+    backgroundColor: '#fef2f2',
+    borderWidth: 1,
+    borderColor: '#fecaca',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+  },
+  otpErrorText: {
+    color: '#dc2626',
+    fontSize: 14,
+    fontFamily: Fonts.medium,
+    textAlign: 'center',
+  },
+  otpLabel: {
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
+    color: '#444',
+    marginBottom: 8,
+    letterSpacing: 0.3,
+  },
+  otpInput: {
+    backgroundColor: '#f8f8f8',
+    borderRadius: 14,
+    padding: 16,
+    fontSize: 28,
+    fontFamily: Fonts.bold,
+    color: '#1a1a1a',
+    borderWidth: 1.5,
+    borderColor: '#eee',
+    textAlign: 'center',
+    letterSpacing: 12,
+    marginBottom: 20,
+    outlineStyle: 'none' as any,
+  },
+  confirmSignInBtnDisabled: {
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  resendBtn: {
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  resendText: {
+    color: '#f97316',
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
+  },
+  resendTextDisabled: {
+    color: '#bbb',
+  },
+  skipBtn: {
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  skipText: {
+    color: '#aaa',
+    fontSize: 13,
+    fontFamily: Fonts.regular,
   },
   confirmIconWrap: {
     width: 96,
