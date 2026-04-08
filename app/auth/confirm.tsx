@@ -156,7 +156,7 @@ export default function ConfirmPage() {
 
   const handleVerifyOtp = async () => {
     if (!email) { setOtpError('Please enter your email address'); return; }
-    if (!otp || otp.length < 6) { setOtpError('Please enter the verification code'); return; }
+    if (!otp || otp.length < 8) { setOtpError('Please enter the verification code'); return; }
     setOtpLoading(true);
     setOtpError('');
     try {
@@ -323,24 +323,24 @@ export default function ConfirmPage() {
               <Text style={styles.inputLabel}>Verification Code</Text>
               <TextInput
                 style={[styles.input, styles.otpInput]}
-                placeholder="000000"
+                placeholder="00000000"
                 placeholderTextColor="#b0b0b0"
                 value={otp}
-                onChangeText={t => setOtp(t.replace(/[^0-9]/g, '').slice(0, 6))}
+                onChangeText={t => setOtp(t.replace(/[^0-9]/g, '').slice(0, 8))}
                 keyboardType="number-pad"
-                maxLength={6}
+                maxLength={8}
                 autoFocus
               />
             </View>
 
             <TouchableOpacity
-              style={[styles.button, (otpLoading || otp.length < 6 || !email) && styles.buttonDisabled]}
+              style={[styles.button, (otpLoading || otp.length < 8 || !email) && styles.buttonDisabled]}
               onPress={handleVerifyOtp}
-              disabled={otpLoading || otp.length < 6 || !email}
+              disabled={otpLoading || otp.length < 8 || !email}
               activeOpacity={0.85}
             >
               <LinearGradient
-                colors={(otpLoading || otp.length < 6 || !email) ? ['#ccc', '#bbb'] : ['#f97316', '#e85d04']}
+                colors={(otpLoading || otp.length < 8 || !email) ? ['#ccc', '#bbb'] : ['#f97316', '#e85d04']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.buttonGradient}
