@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Image,
@@ -11,10 +11,11 @@ import {
 const { width, height } = Dimensions.get('window');
 
 interface Props {
+  appReady: boolean;
   onFinish: () => void;
 }
 
-export default function AnimatedSplashScreen({ onFinish }: Props) {
+export default function AnimatedSplashScreen({ appReady, onFinish }: Props) {
   const bgScale = useRef(new Animated.Value(1.15)).current;
   const logoScale = useRef(new Animated.Value(0)).current;
   const logoOpacity = useRef(new Animated.Value(0)).current;
@@ -27,6 +28,21 @@ export default function AnimatedSplashScreen({ onFinish }: Props) {
   const taglineY = useRef(new Animated.Value(12)).current;
   const screenOpacity = useRef(new Animated.Value(1)).current;
   const shimmerX = useRef(new Animated.Value(-width)).current;
+
+  const animSequenceDone = useRef(false);
+  const fadeOutStarted = useRef(false);
+
+  const startFadeOut = useCallback(() => {
+    if (fadeOutStarted.current) return;
+    fadeOutStarted.current = true;
+    Animated.timing(screenOpacity, {
+      toValue: 0,
+      duration: 400,
+      useNativeDriver: true,
+    }).start(() => {
+      onFinish();
+    });
+  }, [onFinish, screenOpacity]);
 
   useEffect(() => {
     Animated.sequence([
@@ -97,26 +113,34 @@ export default function AnimatedSplashScreen({ onFinish }: Props) {
 
       Animated.delay(300),
 
-      Animated.loop(
-        Animated.timing(shimmerX, {
-          toValue: width * 2,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        { iterations: 1 }
-      ),
-
-      Animated.delay(400),
-
-      Animated.timing(screenOpacity, {
-        toValue: 0,
-        duration: 400,
+      Animated.timing(shimmerX, {
+        toValue: width * 2,
+        duration: 1000,
         useNativeDriver: true,
       }),
+
+      Animated.delay(200),
     ]).start(() => {
-      onFinish();
+      animSequenceDone.current = true;
     });
   }, []);
+
+  useEffect(() => {
+    if (appReady && animSequenceDone.current) {
+      startFadeOut();
+    }
+  }, [appReady, startFadeOut]);
+
+  useEffect(() => {
+    if (!appReady) return;
+    const interval = setInterval(() => {
+      if (animSequenceDone.current) {
+        clearInterval(interval);
+        startFadeOut();
+      }
+    }, 100);
+    return () => clearInterval(interval);
+  }, [appReady, startFadeOut]);
 
   return (
     <Animated.View style={[styles.container, { opacity: screenOpacity }]}>
@@ -211,9 +235,7 @@ export default function AnimatedSplashScreen({ onFinish }: Props) {
         </Animated.View>
       </View>
 
-      <Animated.View
-        style={[styles.bottomBar, { opacity: taglineOpacity }]}
-      >
+      <Animated.View style={[styles.bottomBar, { opacity: taglineOpacity }]}>
         <View style={styles.loadingDots}>
           {[0, 1, 2].map((i) => (
             <LoadingDot key={i} delay={i * 160} />
@@ -245,9 +267,7 @@ function LoadingDot({ delay }: { delay: number }) {
     ).start();
   }, []);
 
-  return (
-    <Animated.View style={[styles.loadingDot, { opacity: anim }]} />
-  );
+  return <Animated.View style={[styles.loadingDot, { opacity: anim }]} />;
 }
 
 const styles = StyleSheet.create({

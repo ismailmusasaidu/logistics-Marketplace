@@ -143,7 +143,7 @@ export default function RootLayout() {
               </>
             )}
             {!splashDone && (
-              <AnimatedSplashScreen onFinish={() => setSplashDone(true)} />
+              <AnimatedSplashScreen appReady={appReady} onFinish={() => setSplashDone(true)} />
             )}
           </WishlistProvider>
         </AuthProvider>
