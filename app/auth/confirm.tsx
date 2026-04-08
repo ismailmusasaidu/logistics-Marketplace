@@ -519,10 +519,10 @@ const styles = StyleSheet.create({
     outlineStyle: 'none' as any,
   },
   otpInput: {
-    fontSize: 24,
+    fontSize: 22,
     fontFamily: 'Poppins-Bold',
     textAlign: 'center',
-    letterSpacing: 8,
+    letterSpacing: 4,
     paddingVertical: 20,
   },
   button: {
