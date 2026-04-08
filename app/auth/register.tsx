@@ -97,7 +97,7 @@ export default function RegisterScreen() {
   }, [resendCooldown]);
 
   const handleVerifyOtp = async () => {
-    if (!otp || otp.length < 6) { setOtpError('Please enter the 6-digit code'); return; }
+    if (!otp || otp.length < 8) { setOtpError('Please enter the 8-digit code'); return; }
     setOtpLoading(true);
     setOtpError('');
     try {
@@ -257,26 +257,26 @@ export default function RegisterScreen() {
                 </View>
               ) : null}
 
-              <Text style={styles.otpLabel}>6-Digit Verification Code</Text>
+              <Text style={styles.otpLabel}>8-Digit Verification Code</Text>
               <TextInput
                 style={styles.otpInput}
-                placeholder="000000"
+                placeholder="00000000"
                 placeholderTextColor="#b0b0b0"
                 value={otp}
-                onChangeText={t => setOtp(t.replace(/[^0-9]/g, '').slice(0, 6))}
+                onChangeText={t => setOtp(t.replace(/[^0-9]/g, '').slice(0, 8))}
                 keyboardType="number-pad"
-                maxLength={6}
+                maxLength={8}
                 autoFocus
               />
 
               <TouchableOpacity
-                style={[styles.confirmSignInBtn, (otpLoading || otp.length < 6) && styles.confirmSignInBtnDisabled]}
+                style={[styles.confirmSignInBtn, (otpLoading || otp.length < 8) && styles.confirmSignInBtnDisabled]}
                 onPress={handleVerifyOtp}
-                disabled={otpLoading || otp.length < 6}
+                disabled={otpLoading || otp.length < 8}
                 activeOpacity={0.85}
               >
                 <LinearGradient
-                  colors={(otpLoading || otp.length < 6) ? ['#ccc', '#bbb'] : ['#f97316', '#e85d04']}
+                  colors={(otpLoading || otp.length < 8) ? ['#ccc', '#bbb'] : ['#f97316', '#e85d04']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={styles.confirmSignInGradient}
@@ -806,13 +806,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f8f8',
     borderRadius: 14,
     padding: 16,
-    fontSize: 28,
+    fontSize: 24,
     fontFamily: Fonts.bold,
     color: '#1a1a1a',
     borderWidth: 1.5,
     borderColor: '#eee',
     textAlign: 'center',
-    letterSpacing: 12,
+    letterSpacing: 6,
     marginBottom: 20,
     outlineStyle: 'none' as any,
   },
