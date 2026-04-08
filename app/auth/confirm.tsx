@@ -323,12 +323,12 @@ export default function ConfirmPage() {
               <Text style={styles.inputLabel}>Verification Code</Text>
               <TextInput
                 style={[styles.input, styles.otpInput]}
-                placeholder="00000000"
+                placeholder="000000"
                 placeholderTextColor="#b0b0b0"
                 value={otp}
-                onChangeText={t => setOtp(t.replace(/[^0-9]/g, '').slice(0, 8))}
+                onChangeText={t => setOtp(t.replace(/[^0-9]/g, '').slice(0, 6))}
                 keyboardType="number-pad"
-                maxLength={8}
+                maxLength={6}
                 autoFocus
               />
             </View>

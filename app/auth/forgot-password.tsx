@@ -58,10 +58,7 @@ export default function ForgotPasswordScreen() {
     setLoading(true);
     setError('');
     try {
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email,
-        options: { shouldCreateUser: false },
-      });
+      const { error: otpError } = await supabase.auth.resetPasswordForEmail(email);
       if (otpError) throw otpError;
       setStep('otp');
       setResendCooldown(60);
@@ -77,7 +74,7 @@ export default function ForgotPasswordScreen() {
   };
 
   const handleVerifyOtp = async () => {
-    if (!otp || otp.length < 8) { setError('Please enter the 8-digit code'); return; }
+    if (!otp || otp.length < 6) { setError('Please enter the 6-digit code'); return; }
 
     setLoading(true);
     setError('');
@@ -85,7 +82,7 @@ export default function ForgotPasswordScreen() {
       const { error: verifyError } = await supabase.auth.verifyOtp({
         email,
         token: otp,
-        type: 'email',
+        type: 'recovery',
       });
       if (verifyError) throw verifyError;
       setStep('password');
@@ -124,10 +121,7 @@ export default function ForgotPasswordScreen() {
     setLoading(true);
     setError('');
     try {
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email,
-        options: { shouldCreateUser: false },
-      });
+      const { error: otpError } = await supabase.auth.resetPasswordForEmail(email);
       if (otpError) throw otpError;
       setResendCooldown(60);
     } catch (err: any) {
@@ -150,7 +144,7 @@ export default function ForgotPasswordScreen() {
   };
 
   const getHeaderSubtitle = () => {
-    if (step === 'otp') return `We sent an 8-digit code to ${email}`;
+    if (step === 'otp') return `We sent a 6-digit code to ${email}`;
     if (step === 'password') return 'Almost done! Choose a strong password';
     return "No worries, we'll send you a verification code";
   };
@@ -312,27 +306,27 @@ export default function ForgotPasswordScreen() {
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>8-Digit Verification Code</Text>
+                  <Text style={styles.inputLabel}>6-Digit Verification Code</Text>
                   <TextInput
                     style={[styles.input, styles.otpInput]}
-                    placeholder="00000000"
+                    placeholder="000000"
                     placeholderTextColor="#b0b0b0"
                     value={otp}
-                    onChangeText={t => setOtp(t.replace(/[^0-9]/g, '').slice(0, 8))}
+                    onChangeText={t => setOtp(t.replace(/[^0-9]/g, '').slice(0, 6))}
                     keyboardType="number-pad"
-                    maxLength={8}
+                    maxLength={6}
                     autoFocus
                   />
                 </View>
 
                 <TouchableOpacity
-                  style={[styles.submitButton, (loading || otp.length < 8) && styles.submitButtonDisabled]}
+                  style={[styles.submitButton, (loading || otp.length < 6) && styles.submitButtonDisabled]}
                   onPress={handleVerifyOtp}
-                  disabled={loading || otp.length < 8}
+                  disabled={loading || otp.length < 6}
                   activeOpacity={0.85}
                 >
                   <LinearGradient
-                    colors={(loading || otp.length < 8) ? ['#ccc', '#bbb'] : ['#f97316', '#e85d04']}
+                    colors={(loading || otp.length < 6) ? ['#ccc', '#bbb'] : ['#f97316', '#e85d04']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={styles.submitGradient}

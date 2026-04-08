@@ -107,7 +107,8 @@ export default function RegisterScreen() {
         type: 'signup',
       });
       if (verifyError) throw verifyError;
-      router.replace('/auth/login');
+      const needsApproval = accountType === 'vendor' || accountType === 'rider';
+      router.replace(needsApproval ? '/auth/vendor-pending' : '/auth/login');
     } catch (err: any) {
       if (err.message?.toLowerCase().includes('invalid') || err.message?.toLowerCase().includes('expired')) {
         setOtpError('Invalid or expired code. Please try again or resend.');
@@ -210,13 +211,8 @@ export default function RegisterScreen() {
       if (authError) throw authError;
 
       if (authData.user) {
-        if (needsApproval) {
-          setError('');
-          router.replace('/auth/vendor-pending');
-        } else {
-          setRegistered(true);
-          setResendCooldown(60);
-        }
+        setRegistered(true);
+        setResendCooldown(60);
       }
     } catch (err: any) {
       setError(err.message || 'Failed to create account');
