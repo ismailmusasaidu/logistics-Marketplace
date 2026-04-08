@@ -10,13 +10,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Image,
 } from 'react-native';
 import { Link, router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { coreBackend } from '@/lib/coreBackend';
 import { Fonts } from '@/constants/fonts';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Eye, EyeOff, Mail, Truck, ShoppingBag } from 'lucide-react-native';
+import { Eye, EyeOff, Mail } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function LoginScreen() {
@@ -142,17 +143,11 @@ export default function LoginScreen() {
             },
           ]}
         >
-          <View style={styles.logoDualWrapper}>
-            <View style={styles.logoIconBox}>
-              <Truck size={28} color="#ffffff" strokeWidth={1.8} />
-              <Text style={styles.logoIconLabel}>Logistics</Text>
-            </View>
-            <View style={styles.logoDivider} />
-            <View style={styles.logoIconBox}>
-              <ShoppingBag size={28} color="#ffffff" strokeWidth={1.8} />
-              <Text style={styles.logoIconLabel}>Marketplace</Text>
-            </View>
-          </View>
+          <Image
+            source={require('@/assets/images/danhausa.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
           <Text style={styles.brandName}>Danhausa</Text>
           <Text style={styles.brandSlogan}>Your world, delivered.</Text>
         </Animated.View>
@@ -329,34 +324,10 @@ const styles = StyleSheet.create({
   logoSection: {
     alignItems: 'center',
   },
-  logoDualWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.25)',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    marginBottom: 16,
-    gap: 0,
-  },
-  logoIconBox: {
-    alignItems: 'center',
-    paddingHorizontal: 16,
-  },
-  logoIconLabel: {
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: 11,
-    marginTop: 5,
-    fontFamily: Fonts.medium,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  logoDivider: {
-    width: 1.5,
-    height: 40,
-    backgroundColor: 'rgba(255,255,255,0.3)',
+  logoImage: {
+    width: 110,
+    height: 110,
+    marginBottom: 12,
   },
   brandName: {
     fontSize: 38,
