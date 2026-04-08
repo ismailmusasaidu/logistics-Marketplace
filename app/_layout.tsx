@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Stack, SplashScreen } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Platform } from 'react-native';
+import AnimatedSplashScreen from '@/components/AnimatedSplashScreen';
 import { useFonts } from 'expo-font';
 import {
   Inter_400Regular,
@@ -44,6 +45,7 @@ if (!__DEV__) {
 
 export default function RootLayout() {
   useFrameworkReady();
+  const [splashDone, setSplashDone] = useState(false);
 
   const [fontsLoaded, fontError] = useFonts({
     'Inter-Regular': Inter_400Regular,
@@ -68,6 +70,8 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded, fontError]);
+
+  const appReady = fontsLoaded || !!fontError;
 
   useEffect(() => {
     if (Platform.OS === 'web') {
@@ -115,7 +119,7 @@ export default function RootLayout() {
       <ToastProvider>
         <AuthProvider>
           <WishlistProvider>
-            {fontsLoaded || fontError ? (
+            {appReady && (
               <>
                 <Stack screenOptions={{ headerShown: false }}>
                   <Stack.Screen name="index" />
@@ -135,9 +139,12 @@ export default function RootLayout() {
                   <Stack.Screen name="terms-of-service" />
                   <Stack.Screen name="+not-found" />
                 </Stack>
-                <StatusBar style="auto" />
+                <StatusBar style="dark" />
               </>
-            ) : null}
+            )}
+            {!splashDone && (
+              <AnimatedSplashScreen onFinish={() => setSplashDone(true)} />
+            )}
           </WishlistProvider>
         </AuthProvider>
       </ToastProvider>
