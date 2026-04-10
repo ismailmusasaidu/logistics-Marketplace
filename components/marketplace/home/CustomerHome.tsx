@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -276,14 +276,14 @@ export default function CustomerHome() {
 
   const closeAdModal = () => { setShowAdModal(false); setCurrentAdvert(null); };
 
-  const openProductDetail = (product: Product) => {
+  const openProductDetail = useCallback((product: Product) => {
     setSelectedProduct(product);
     setModalVisible(true);
-  };
+  }, []);
 
-  const closeProductDetail = () => { setModalVisible(false); setSelectedProduct(null); };
+  const closeProductDetail = useCallback(() => { setModalVisible(false); setSelectedProduct(null); }, []);
 
-  const addToCart = async (productId: string, e?: any) => {
+  const addToCart = useCallback(async (productId: string, e?: any) => {
     if (e) e.stopPropagation();
     if (!profile) return;
     try {
@@ -306,17 +306,17 @@ export default function CustomerHome() {
     } catch (error: any) {
       console.error('Error adding to cart:', error);
     }
-  };
+  }, [profile]);
 
-  const loadMoreProducts = () => {
+  const loadMoreProducts = useCallback(() => {
     if (!loadingMore && hasMore) {
       const nextPage = page + 1;
       setPage(nextPage);
       fetchProducts(nextPage, false);
     }
-  };
+  }, [loadingMore, hasMore, page]);
 
-  const handleApplyFilters = (newFilters: FilterState) => { setFilters(newFilters); };
+  const handleApplyFilters = useCallback((newFilters: FilterState) => { setFilters(newFilters); }, []);
 
   const filteredProducts = useMemo(
     () => products.filter((product) => product.name.toLowerCase().includes(searchQuery.toLowerCase())),
@@ -324,6 +324,41 @@ export default function CustomerHome() {
   );
 
   const firstName = profile?.full_name?.split(' ')[0] || 'there';
+
+  const renderItem = useCallback(({ item }: { item: Product }) => (
+    <View style={styles.cardWrap}>
+      <ProductCard
+        product={item}
+        onPress={() => openProductDetail(item)}
+        onAddToCart={(e) => addToCart(item.id, e)}
+        images={productImages[item.id] || []}
+      />
+    </View>
+  ), [openProductDetail, addToCart, productImages]);
+
+  const listHeader = useMemo(() => (
+    <View>
+      <View style={styles.bannerSection}>
+        <PromoBannerSlider />
+      </View>
+      <VendorLeaderboard
+        onVendorPress={(vendorId, name) => {
+          setSelectedVendorId(vendorId);
+          setSelectedVendorName(name);
+          setVendorStoreVisible(true);
+        }}
+      />
+    </View>
+  ), []);
+
+  const listFooter = useMemo(() => (
+    loadingMore ? (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="small" color={colors.primary} />
+        <Text style={[styles.footerLoaderText, { color: colors.textMuted }]}>Loading more...</Text>
+      </View>
+    ) : <View style={{ height: 24 }} />
+  ), [loadingMore, colors.primary, colors.textMuted]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -423,38 +458,14 @@ export default function CustomerHome() {
           columnWrapperStyle={styles.gridRow}
           onEndReached={loadMoreProducts}
           onEndReachedThreshold={0.5}
-          ListHeaderComponent={
-            <View>
-              <View style={styles.bannerSection}>
-                <PromoBannerSlider />
-              </View>
-              <VendorLeaderboard
-                onVendorPress={(vendorId, name) => {
-                  setSelectedVendorId(vendorId);
-                  setSelectedVendorName(name);
-                  setVendorStoreVisible(true);
-                }}
-              />
-            </View>
-          }
-          ListFooterComponent={
-            loadingMore ? (
-              <View style={styles.footerLoader}>
-                <ActivityIndicator size="small" color={colors.primary} />
-                <Text style={[styles.footerLoaderText, { color: colors.textMuted }]}>Loading more...</Text>
-              </View>
-            ) : <View style={{ height: 24 }} />
-          }
-          renderItem={({ item }) => (
-            <View style={styles.cardWrap}>
-              <ProductCard
-                product={item}
-                onPress={() => openProductDetail(item)}
-                onAddToCart={(e) => addToCart(item.id, e)}
-                images={productImages[item.id] || []}
-              />
-            </View>
-          )}
+          ListHeaderComponent={listHeader}
+          ListFooterComponent={listFooter}
+          renderItem={renderItem}
+          removeClippedSubviews
+          maxToRenderPerBatch={8}
+          windowSize={10}
+          initialNumToRender={8}
+          updateCellsBatchingPeriod={50}
         />
       )}
 
