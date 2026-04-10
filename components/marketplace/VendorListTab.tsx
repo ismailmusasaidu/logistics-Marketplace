@@ -27,6 +27,8 @@ interface VendorItem {
   business_description?: string;
   avatar_url?: string;
   business_address?: string;
+  state?: string;
+  city?: string;
   product_count?: number;
 }
 
@@ -86,11 +88,18 @@ const VendorCard = memo(({ item, colors, fadeAnim, onPress }: VendorCardProps) =
               </Text>
             ) : null}
             <View style={styles.metaRow}>
-              {item.business_address ? (
+              {(item.city || item.business_address) ? (
                 <View style={styles.metaItem}>
                   <MapPin size={11} color={colors.textMuted} strokeWidth={2} />
                   <Text style={[styles.metaText, { color: colors.textMuted }]} numberOfLines={1}>
-                    {item.business_address}
+                    {item.city || item.business_address}
+                  </Text>
+                </View>
+              ) : null}
+              {item.state ? (
+                <View style={[styles.stateBadge, { backgroundColor: colors.primary + '15', borderColor: colors.primary + '40' }]}>
+                  <Text style={[styles.stateBadgeText, { color: colors.primary }]}>
+                    {item.state}
                   </Text>
                 </View>
               ) : null}
@@ -177,9 +186,29 @@ export default function VendorListTab() {
       const from = pageNum * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
 
+      let profileIds: string[] | null = null;
+      if (address.trim()) {
+        const keyword = address.trim();
+        const { data: vendorMatches } = await supabase
+          .from('vendors')
+          .select('user_id')
+          .or(`state.ilike.%${keyword}%,city.ilike.%${keyword}%,address.ilike.%${keyword}%`);
+
+        const { data: profileMatches } = await supabase
+          .from('profiles')
+          .select('id')
+          .ilike('business_address', `%${keyword}%`)
+          .eq('role', 'vendor')
+          .eq('vendor_status', 'approved');
+
+        const fromVendors = (vendorMatches || []).map((v) => v.user_id);
+        const fromProfiles = (profileMatches || []).map((p) => p.id);
+        profileIds = [...new Set([...fromVendors, ...fromProfiles])];
+      }
+
       let query = supabase
         .from('profiles')
-        .select('id, business_name, business_description, avatar_url, business_address', { count: 'exact' })
+        .select('id, business_name, business_description, avatar_url, business_address, vendors(state, city)', { count: 'exact' })
         .eq('role', 'vendor')
         .eq('vendor_status', 'approved')
         .not('business_name', 'is', null);
@@ -188,8 +217,16 @@ export default function VendorListTab() {
         query = query.ilike('business_name', `%${search.trim()}%`);
       }
 
-      if (address.trim()) {
-        query = query.ilike('business_address', `%${address.trim()}%`);
+      if (profileIds !== null) {
+        if (profileIds.length === 0) {
+          setVendors([]);
+          setTotalCount(0);
+          setHasMore(false);
+          setLoading(false);
+          setLoadingMore(false);
+          return;
+        }
+        query = query.in('id', profileIds);
       }
 
       query = query.order('created_at', { ascending: false });
@@ -197,12 +234,14 @@ export default function VendorListTab() {
       const { data, error, count } = await query.range(from, to);
       if (error) throw error;
 
-      const vendorList: VendorItem[] = (data || []).map((p) => ({
+      const vendorList: VendorItem[] = (data || []).map((p: any) => ({
         id: p.id,
         business_name: p.business_name,
         business_description: p.business_description,
         avatar_url: p.avatar_url,
         business_address: p.business_address,
+        state: p.vendors?.[0]?.state || null,
+        city: p.vendors?.[0]?.city || null,
         product_count: 0,
       }));
 
@@ -427,7 +466,7 @@ export default function VendorListTab() {
             <View style={styles.filterBody}>
               <Text style={[styles.filterSectionLabel, { color: colors.textMuted }]}>FILTER BY LOCATION</Text>
               <Text style={[styles.filterSectionHint, { color: colors.textMuted }]}>
-                Enter a city, area, or neighbourhood name to find stores near you
+                Search by state, city, or area — e.g. Kano, Lagos, Abuja
               </Text>
               <View style={[styles.addressInput, { backgroundColor: colors.background, borderColor: colors.borderLight }]}>
                 <MapPin size={15} color={colors.textMuted} strokeWidth={2} />
@@ -435,7 +474,7 @@ export default function VendorListTab() {
                   style={[styles.addressInputText, { color: colors.text }]}
                   value={addressFilter}
                   onChangeText={setAddressFilter}
-                  placeholder="e.g. Kano, Abuja, Victoria Island..."
+                  placeholder="e.g. Kano, Lagos, Abuja, Victoria Island..."
                   placeholderTextColor={colors.textMuted}
                   autoFocus
                 />
@@ -721,6 +760,17 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: Fonts.medium,
     flex: 1,
+  },
+  stateBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  stateBadgeText: {
+    fontSize: 10,
+    fontFamily: Fonts.semiBold,
+    letterSpacing: 0.3,
   },
   cardDivider: {
     height: 1,
