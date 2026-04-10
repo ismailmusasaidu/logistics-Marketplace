@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,9 +10,8 @@ import {
   Animated,
   Image,
   TextInput,
-  Dimensions,
 } from 'react-native';
-import { X, Star, Search, ShoppingBag, Store, MapPin, Package } from 'lucide-react-native';
+import { X, Search, ShoppingBag, Store, MapPin, Package } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/marketplace/supabase';
@@ -24,7 +23,7 @@ import ProductCard from '@/components/marketplace/ProductCard';
 import ProductDetailModal from '@/components/marketplace/ProductDetailModal';
 import { Fonts } from '@/constants/fonts';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const PAGE_SIZE = 15;
 
 interface VendorInfo {
   id: string;
@@ -32,7 +31,6 @@ interface VendorInfo {
   description?: string;
   logo_url?: string;
   city?: string;
-  state?: string;
   rating: number;
   total_products?: number;
 }
@@ -51,67 +49,129 @@ export default function VendorStorePage({ visible, vendorId, vendorName, onClose
   const [vendorInfo, setVendorInfo] = useState<VendorInfo | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchDebounced, setSearchDebounced] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [detailVisible, setDetailVisible] = useState(false);
   const [addingToCart, setAddingToCart] = useState<string | null>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (visible && vendorId) {
       setSearchQuery('');
+      setSearchDebounced('');
       setProducts([]);
       setVendorInfo(null);
+      setPage(0);
+      setHasMore(true);
+      setTotalCount(0);
       setLoading(true);
-      fetchVendorData(vendorId);
+      fetchVendorProfile(vendorId);
+      fetchProducts(vendorId, 0, '', true);
       Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
     } else {
       fadeAnim.setValue(0);
     }
   }, [visible, vendorId]);
 
-  const fetchVendorData = async (vId: string) => {
-    try {
-      const [profileRes, productsRes] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select('id, business_name, business_description, avatar_url, business_address')
-          .eq('id', vId)
-          .maybeSingle(),
-        supabase
-          .from('products')
-          .select('*')
-          .eq('vendor_id', vId)
-          .eq('is_available', true)
-          .order('created_at', { ascending: false }),
-      ]);
+  useEffect(() => {
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => {
+      setSearchDebounced(searchQuery);
+    }, 350);
+    return () => {
+      if (searchTimer.current) clearTimeout(searchTimer.current);
+    };
+  }, [searchQuery]);
 
-      if (profileRes.data) {
+  useEffect(() => {
+    if (!vendorId || !visible) return;
+    setPage(0);
+    setHasMore(true);
+    setProducts([]);
+    setLoading(true);
+    fetchProducts(vendorId, 0, searchDebounced, true);
+  }, [searchDebounced]);
+
+  const fetchVendorProfile = async (vId: string) => {
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, business_name, business_description, avatar_url, business_address')
+        .eq('id', vId)
+        .maybeSingle();
+
+      if (data) {
         setVendorInfo({
           id: vId,
-          business_name: profileRes.data.business_name || vendorName,
-          description: profileRes.data.business_description,
-          logo_url: profileRes.data.avatar_url,
-          city: profileRes.data.business_address,
+          business_name: data.business_name || vendorName,
+          description: data.business_description,
+          logo_url: data.avatar_url,
+          city: data.business_address,
           rating: 0,
-          total_products: productsRes.data?.length || 0,
         });
       } else {
-        setVendorInfo({
-          id: vId,
-          business_name: vendorName,
-          rating: 0,
-          total_products: productsRes.data?.length || 0,
-        });
+        setVendorInfo({ id: vId, business_name: vendorName, rating: 0 });
       }
-
-      setProducts(productsRes.data || []);
     } catch (err) {
-      console.error('Error fetching vendor store:', err);
-    } finally {
-      setLoading(false);
+      console.error('Error fetching vendor profile:', err);
     }
   };
+
+  const fetchProducts = async (vId: string, pageNum: number, search: string, reset: boolean) => {
+    try {
+      const from = pageNum * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+
+      let query = supabase
+        .from('products')
+        .select('*', { count: 'exact' })
+        .eq('vendor_id', vId)
+        .eq('is_available', true)
+        .order('created_at', { ascending: false })
+        .range(from, to);
+
+      if (search.trim()) {
+        query = query.ilike('name', `%${search.trim()}%`);
+      }
+
+      const { data, error, count } = await query;
+      if (error) throw error;
+
+      const list = data || [];
+      if (reset) {
+        setProducts(list);
+      } else {
+        setProducts((prev) => [...prev, ...list]);
+      }
+
+      const total = count || 0;
+      setTotalCount(total);
+      setHasMore(list.length === PAGE_SIZE && from + PAGE_SIZE < total);
+
+      if (reset) {
+        setVendorInfo((prev) => prev ? { ...prev, total_products: total } : prev);
+      }
+    } catch (err) {
+      console.error('Error fetching products:', err);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const loadMore = useCallback(() => {
+    if (loadingMore || !hasMore || !vendorId) return;
+    const next = page + 1;
+    setPage(next);
+    setLoadingMore(true);
+    fetchProducts(vendorId, next, searchDebounced, false);
+  }, [loadingMore, hasMore, vendorId, page, searchDebounced]);
 
   const addToCart = async (productId: string, e?: any) => {
     if (e) e.stopPropagation();
@@ -144,9 +204,18 @@ export default function VendorStorePage({ visible, vendorId, vendorName, onClose
     }
   };
 
-  const filteredProducts = products.filter((p) =>
-    p.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const renderItem = useCallback(({ item }: { item: Product }) => (
+    <View style={styles.cardWrap}>
+      <ProductCard
+        product={item}
+        onPress={() => {
+          setSelectedProduct(item);
+          setDetailVisible(true);
+        }}
+        onAddToCart={(e) => addToCart(item.id, e)}
+      />
+    </View>
+  ), []);
 
   const initials = (vendorInfo?.business_name || vendorName || 'V')
     .split(' ')
@@ -154,6 +223,8 @@ export default function VendorStorePage({ visible, vendorId, vendorName, onClose
     .map((w) => w[0])
     .join('')
     .toUpperCase();
+
+  const showEmpty = !loading && products.length === 0;
 
   return (
     <Modal
@@ -201,7 +272,7 @@ export default function VendorStorePage({ visible, vendorId, vendorName, onClose
               ) : null}
               <View style={styles.metaPill}>
                 <Package size={11} color="rgba(255,255,255,0.6)" strokeWidth={2} />
-                <Text style={styles.metaText}>{vendorInfo?.total_products ?? products.length} products</Text>
+                <Text style={styles.metaText}>{totalCount} products</Text>
               </View>
               <View style={styles.metaPill}>
                 <Store size={11} color="rgba(255,255,255,0.6)" strokeWidth={2} />
@@ -232,7 +303,7 @@ export default function VendorStorePage({ visible, vendorId, vendorName, onClose
             <ActivityIndicator size="large" color={colors.primary} />
             <Text style={[styles.loadingText, { color: colors.textMuted }]}>Loading products...</Text>
           </View>
-        ) : filteredProducts.length === 0 ? (
+        ) : showEmpty ? (
           <View style={styles.emptyBox}>
             <View style={[styles.emptyIcon, { backgroundColor: colors.primaryLight + '22' }]}>
               <ShoppingBag size={32} color={colors.primary} strokeWidth={1.5} />
@@ -248,30 +319,30 @@ export default function VendorStorePage({ visible, vendorId, vendorName, onClose
           </View>
         ) : (
           <FlatList
-            data={filteredProducts}
+            data={products}
             keyExtractor={(item) => item.id}
             numColumns={2}
             contentContainerStyle={[styles.grid, { paddingBottom: insets.bottom + 32 }]}
             columnWrapperStyle={styles.row}
             showsVerticalScrollIndicator={false}
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.3}
             ListHeaderComponent={
               <Text style={[styles.countLabel, { color: colors.textSecondary }]}>
-                {filteredProducts.length} {filteredProducts.length === 1 ? 'product' : 'products'}
+                {products.length} of {totalCount} {totalCount === 1 ? 'product' : 'products'}
                 {searchQuery ? ` matching "${searchQuery}"` : ''}
               </Text>
             }
-            renderItem={({ item }) => (
-              <View style={styles.cardWrap}>
-                <ProductCard
-                  product={item}
-                  onPress={() => {
-                    setSelectedProduct(item);
-                    setDetailVisible(true);
-                  }}
-                  onAddToCart={(e) => addToCart(item.id, e)}
-                />
-              </View>
-            )}
+            ListFooterComponent={
+              loadingMore ? (
+                <View style={styles.footerLoader}>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                </View>
+              ) : !hasMore && products.length > 0 ? (
+                <Text style={[styles.endLabel, { color: colors.textMuted }]}>All products loaded</Text>
+              ) : null
+            }
+            renderItem={renderItem}
           />
         )}
 
@@ -438,5 +509,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     paddingBottom: 8,
     paddingTop: 4,
+  },
+  footerLoader: {
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  endLabel: {
+    textAlign: 'center',
+    fontSize: 12,
+    fontFamily: Fonts.medium,
+    paddingVertical: 16,
   },
 });
