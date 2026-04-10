@@ -380,6 +380,125 @@ export default function UserManagement({ onBack }: UserManagementProps) {
     );
   }
 
+  const renderUserItem = useCallback(({ item }: { item: UserProfile }) => {
+    const RoleIcon = roleIcons[item.role];
+    const roleColor = roleColors[item.role];
+    const isCurrentUser = item.id === currentUser?.id;
+    const isLoading = actionLoading === item.id;
+
+    return (
+      <View style={[styles.userCard, item.is_suspended && styles.suspendedCard]}>
+        <View style={styles.cardTop}>
+          <View style={styles.cardNameRow}>
+            <Text style={styles.userName} numberOfLines={1}>{item.full_name}</Text>
+            {isCurrentUser && (
+              <View style={styles.youBadge}>
+                <Text style={styles.youBadgeText}>You</Text>
+              </View>
+            )}
+          </View>
+          <View style={styles.badgesRow}>
+            <View style={[styles.roleBadge, { backgroundColor: roleColor + '14' }]}>
+              <RoleIcon size={12} color={roleColor} />
+              <Text style={[styles.roleText, { color: roleColor }]}>
+                {roleLabels[item.role]}
+              </Text>
+            </View>
+            {item.is_suspended && (
+              <View style={styles.suspendedBadge}>
+                <Lock size={10} color="#ef4444" />
+                <Text style={styles.suspendedText}>Suspended</Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        <View style={styles.cardDivider} />
+
+        <View style={styles.detailRow}>
+          <View style={styles.detailIconWrap}>
+            <Mail size={13} color="#8b909a" />
+          </View>
+          <Text style={styles.detailText} numberOfLines={1}>{item.email}</Text>
+        </View>
+
+        {item.phone && (
+          <View style={styles.detailRow}>
+            <View style={styles.detailIconWrap}>
+              <Phone size={13} color="#8b909a" />
+            </View>
+            <Text style={styles.detailText}>{item.phone}</Text>
+          </View>
+        )}
+
+        <View style={styles.detailRow}>
+          <View style={styles.detailIconWrap}>
+            <Calendar size={13} color="#8b909a" />
+          </View>
+          <Text style={styles.detailText}>Joined {formatDate(item.created_at)}</Text>
+        </View>
+
+        {item.is_suspended && item.suspended_at && (
+          <View style={styles.detailRow}>
+            <View style={styles.detailIconWrap}>
+              <Lock size={13} color="#ef4444" />
+            </View>
+            <Text style={[styles.detailText, { color: '#ef4444' }]}>
+              Suspended {formatDate(item.suspended_at)}
+            </Text>
+          </View>
+        )}
+
+        <View style={styles.cardActions}>
+          <TouchableOpacity
+            style={styles.actionBtn}
+            onPress={() => openEditModal(item)}
+            disabled={isLoading}
+          >
+            <Edit3 size={14} color="#ff8c00" />
+            <Text style={styles.actionBtnTextEdit}>Edit</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionBtn, item.is_suspended ? styles.actionBtnUnsuspend : styles.actionBtnSuspend]}
+            onPress={() => toggleSuspension(item)}
+            disabled={isLoading || isCurrentUser}
+          >
+            {isLoading ? (
+              <ActivityIndicator size="small" color={item.is_suspended ? '#059669' : '#f59e0b'} />
+            ) : (
+              <>
+                {item.is_suspended ? (
+                  <Unlock size={14} color="#059669" />
+                ) : (
+                  <Lock size={14} color="#f59e0b" />
+                )}
+                <Text style={item.is_suspended ? styles.actionBtnTextUnsuspend : styles.actionBtnTextSuspend}>
+                  {item.is_suspended ? 'Unsuspend' : 'Suspend'}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionBtn, styles.actionBtnDelete]}
+            onPress={() => deleteUser(item.id, item.full_name)}
+            disabled={isLoading || isCurrentUser}
+          >
+            {isLoading ? (
+              <ActivityIndicator size="small" color="#ef4444" />
+            ) : (
+              <>
+                <Trash2 size={14} color="#ef4444" />
+                <Text style={styles.actionBtnTextDelete}>Delete</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }, [currentUser, actionLoading, roleColors, formatDate, openEditModal, toggleSuspension, deleteUser]);
+
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
@@ -482,124 +601,12 @@ export default function UserManagement({ onBack }: UserManagementProps) {
             <Text style={styles.emptySubtitle}>Try a different search or filter</Text>
           </View>
         }
-        renderItem={({ item }) => {
-          const RoleIcon = roleIcons[item.role];
-          const roleColor = roleColors[item.role];
-          const isCurrentUser = item.id === currentUser?.id;
-          const isLoading = actionLoading === item.id;
-
-          return (
-            <View style={[styles.userCard, item.is_suspended && styles.suspendedCard]}>
-              <View style={styles.cardTop}>
-                <View style={styles.cardNameRow}>
-                  <Text style={styles.userName} numberOfLines={1}>{item.full_name}</Text>
-                  {isCurrentUser && (
-                    <View style={styles.youBadge}>
-                      <Text style={styles.youBadgeText}>You</Text>
-                    </View>
-                  )}
-                </View>
-                <View style={styles.badgesRow}>
-                  <View style={[styles.roleBadge, { backgroundColor: roleColor + '14' }]}>
-                    <RoleIcon size={12} color={roleColor} />
-                    <Text style={[styles.roleText, { color: roleColor }]}>
-                      {roleLabels[item.role]}
-                    </Text>
-                  </View>
-                  {item.is_suspended && (
-                    <View style={styles.suspendedBadge}>
-                      <Lock size={10} color="#ef4444" />
-                      <Text style={styles.suspendedText}>Suspended</Text>
-                    </View>
-                  )}
-                </View>
-              </View>
-
-              <View style={styles.cardDivider} />
-
-              <View style={styles.detailRow}>
-                <View style={styles.detailIconWrap}>
-                  <Mail size={13} color="#8b909a" />
-                </View>
-                <Text style={styles.detailText} numberOfLines={1}>{item.email}</Text>
-              </View>
-
-              {item.phone && (
-                <View style={styles.detailRow}>
-                  <View style={styles.detailIconWrap}>
-                    <Phone size={13} color="#8b909a" />
-                  </View>
-                  <Text style={styles.detailText}>{item.phone}</Text>
-                </View>
-              )}
-
-              <View style={styles.detailRow}>
-                <View style={styles.detailIconWrap}>
-                  <Calendar size={13} color="#8b909a" />
-                </View>
-                <Text style={styles.detailText}>Joined {formatDate(item.created_at)}</Text>
-              </View>
-
-              {item.is_suspended && item.suspended_at && (
-                <View style={styles.detailRow}>
-                  <View style={styles.detailIconWrap}>
-                    <Lock size={13} color="#ef4444" />
-                  </View>
-                  <Text style={[styles.detailText, { color: '#ef4444' }]}>
-                    Suspended {formatDate(item.suspended_at)}
-                  </Text>
-                </View>
-              )}
-
-              <View style={styles.cardActions}>
-                <TouchableOpacity
-                  style={styles.actionBtn}
-                  onPress={() => openEditModal(item)}
-                  disabled={isLoading}
-                >
-                  <Edit3 size={14} color="#ff8c00" />
-                  <Text style={styles.actionBtnTextEdit}>Edit</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.actionBtn, item.is_suspended ? styles.actionBtnUnsuspend : styles.actionBtnSuspend]}
-                  onPress={() => toggleSuspension(item)}
-                  disabled={isLoading || isCurrentUser}
-                >
-                  {isLoading ? (
-                    <ActivityIndicator size="small" color={item.is_suspended ? '#059669' : '#f59e0b'} />
-                  ) : (
-                    <>
-                      {item.is_suspended ? (
-                        <Unlock size={14} color="#059669" />
-                      ) : (
-                        <Lock size={14} color="#f59e0b" />
-                      )}
-                      <Text style={item.is_suspended ? styles.actionBtnTextUnsuspend : styles.actionBtnTextSuspend}>
-                        {item.is_suspended ? 'Unsuspend' : 'Suspend'}
-                      </Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.actionBtn, styles.actionBtnDelete]}
-                  onPress={() => deleteUser(item.id, item.full_name)}
-                  disabled={isLoading || isCurrentUser}
-                >
-                  {isLoading ? (
-                    <ActivityIndicator size="small" color="#ef4444" />
-                  ) : (
-                    <>
-                      <Trash2 size={14} color="#ef4444" />
-                      <Text style={styles.actionBtnTextDelete}>Delete</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-          );
-        }}
+        renderItem={renderUserItem}
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        windowSize={5}
+        removeClippedSubviews={true}
+        updateCellsBatchingPeriod={50}
       />
 
       <Modal visible={showEditModal} transparent animationType="slide" onRequestClose={closeEditModal}>

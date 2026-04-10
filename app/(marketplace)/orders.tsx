@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -258,6 +258,134 @@ export default function OrdersScreen() {
     );
   }
 
+  const renderOrderItem = useCallback(({ item }: { item: Order }) => {
+    const StatusIcon = statusIcons[item.status];
+    const statusColor = statusColors[item.status];
+    const items = orderItems[item.id] || [];
+
+    return (
+      <View style={[styles.orderCard, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
+        <TouchableOpacity
+          onPress={() => router.push(`/order-tracking?orderId=${item.id}`)}
+        >
+          <View style={[styles.orderHeader, { borderBottomColor: colors.borderLight }]}>
+            <View style={styles.orderInfo}>
+              <Text style={[styles.orderNumber, { color: colors.text }]}>Order #{item.order_number}</Text>
+              <Text style={[styles.orderDate, { color: colors.textMuted }]}>{formatDate(item.created_at)}</Text>
+            </View>
+            <View style={[styles.statusBadge, { backgroundColor: statusColor + '20' }]}>
+              <StatusIcon size={16} color={statusColor} />
+              <Text style={[styles.statusText, { color: statusColor }]}>
+                {getStatusLabel(item.status)}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.orderDetails}>
+            <View style={styles.detailRow}>
+              <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Subtotal</Text>
+              <Text style={[styles.detailValue, { color: colors.text }]}>₦{item.subtotal.toFixed(2)}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Delivery Fee</Text>
+              <Text style={[styles.detailValue, { color: colors.text }]}>₦{item.delivery_fee.toFixed(2)}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Tax</Text>
+              <Text style={[styles.detailValue, { color: colors.text }]}>₦{item.tax.toFixed(2)}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Payment Method</Text>
+              <View style={styles.paymentContainer}>
+                <Text style={[styles.paymentMethod, { color: colors.primary }]}>
+                  {item.payment_method === 'cash_on_delivery' ? 'Cash on Delivery' :
+                   item.payment_method === 'wallet' ? 'Wallet' :
+                   item.payment_method === 'online' ? 'Online Payment' :
+                   'Bank Transfer'}
+                </Text>
+                {item.payment_method === 'transfer' && item.payment_status === 'completed' && (
+                  <View style={[styles.paidBadge, { backgroundColor: colors.successLight }]}>
+                    <CheckCircle size={12} color={colors.success} />
+                    <Text style={[styles.paidText, { color: colors.success }]}>Paid</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+            <View style={[styles.detailRow, styles.totalRow, { borderTopColor: colors.borderLight }]}>
+              <Text style={[styles.totalLabel, { color: colors.text }]}>Total</Text>
+              <Text style={[styles.totalValue, { color: colors.primaryDark }]}>₦{item.total.toFixed(2)}</Text>
+            </View>
+          </View>
+
+          <View style={[styles.addressContainer, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderLight }]}>
+            <Text style={[styles.addressLabel, { color: colors.textMuted }]}>Delivery Address</Text>
+            <Text style={[styles.addressText, { color: colors.text }]}>{item.delivery_address}</Text>
+          </View>
+        </TouchableOpacity>
+
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity
+            style={[styles.receiptButton, { flex: 1, backgroundColor: colors.primary + '15', borderColor: colors.primary + '40' }]}
+            onPress={() => handleViewReceipt(item)}
+            activeOpacity={0.7}
+          >
+            <Receipt size={18} color={colors.primary} />
+            <Text style={[styles.receiptButtonText, { color: colors.primary }]}>View Receipt</Text>
+          </TouchableOpacity>
+          {item.status === 'delivered' && (
+            <TouchableOpacity
+              style={[styles.receiptButton, { flex: 1, backgroundColor: colors.successLight, borderColor: colors.success + '40' }]}
+              onPress={() => handleOpenReturn(item)}
+              activeOpacity={0.7}
+            >
+              <Receipt size={18} color={colors.success} />
+              <Text style={[styles.receiptButtonText, { color: colors.success }]}>Return</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {item.status === 'delivered' && items.length > 0 && (
+          <View style={[styles.reviewSection, { borderTopColor: colors.borderLight }]}>
+            <Text style={[styles.reviewSectionTitle, { color: colors.text }]}>Rate Your Purchase</Text>
+            {items.map((orderItem) => (
+              <View key={orderItem.id} style={[styles.reviewItem, { backgroundColor: colors.surfaceSecondary }]}>
+                <View style={styles.reviewItemInfo}>
+                  <Text style={[styles.reviewItemName, { color: colors.text }]} numberOfLines={1}>
+                    {orderItem.product.name}
+                  </Text>
+                  <Text style={[styles.reviewItemQuantity, { color: colors.textMuted }]}>
+                    Qty: {orderItem.quantity}
+                    {(orderItem as any).selected_size ? ` · Size: ${(orderItem as any).selected_size}` : ''}
+                    {(orderItem as any).selected_color ? ` · ${(orderItem as any).selected_color}` : ''}
+                  </Text>
+                </View>
+                {orderItem.hasReview ? (
+                  <View style={[styles.reviewedBadge, { backgroundColor: colors.successLight }]}>
+                    <CheckCircle size={14} color={colors.success} />
+                    <Text style={[styles.reviewedText, { color: colors.success }]}>Reviewed</Text>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={[styles.reviewButton, { backgroundColor: colors.primary + '15' }]}
+                    onPress={() =>
+                      setReviewProduct({
+                        productId: orderItem.product_id,
+                        orderId: item.id,
+                      })
+                    }
+                  >
+                    <Star size={14} color={colors.primary} />
+                    <Text style={[styles.reviewButtonText, { color: colors.primary }]}>Review</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+    );
+  }, [orderItems, statusColors, colors, handleViewReceipt, handleOpenReturn, formatDate, getStatusLabel, setReviewProduct]);
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { paddingTop: insets.top + 20, backgroundColor: colors.primary, shadowColor: colors.primary }]}>
@@ -301,133 +429,12 @@ export default function OrdersScreen() {
           data={filteredOrders}
           keyExtractor={(item) => item.id}
           contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 16 }]}
-          renderItem={({ item }) => {
-            const StatusIcon = statusIcons[item.status];
-            const statusColor = statusColors[item.status];
-            const items = orderItems[item.id] || [];
-
-            return (
-              <View style={[styles.orderCard, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
-                <TouchableOpacity
-                  onPress={() => router.push(`/order-tracking?orderId=${item.id}`)}
-                >
-                  <View style={[styles.orderHeader, { borderBottomColor: colors.borderLight }]}>
-                    <View style={styles.orderInfo}>
-                      <Text style={[styles.orderNumber, { color: colors.text }]}>Order #{item.order_number}</Text>
-                      <Text style={[styles.orderDate, { color: colors.textMuted }]}>{formatDate(item.created_at)}</Text>
-                    </View>
-                    <View style={[styles.statusBadge, { backgroundColor: statusColor + '20' }]}>
-                      <StatusIcon size={16} color={statusColor} />
-                      <Text style={[styles.statusText, { color: statusColor }]}>
-                        {getStatusLabel(item.status)}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.orderDetails}>
-                    <View style={styles.detailRow}>
-                      <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Subtotal</Text>
-                      <Text style={[styles.detailValue, { color: colors.text }]}>₦{item.subtotal.toFixed(2)}</Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                      <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Delivery Fee</Text>
-                      <Text style={[styles.detailValue, { color: colors.text }]}>₦{item.delivery_fee.toFixed(2)}</Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                      <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Tax</Text>
-                      <Text style={[styles.detailValue, { color: colors.text }]}>₦{item.tax.toFixed(2)}</Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                      <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Payment Method</Text>
-                      <View style={styles.paymentContainer}>
-                        <Text style={[styles.paymentMethod, { color: colors.primary }]}>
-                          {item.payment_method === 'cash_on_delivery' ? 'Cash on Delivery' :
-                           item.payment_method === 'wallet' ? 'Wallet' :
-                           item.payment_method === 'online' ? 'Online Payment' :
-                           'Bank Transfer'}
-                        </Text>
-                        {item.payment_method === 'transfer' && item.payment_status === 'completed' && (
-                          <View style={[styles.paidBadge, { backgroundColor: colors.successLight }]}>
-                            <CheckCircle size={12} color={colors.success} />
-                            <Text style={[styles.paidText, { color: colors.success }]}>Paid</Text>
-                          </View>
-                        )}
-                      </View>
-                    </View>
-                    <View style={[styles.detailRow, styles.totalRow, { borderTopColor: colors.borderLight }]}>
-                      <Text style={[styles.totalLabel, { color: colors.text }]}>Total</Text>
-                      <Text style={[styles.totalValue, { color: colors.primaryDark }]}>₦{item.total.toFixed(2)}</Text>
-                    </View>
-                  </View>
-
-                  <View style={[styles.addressContainer, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderLight }]}>
-                    <Text style={[styles.addressLabel, { color: colors.textMuted }]}>Delivery Address</Text>
-                    <Text style={[styles.addressText, { color: colors.text }]}>{item.delivery_address}</Text>
-                  </View>
-                </TouchableOpacity>
-
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                  <TouchableOpacity
-                    style={[styles.receiptButton, { flex: 1, backgroundColor: colors.primary + '15', borderColor: colors.primary + '40' }]}
-                    onPress={() => handleViewReceipt(item)}
-                    activeOpacity={0.7}
-                  >
-                    <Receipt size={18} color={colors.primary} />
-                    <Text style={[styles.receiptButtonText, { color: colors.primary }]}>View Receipt</Text>
-                  </TouchableOpacity>
-                  {item.status === 'delivered' && (
-                    <TouchableOpacity
-                      style={[styles.receiptButton, { flex: 1, backgroundColor: colors.successLight, borderColor: colors.success + '40' }]}
-                      onPress={() => handleOpenReturn(item)}
-                      activeOpacity={0.7}
-                    >
-                      <Receipt size={18} color={colors.success} />
-                      <Text style={[styles.receiptButtonText, { color: colors.success }]}>Return</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-
-                {item.status === 'delivered' && items.length > 0 && (
-                  <View style={[styles.reviewSection, { borderTopColor: colors.borderLight }]}>
-                    <Text style={[styles.reviewSectionTitle, { color: colors.text }]}>Rate Your Purchase</Text>
-                    {items.map((orderItem) => (
-                      <View key={orderItem.id} style={[styles.reviewItem, { backgroundColor: colors.surfaceSecondary }]}>
-                        <View style={styles.reviewItemInfo}>
-                          <Text style={[styles.reviewItemName, { color: colors.text }]} numberOfLines={1}>
-                            {orderItem.product.name}
-                          </Text>
-                          <Text style={[styles.reviewItemQuantity, { color: colors.textMuted }]}>
-                            Qty: {orderItem.quantity}
-                            {(orderItem as any).selected_size ? ` · Size: ${(orderItem as any).selected_size}` : ''}
-                            {(orderItem as any).selected_color ? ` · ${(orderItem as any).selected_color}` : ''}
-                          </Text>
-                        </View>
-                        {orderItem.hasReview ? (
-                          <View style={[styles.reviewedBadge, { backgroundColor: colors.successLight }]}>
-                            <CheckCircle size={14} color={colors.success} />
-                            <Text style={[styles.reviewedText, { color: colors.success }]}>Reviewed</Text>
-                          </View>
-                        ) : (
-                          <TouchableOpacity
-                            style={[styles.reviewButton, { backgroundColor: colors.primary + '15' }]}
-                            onPress={() =>
-                              setReviewProduct({
-                                productId: orderItem.product_id,
-                                orderId: item.id,
-                              })
-                            }
-                          >
-                            <Star size={14} color={colors.primary} />
-                            <Text style={[styles.reviewButtonText, { color: colors.primary }]}>Review</Text>
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </View>
-            );
-          }}
+          renderItem={renderOrderItem}
+          initialNumToRender={6}
+          maxToRenderPerBatch={6}
+          windowSize={5}
+          removeClippedSubviews={true}
+          updateCellsBatchingPeriod={50}
         />
       )}
 

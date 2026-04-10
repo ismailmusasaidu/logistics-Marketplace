@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -235,6 +235,78 @@ export default function VendorManagement({ onBack }: VendorManagementProps) {
     );
   }
 
+  const renderVendorItem = useCallback(({ item }: { item: Profile }) => {
+    const config = statusConfig[(item as any).vendor_status] || statusConfig.pending;
+    const StatusIcon = config.icon;
+
+    return (
+      <TouchableOpacity
+        style={styles.vendorCard}
+        onPress={() => {
+          setSelectedVendor(item);
+          setModalTab('info');
+          setStoreData(null);
+          setShowModal(true);
+        }}
+        activeOpacity={0.7}
+      >
+        <View style={styles.cardTop}>
+          <View style={styles.cardNameRow}>
+            <View style={styles.vendorAvatarWrap}>
+              <Store size={18} color="#ff8c00" />
+            </View>
+            <View style={styles.cardNameContent}>
+              <Text style={styles.vendorName} numberOfLines={1}>
+                {(item as any).business_name || item.full_name}
+              </Text>
+              <Text style={styles.vendorOwner} numberOfLines={1}>
+                {(item as any).business_name ? item.full_name : ''}
+              </Text>
+            </View>
+          </View>
+          <View style={[styles.statusBadge, { backgroundColor: config.bg }]}>
+            <StatusIcon size={12} color={config.color} />
+            <Text style={[styles.statusText, { color: config.color }]}>
+              {config.label}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.cardDivider} />
+
+        <View style={styles.detailRow}>
+          <View style={styles.detailIconWrap}>
+            <Mail size={13} color="#8b909a" />
+          </View>
+          <Text style={styles.detailText} numberOfLines={1}>{item.email}</Text>
+        </View>
+
+        {(item as any).business_address && (
+          <View style={styles.detailRow}>
+            <View style={styles.detailIconWrap}>
+              <MapPin size={13} color="#8b909a" />
+            </View>
+            <Text style={styles.detailText} numberOfLines={1}>{(item as any).business_address}</Text>
+          </View>
+        )}
+
+        {(item as any).business_phone && (
+          <View style={styles.detailRow}>
+            <View style={styles.detailIconWrap}>
+              <Phone size={13} color="#8b909a" />
+            </View>
+            <Text style={styles.detailText}>{(item as any).business_phone}</Text>
+          </View>
+        )}
+
+        <View style={styles.cardFooter}>
+          <Text style={styles.viewDetailsText}>View Details</Text>
+          <ChevronRight size={16} color="#c4c9d4" />
+        </View>
+      </TouchableOpacity>
+    );
+  }, [setSelectedVendor, setShowModal]);
+
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
@@ -327,77 +399,12 @@ export default function VendorManagement({ onBack }: VendorManagementProps) {
             <Text style={styles.emptySubtitle}>Try a different search or filter</Text>
           </View>
         }
-        renderItem={({ item }) => {
-          const config = statusConfig[item.vendor_status] || statusConfig.pending;
-          const StatusIcon = config.icon;
-
-          return (
-            <TouchableOpacity
-              style={styles.vendorCard}
-              onPress={() => {
-                setSelectedVendor(item);
-                setModalTab('info');
-                setStoreData(null);
-                setShowModal(true);
-              }}
-              activeOpacity={0.7}
-            >
-              <View style={styles.cardTop}>
-                <View style={styles.cardNameRow}>
-                  <View style={styles.vendorAvatarWrap}>
-                    <Store size={18} color="#ff8c00" />
-                  </View>
-                  <View style={styles.cardNameContent}>
-                    <Text style={styles.vendorName} numberOfLines={1}>
-                      {item.business_name || item.full_name}
-                    </Text>
-                    <Text style={styles.vendorOwner} numberOfLines={1}>
-                      {item.business_name ? item.full_name : ''}
-                    </Text>
-                  </View>
-                </View>
-                <View style={[styles.statusBadge, { backgroundColor: config.bg }]}>
-                  <StatusIcon size={12} color={config.color} />
-                  <Text style={[styles.statusText, { color: config.color }]}>
-                    {config.label}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.cardDivider} />
-
-              <View style={styles.detailRow}>
-                <View style={styles.detailIconWrap}>
-                  <Mail size={13} color="#8b909a" />
-                </View>
-                <Text style={styles.detailText} numberOfLines={1}>{item.email}</Text>
-              </View>
-
-              {item.business_address && (
-                <View style={styles.detailRow}>
-                  <View style={styles.detailIconWrap}>
-                    <MapPin size={13} color="#8b909a" />
-                  </View>
-                  <Text style={styles.detailText} numberOfLines={1}>{item.business_address}</Text>
-                </View>
-              )}
-
-              {item.business_phone && (
-                <View style={styles.detailRow}>
-                  <View style={styles.detailIconWrap}>
-                    <Phone size={13} color="#8b909a" />
-                  </View>
-                  <Text style={styles.detailText}>{item.business_phone}</Text>
-                </View>
-              )}
-
-              <View style={styles.cardFooter}>
-                <Text style={styles.viewDetailsText}>View Details</Text>
-                <ChevronRight size={16} color="#c4c9d4" />
-              </View>
-            </TouchableOpacity>
-          );
-        }}
+        renderItem={renderVendorItem}
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        windowSize={5}
+        removeClippedSubviews={true}
+        updateCellsBatchingPeriod={50}
       />
 
       {/* Vendor Detail Modal */}

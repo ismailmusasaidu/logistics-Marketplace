@@ -424,6 +424,119 @@ export default function OrderManagement({ onBack }: OrderManagementProps) {
     );
   }
 
+  const renderOrderItem = useCallback(({ item }: { item: OrderWithCustomer }) => {
+    const StatusIcon = statusIcons[item.status];
+    const statusColor = statusColors[item.status];
+    const statusBg = statusBgColors[item.status];
+
+    return (
+      <TouchableOpacity
+        style={styles.orderCard}
+        onPress={() => {
+          setSelectedOrder(item);
+          setSelectedOrderItems([]);
+          fetchSelectedOrderItems(item.id);
+          setShowStatusModal(true);
+        }}
+        activeOpacity={0.7}
+      >
+        <View style={styles.cardTop}>
+          <View style={styles.orderIdRow}>
+            <Text style={styles.orderNumber}>#{item.order_number}</Text>
+            <Text style={styles.orderDate}>{formatDate(item.created_at)}</Text>
+          </View>
+          <View style={[styles.statusBadge, { backgroundColor: statusBg }]}>
+            <StatusIcon size={14} color={statusColor} />
+            <Text style={[styles.statusText, { color: statusColor }]}>
+              {getStatusLabel(item.status)}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.cardDivider} />
+
+        <View style={styles.cardDetailRow}>
+          <View style={styles.detailIconWrap}>
+            <User size={14} color="#ff8c00" />
+          </View>
+          <View style={styles.detailContent}>
+            <Text style={styles.detailLabel}>Customer</Text>
+            <Text style={styles.detailValue}>{item.customer.full_name}</Text>
+          </View>
+        </View>
+
+        <View style={styles.cardDetailRow}>
+          <View style={styles.detailIconWrap}>
+            <Store size={14} color="#f59e0b" />
+          </View>
+          <View style={styles.detailContent}>
+            <Text style={styles.detailLabel}>Vendor</Text>
+            <Text style={styles.detailValue}>{item.vendor.business_name}</Text>
+          </View>
+        </View>
+
+        <View style={styles.cardDetailRow}>
+          <View style={styles.detailIconWrap}>
+            <MapPin size={14} color="#10b981" />
+          </View>
+          <View style={styles.detailContent}>
+            <Text style={styles.detailLabel}>Delivery</Text>
+            <Text style={styles.detailValue}>
+              {item.delivery_type === 'pickup' ? 'Pickup' : 'Delivery'}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.cardDetailRow}>
+          <View style={styles.detailIconWrap}>
+            <CreditCard size={14} color="#3b82f6" />
+          </View>
+          <View style={styles.detailContent}>
+            <Text style={styles.detailLabel}>Payment</Text>
+            <Text style={styles.detailValue}>{getPaymentLabel(item.payment_method)}</Text>
+          </View>
+          {item.payment_method === 'transfer' && (
+            <>
+              {item.payment_status === 'completed' ? (
+                <View style={styles.paidBadge}>
+                  <CheckCircle size={12} color="#059669" />
+                  <Text style={styles.paidText}>Paid</Text>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.markPaidButton}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    markAsPaid(item);
+                  }}
+                >
+                  <Text style={styles.markPaidText}>Mark Paid</Text>
+                </TouchableOpacity>
+              )}
+            </>
+          )}
+        </View>
+
+        <View style={styles.cardFooter}>
+          <TouchableOpacity
+            style={styles.editBtnSmall}
+            onPress={(e) => {
+              e.stopPropagation();
+              setSelectedOrder(item);
+              setShowStatusModal(true);
+            }}
+          >
+            <Edit3 size={14} color="#ff8c00" />
+            <Text style={styles.editBtnText}>Update</Text>
+          </TouchableOpacity>
+          <Text style={styles.totalAmount}>
+            {'\u20A6'}{Number(item.total).toLocaleString('en-NG', { minimumFractionDigits: 2 })}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  }, [statusColors, statusBgColors, formatDate, getStatusLabel, getPaymentLabel, markAsPaid, setSelectedOrder, fetchSelectedOrderItems, setShowStatusModal, setSelectedOrderItems]);
+
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
@@ -509,118 +622,12 @@ export default function OrderManagement({ onBack }: OrderManagementProps) {
             </Text>
           </View>
         }
-        renderItem={({ item }) => {
-          const StatusIcon = statusIcons[item.status];
-          const statusColor = statusColors[item.status];
-          const statusBg = statusBgColors[item.status];
-
-          return (
-            <TouchableOpacity
-              style={styles.orderCard}
-              onPress={() => {
-                setSelectedOrder(item);
-                setSelectedOrderItems([]);
-                fetchSelectedOrderItems(item.id);
-                setShowStatusModal(true);
-              }}
-              activeOpacity={0.7}
-            >
-              <View style={styles.cardTop}>
-                <View style={styles.orderIdRow}>
-                  <Text style={styles.orderNumber}>#{item.order_number}</Text>
-                  <Text style={styles.orderDate}>{formatDate(item.created_at)}</Text>
-                </View>
-                <View style={[styles.statusBadge, { backgroundColor: statusBg }]}>
-                  <StatusIcon size={14} color={statusColor} />
-                  <Text style={[styles.statusText, { color: statusColor }]}>
-                    {getStatusLabel(item.status)}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.cardDivider} />
-
-              <View style={styles.cardDetailRow}>
-                <View style={styles.detailIconWrap}>
-                  <User size={14} color="#ff8c00" />
-                </View>
-                <View style={styles.detailContent}>
-                  <Text style={styles.detailLabel}>Customer</Text>
-                  <Text style={styles.detailValue}>{item.customer.full_name}</Text>
-                </View>
-              </View>
-
-              <View style={styles.cardDetailRow}>
-                <View style={styles.detailIconWrap}>
-                  <Store size={14} color="#f59e0b" />
-                </View>
-                <View style={styles.detailContent}>
-                  <Text style={styles.detailLabel}>Vendor</Text>
-                  <Text style={styles.detailValue}>{item.vendor.business_name}</Text>
-                </View>
-              </View>
-
-              <View style={styles.cardDetailRow}>
-                <View style={styles.detailIconWrap}>
-                  <MapPin size={14} color="#10b981" />
-                </View>
-                <View style={styles.detailContent}>
-                  <Text style={styles.detailLabel}>Delivery</Text>
-                  <Text style={styles.detailValue}>
-                    {item.delivery_type === 'pickup' ? 'Pickup' : 'Delivery'}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.cardDetailRow}>
-                <View style={styles.detailIconWrap}>
-                  <CreditCard size={14} color="#3b82f6" />
-                </View>
-                <View style={styles.detailContent}>
-                  <Text style={styles.detailLabel}>Payment</Text>
-                  <Text style={styles.detailValue}>{getPaymentLabel(item.payment_method)}</Text>
-                </View>
-                {item.payment_method === 'transfer' && (
-                  <>
-                    {item.payment_status === 'completed' ? (
-                      <View style={styles.paidBadge}>
-                        <CheckCircle size={12} color="#059669" />
-                        <Text style={styles.paidText}>Paid</Text>
-                      </View>
-                    ) : (
-                      <TouchableOpacity
-                        style={styles.markPaidButton}
-                        onPress={(e) => {
-                          e.stopPropagation();
-                          markAsPaid(item);
-                        }}
-                      >
-                        <Text style={styles.markPaidText}>Mark Paid</Text>
-                      </TouchableOpacity>
-                    )}
-                  </>
-                )}
-              </View>
-
-              <View style={styles.cardFooter}>
-                <TouchableOpacity
-                  style={styles.editBtnSmall}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    setSelectedOrder(item);
-                    setShowStatusModal(true);
-                  }}
-                >
-                  <Edit3 size={14} color="#ff8c00" />
-                  <Text style={styles.editBtnText}>Update</Text>
-                </TouchableOpacity>
-                <Text style={styles.totalAmount}>
-                  {'\u20A6'}{Number(item.total).toLocaleString('en-NG', { minimumFractionDigits: 2 })}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          );
-        }}
+        renderItem={renderOrderItem}
+        initialNumToRender={6}
+        maxToRenderPerBatch={6}
+        windowSize={5}
+        removeClippedSubviews={true}
+        updateCellsBatchingPeriod={50}
       />
 
       {/* Status Update Modal */}

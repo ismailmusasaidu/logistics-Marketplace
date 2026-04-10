@@ -283,6 +283,78 @@ export default function CartScreen() {
     );
   }
 
+  const renderCartItem = useCallback(({ item }: { item: typeof cartItems[0] }) => (
+    <View style={[styles.cartItem, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
+      <TouchableOpacity
+        activeOpacity={0.7}
+        onPress={() => handleViewProduct(item.product_id)}
+      >
+        <Image
+          source={{
+            uri: item.product.image_url || 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg',
+          }}
+          style={[styles.itemImage, { backgroundColor: colors.surfaceSecondary }]}
+        />
+      </TouchableOpacity>
+      <View style={styles.itemInfo}>
+        <TouchableOpacity activeOpacity={0.7} onPress={() => handleViewProduct(item.product_id)} style={styles.itemNamePressable}>
+          <Text style={[styles.itemName, { color: colors.text }]}>{item.product.name}</Text>
+          {item.selected_option && (
+            <View style={[styles.optionBadge, { backgroundColor: colors.primaryLight ?? '#fff7ed', borderColor: colors.primary + '30' }]}>
+              <Text style={[styles.optionBadgeText, { color: colors.primary }]}>{item.selected_option}</Text>
+            </View>
+          )}
+          <Text style={[styles.itemPrice, { color: colors.primaryDark }]}>
+            ₦{(item.option_price ?? item.product.price).toFixed(2)} / {item.product.unit}
+          </Text>
+        </TouchableOpacity>
+        {item.product.weight_kg != null && (
+          <View style={styles.itemWeightRow}>
+            <Scale size={11} color={colors.textMuted} strokeWidth={2} />
+            <Text style={[styles.itemWeightText, { color: colors.textMuted }]}>
+              {(item.product.weight_kg * item.quantity).toFixed(3)} kg
+              {item.quantity > 1 && (
+                <Text style={[styles.itemWeightUnit, { color: colors.textMuted }]}> ({item.product.weight_kg} kg each)</Text>
+              )}
+            </Text>
+          </View>
+        )}
+        <View style={styles.itemBottomRow}>
+          <View style={styles.quantityContainer}>
+            <TouchableOpacity
+              style={[styles.quantityButton, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderLight }]}
+              onPress={() => updateQuantity(item.id, item.quantity - 1)}
+            >
+              <Minus size={16} color={colors.textSecondary} />
+            </TouchableOpacity>
+            <Text style={[styles.quantity, { color: colors.text }]}>{item.quantity}</Text>
+            <TouchableOpacity
+              style={[styles.quantityButton, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderLight }]}
+              onPress={() => updateQuantity(item.id, item.quantity + 1)}
+            >
+              <Plus size={16} color={colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
+          {item.product.return_policy ? (
+            <TouchableOpacity
+              style={[styles.returnPolicyBtn, { backgroundColor: colors.successLight, borderColor: colors.success + '40' }]}
+              onPress={() => setReturnPolicyProduct({ name: item.product.name, policy: item.product.return_policy! })}
+            >
+              <RotateCcw size={11} color={colors.success} strokeWidth={2.2} />
+              <Text style={[styles.returnPolicyBtnText, { color: colors.success }]}>Return Policy</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      </View>
+      <TouchableOpacity
+        style={styles.deleteButton}
+        onPress={() => removeItem(item.id)}
+      >
+        <Trash2 size={20} color={colors.error} />
+      </TouchableOpacity>
+    </View>
+  ), [colors, handleViewProduct, updateQuantity, removeItem, setReturnPolicyProduct]);
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { paddingTop: insets.top + 20, backgroundColor: colors.primary, shadowColor: colors.primary }]}>
@@ -294,77 +366,12 @@ export default function CartScreen() {
         data={cartItems}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        renderItem={({ item }) => (
-          <View style={[styles.cartItem, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => handleViewProduct(item.product_id)}
-            >
-              <Image
-                source={{
-                  uri: item.product.image_url || 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg',
-                }}
-                style={[styles.itemImage, { backgroundColor: colors.surfaceSecondary }]}
-              />
-            </TouchableOpacity>
-            <View style={styles.itemInfo}>
-              <TouchableOpacity activeOpacity={0.7} onPress={() => handleViewProduct(item.product_id)} style={styles.itemNamePressable}>
-                <Text style={[styles.itemName, { color: colors.text }]}>{item.product.name}</Text>
-                {item.selected_option && (
-                  <View style={[styles.optionBadge, { backgroundColor: colors.primaryLight ?? '#fff7ed', borderColor: colors.primary + '30' }]}>
-                    <Text style={[styles.optionBadgeText, { color: colors.primary }]}>{item.selected_option}</Text>
-                  </View>
-                )}
-                <Text style={[styles.itemPrice, { color: colors.primaryDark }]}>
-                  ₦{(item.option_price ?? item.product.price).toFixed(2)} / {item.product.unit}
-                </Text>
-              </TouchableOpacity>
-              {item.product.weight_kg != null && (
-                <View style={styles.itemWeightRow}>
-                  <Scale size={11} color={colors.textMuted} strokeWidth={2} />
-                  <Text style={[styles.itemWeightText, { color: colors.textMuted }]}>
-                    {(item.product.weight_kg * item.quantity).toFixed(3)} kg
-                    {item.quantity > 1 && (
-                      <Text style={[styles.itemWeightUnit, { color: colors.textMuted }]}> ({item.product.weight_kg} kg each)</Text>
-                    )}
-                  </Text>
-                </View>
-              )}
-              <View style={styles.itemBottomRow}>
-                <View style={styles.quantityContainer}>
-                  <TouchableOpacity
-                    style={[styles.quantityButton, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderLight }]}
-                    onPress={() => updateQuantity(item.id, item.quantity - 1)}
-                  >
-                    <Minus size={16} color={colors.textSecondary} />
-                  </TouchableOpacity>
-                  <Text style={[styles.quantity, { color: colors.text }]}>{item.quantity}</Text>
-                  <TouchableOpacity
-                    style={[styles.quantityButton, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderLight }]}
-                    onPress={() => updateQuantity(item.id, item.quantity + 1)}
-                  >
-                    <Plus size={16} color={colors.textSecondary} />
-                  </TouchableOpacity>
-                </View>
-                {item.product.return_policy ? (
-                  <TouchableOpacity
-                    style={[styles.returnPolicyBtn, { backgroundColor: colors.successLight, borderColor: colors.success + '40' }]}
-                    onPress={() => setReturnPolicyProduct({ name: item.product.name, policy: item.product.return_policy! })}
-                  >
-                    <RotateCcw size={11} color={colors.success} strokeWidth={2.2} />
-                    <Text style={[styles.returnPolicyBtnText, { color: colors.success }]}>Return Policy</Text>
-                  </TouchableOpacity>
-                ) : null}
-              </View>
-            </View>
-            <TouchableOpacity
-              style={styles.deleteButton}
-              onPress={() => removeItem(item.id)}
-            >
-              <Trash2 size={20} color={colors.error} />
-            </TouchableOpacity>
-          </View>
-        )}
+        renderItem={renderCartItem}
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        windowSize={5}
+        removeClippedSubviews={true}
+        updateCellsBatchingPeriod={50}
       />
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 20, backgroundColor: colors.surface, borderTopColor: colors.borderLight }]}>

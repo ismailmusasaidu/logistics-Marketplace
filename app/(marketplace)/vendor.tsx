@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -263,6 +263,54 @@ export default function VendorScreen() {
   const activeCount = products.filter(p => p.is_available).length;
   const inactiveCount = products.filter(p => !p.is_available).length;
 
+  const renderProductItem = useCallback(({ item }: { item: Product }) => (
+    <TouchableOpacity
+      style={styles.productCard}
+      onPress={() => setEditingProduct(item)}
+      activeOpacity={0.7}
+    >
+      <Image
+        source={{
+          uri: item.image_url || 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg',
+        }}
+        style={styles.productImage}
+      />
+      <View style={styles.productInfo}>
+        <Text style={styles.productName} numberOfLines={1}>{item.name}</Text>
+        <Text style={styles.productPrice}>
+          {'\u20A6'}{item.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+        </Text>
+        <View style={styles.productMeta}>
+          <View style={[styles.stockBadge, item.stock_quantity > 10 ? styles.stockGood : styles.stockLow]}>
+            <Text style={[styles.stockText, item.stock_quantity > 10 ? styles.stockTextGood : styles.stockTextLow]}>
+              {item.stock_quantity} in stock
+            </Text>
+          </View>
+          <View style={[styles.statusDot, item.is_available ? styles.dotActive : styles.dotInactive]} />
+          <Text style={[styles.statusLabel, item.is_available ? styles.labelActive : styles.labelInactive]}>
+            {item.is_available ? 'Active' : 'Inactive'}
+          </Text>
+        </View>
+      </View>
+      <View style={styles.cardActions}>
+        <TouchableOpacity
+          style={styles.cardAction}
+          onPress={() => setEditingProduct(item)}
+          activeOpacity={0.7}
+        >
+          <Edit size={16} color="#ff8c00" />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.cardAction}
+          onPress={() => handleDeleteProduct(item.id)}
+          activeOpacity={0.7}
+        >
+          <Trash2 size={16} color="#ef4444" />
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
+  ), [setEditingProduct, handleDeleteProduct]);
+
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
@@ -389,53 +437,12 @@ export default function VendorScreen() {
             </Text>
           </View>
         }
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.productCard}
-            onPress={() => setEditingProduct(item)}
-            activeOpacity={0.7}
-          >
-            <Image
-              source={{
-                uri: item.image_url || 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg',
-              }}
-              style={styles.productImage}
-            />
-            <View style={styles.productInfo}>
-              <Text style={styles.productName} numberOfLines={1}>{item.name}</Text>
-              <Text style={styles.productPrice}>
-                {'\u20A6'}{item.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-              </Text>
-              <View style={styles.productMeta}>
-                <View style={[styles.stockBadge, item.stock_quantity > 10 ? styles.stockGood : styles.stockLow]}>
-                  <Text style={[styles.stockText, item.stock_quantity > 10 ? styles.stockTextGood : styles.stockTextLow]}>
-                    {item.stock_quantity} in stock
-                  </Text>
-                </View>
-                <View style={[styles.statusDot, item.is_available ? styles.dotActive : styles.dotInactive]} />
-                <Text style={[styles.statusLabel, item.is_available ? styles.labelActive : styles.labelInactive]}>
-                  {item.is_available ? 'Active' : 'Inactive'}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.cardActions}>
-              <TouchableOpacity
-                style={styles.cardAction}
-                onPress={() => setEditingProduct(item)}
-                activeOpacity={0.7}
-              >
-                <Edit size={16} color="#ff8c00" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.cardAction}
-                onPress={() => handleDeleteProduct(item.id)}
-                activeOpacity={0.7}
-              >
-                <Trash2 size={16} color="#ef4444" />
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        )}
+        renderItem={renderProductItem}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={true}
+        updateCellsBatchingPeriod={50}
       />
     </View>
   );
