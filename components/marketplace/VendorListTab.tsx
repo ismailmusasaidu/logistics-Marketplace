@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   Image,
   Animated,
-  ScrollView,
   Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,14 +20,6 @@ import { Fonts } from '@/constants/fonts';
 import VendorStorePage from '@/components/marketplace/VendorStorePage';
 
 const PAGE_SIZE = 12;
-
-const NIGERIAN_STATES = [
-  'Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue',
-  'Borno', 'Cross River', 'Delta', 'Ebonyi', 'Edo', 'Ekiti', 'Enugu',
-  'FCT Abuja', 'Gombe', 'Imo', 'Jigawa', 'Kaduna', 'Kano', 'Katsina',
-  'Kebbi', 'Kogi', 'Kwara', 'Lagos', 'Nasarawa', 'Niger', 'Ogun', 'Ondo',
-  'Osun', 'Oyo', 'Plateau', 'Rivers', 'Sokoto', 'Taraba', 'Yobe', 'Zamfara',
-];
 
 interface VendorItem {
   id: string;
@@ -141,9 +132,7 @@ export default function VendorListTab() {
   const [totalCount, setTotalCount] = useState(0);
 
   const [filterVisible, setFilterVisible] = useState(false);
-  const [selectedState, setSelectedState] = useState('');
   const [addressFilter, setAddressFilter] = useState('');
-  const [appliedState, setAppliedState] = useState('');
   const [appliedAddress, setAppliedAddress] = useState('');
 
   const [storeVisible, setStoreVisible] = useState(false);
@@ -171,14 +160,14 @@ export default function VendorListTab() {
     setVendors([]);
     setPage(0);
     setHasMore(true);
-    fetchVendors(0, true, searchDebounced, appliedState, appliedAddress);
-  }, [searchDebounced, appliedState, appliedAddress]);
+    setLoading(true);
+    fetchVendors(0, true, searchDebounced, appliedAddress);
+  }, [searchDebounced, appliedAddress]);
 
   const fetchVendors = async (
     pageNum: number,
     reset: boolean,
     search: string,
-    state: string,
     address: string,
   ) => {
     try {
@@ -199,9 +188,7 @@ export default function VendorListTab() {
         query = query.ilike('business_name', `%${search.trim()}%`);
       }
 
-      if (state) {
-        query = query.ilike('business_address', `%${state}%`);
-      } else if (address.trim()) {
+      if (address.trim()) {
         query = query.ilike('business_address', `%${address.trim()}%`);
       }
 
@@ -257,25 +244,22 @@ export default function VendorListTab() {
     if (!loadingMore && hasMore) {
       const next = page + 1;
       setPage(next);
-      fetchVendors(next, false, searchDebounced, appliedState, appliedAddress);
+      fetchVendors(next, false, searchDebounced, appliedAddress);
     }
   };
 
   const applyFilters = () => {
-    setAppliedState(selectedState);
     setAppliedAddress(addressFilter);
     setFilterVisible(false);
   };
 
   const clearFilters = () => {
-    setSelectedState('');
     setAddressFilter('');
-    setAppliedState('');
     setAppliedAddress('');
     setFilterVisible(false);
   };
 
-  const hasActiveFilters = appliedState !== '' || appliedAddress !== '';
+  const hasActiveFilters = appliedAddress !== '';
 
   const openStore = useCallback((vendor: VendorItem) => {
     setSelectedVendorId(vendor.id);
@@ -332,7 +316,6 @@ export default function VendorListTab() {
               hasActiveFilters && styles.filterBtnActive,
             ]}
             onPress={() => {
-              setSelectedState(appliedState);
               setAddressFilter(appliedAddress);
               setFilterVisible(true);
             }}
@@ -343,32 +326,18 @@ export default function VendorListTab() {
         </View>
 
         {hasActiveFilters && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.activePills}>
-            {appliedState ? (
-              <View style={styles.activePill}>
-                <MapPin size={10} color="#f97316" strokeWidth={2} />
-                <Text style={styles.activePillText}>{appliedState}</Text>
-                <TouchableOpacity
-                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                  onPress={() => setAppliedState('')}
-                >
-                  <X size={10} color="#f97316" strokeWidth={2.5} />
-                </TouchableOpacity>
-              </View>
-            ) : null}
-            {appliedAddress ? (
-              <View style={styles.activePill}>
-                <MapPin size={10} color="#f97316" strokeWidth={2} />
-                <Text style={styles.activePillText}>{appliedAddress}</Text>
-                <TouchableOpacity
-                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                  onPress={() => setAppliedAddress('')}
-                >
-                  <X size={10} color="#f97316" strokeWidth={2.5} />
-                </TouchableOpacity>
-              </View>
-            ) : null}
-          </ScrollView>
+          <View style={styles.activePills}>
+            <View style={styles.activePill}>
+              <MapPin size={10} color="#f97316" strokeWidth={2} />
+              <Text style={styles.activePillText}>{appliedAddress}</Text>
+              <TouchableOpacity
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                onPress={() => setAppliedAddress('')}
+              >
+                <X size={10} color="#f97316" strokeWidth={2.5} />
+              </TouchableOpacity>
+            </View>
+          </View>
         )}
 
         {!loading && (
@@ -455,49 +424,20 @@ export default function VendorListTab() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} style={styles.filterBody}>
-              <Text style={[styles.filterSectionLabel, { color: colors.textMuted }]}>FILTER BY STATE</Text>
-              <View style={styles.statesGrid}>
-                {NIGERIAN_STATES.map((state) => (
-                  <TouchableOpacity
-                    key={state}
-                    style={[
-                      styles.stateChip,
-                      { borderColor: colors.borderLight, backgroundColor: colors.background },
-                      selectedState === state && { borderColor: '#f97316', backgroundColor: '#f9731610' },
-                    ]}
-                    onPress={() => setSelectedState(selectedState === state ? '' : state)}
-                  >
-                    <Text
-                      style={[
-                        styles.stateChipText,
-                        { color: colors.textMuted },
-                        selectedState === state && { color: '#f97316', fontFamily: Fonts.semiBold },
-                      ]}
-                    >
-                      {state}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <View style={[styles.filterDivider, { backgroundColor: colors.borderLight }]} />
-
-              <Text style={[styles.filterSectionLabel, { color: colors.textMuted }]}>FILTER BY ADDRESS KEYWORD</Text>
+            <View style={styles.filterBody}>
+              <Text style={[styles.filterSectionLabel, { color: colors.textMuted }]}>FILTER BY LOCATION</Text>
               <Text style={[styles.filterSectionHint, { color: colors.textMuted }]}>
-                Type a city, area, or street name
+                Enter a city, area, or neighbourhood name to find stores near you
               </Text>
               <View style={[styles.addressInput, { backgroundColor: colors.background, borderColor: colors.borderLight }]}>
                 <MapPin size={15} color={colors.textMuted} strokeWidth={2} />
                 <TextInput
                   style={[styles.addressInputText, { color: colors.text }]}
                   value={addressFilter}
-                  onChangeText={(v) => {
-                    setAddressFilter(v);
-                    if (v) setSelectedState('');
-                  }}
-                  placeholder="e.g. Lagos Island, Kano, Abuja..."
+                  onChangeText={setAddressFilter}
+                  placeholder="e.g. Kano, Abuja, Victoria Island..."
                   placeholderTextColor={colors.textMuted}
+                  autoFocus
                 />
                 {addressFilter.length > 0 && (
                   <TouchableOpacity onPress={() => setAddressFilter('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -505,7 +445,7 @@ export default function VendorListTab() {
                   </TouchableOpacity>
                 )}
               </View>
-            </ScrollView>
+            </View>
 
             <View style={[styles.filterActions, { borderTopColor: colors.borderLight }]}>
               <TouchableOpacity
@@ -883,26 +823,6 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
     marginBottom: 10,
     marginTop: -8,
-  },
-  statesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 20,
-  },
-  stateChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  stateChipText: {
-    fontSize: 12,
-    fontFamily: Fonts.medium,
-  },
-  filterDivider: {
-    height: 1,
-    marginBottom: 20,
   },
   addressInput: {
     flexDirection: 'row',
