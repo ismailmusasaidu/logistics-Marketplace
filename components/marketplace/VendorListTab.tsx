@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, memo } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,7 @@ import {
   Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Search, Store, MapPin, Package, X, ChevronRight, SlidersHorizontal, ChevronDown } from 'lucide-react-native';
+import { Search, Store, MapPin, Package, X, ChevronRight, SlidersHorizontal } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '@/lib/marketplace/supabase';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -38,6 +38,94 @@ interface VendorItem {
   business_address?: string;
   product_count?: number;
 }
+
+interface VendorCardProps {
+  item: VendorItem;
+  colors: any;
+  fadeAnim: Animated.Value;
+  onPress: (vendor: VendorItem) => void;
+}
+
+const getInitials = (name: string) =>
+  name
+    .split(' ')
+    .slice(0, 2)
+    .map((w) => w[0] || '')
+    .join('')
+    .toUpperCase();
+
+const VendorCard = memo(({ item, colors, fadeAnim, onPress }: VendorCardProps) => {
+  const initials = getInitials(item.business_name);
+  const productCount = item.product_count || 0;
+
+  return (
+    <Animated.View
+      style={[
+        styles.cardWrapper,
+        {
+          opacity: fadeAnim,
+          transform: [{ translateY: fadeAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }],
+        },
+      ]}
+    >
+      <TouchableOpacity
+        style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}
+        onPress={() => onPress(item)}
+        activeOpacity={0.88}
+      >
+        <View style={styles.cardTop}>
+          <View style={styles.avatarWrap}>
+            {item.avatar_url ? (
+              <Image source={{ uri: item.avatar_url }} style={styles.avatarImg} />
+            ) : (
+              <LinearGradient colors={['#f97316', '#ea580c']} style={styles.avatarFallback}>
+                <Text style={styles.avatarInitials}>{initials}</Text>
+              </LinearGradient>
+            )}
+            <View style={[styles.activeDot, { backgroundColor: '#22c55e', borderColor: colors.surface }]} />
+          </View>
+
+          <View style={styles.cardInfo}>
+            <Text style={[styles.vendorName, { color: colors.text }]} numberOfLines={1}>
+              {item.business_name}
+            </Text>
+            {item.business_description ? (
+              <Text style={[styles.vendorDesc, { color: colors.textMuted }]} numberOfLines={2}>
+                {item.business_description}
+              </Text>
+            ) : null}
+            <View style={styles.metaRow}>
+              {item.business_address ? (
+                <View style={styles.metaItem}>
+                  <MapPin size={11} color={colors.textMuted} strokeWidth={2} />
+                  <Text style={[styles.metaText, { color: colors.textMuted }]} numberOfLines={1}>
+                    {item.business_address}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          </View>
+
+          <ChevronRight size={16} color={colors.textMuted} strokeWidth={2} />
+        </View>
+
+        <View style={[styles.cardDivider, { backgroundColor: colors.borderLight }]} />
+
+        <View style={styles.cardBottom}>
+          <View style={styles.statItem}>
+            <Package size={13} color={colors.primary} strokeWidth={2} />
+            <Text style={[styles.statValue, { color: colors.text }]}>{productCount}</Text>
+            <Text style={[styles.statLabel, { color: colors.textMuted }]}>products</Text>
+          </View>
+          <View style={[styles.visitBtn, { backgroundColor: colors.primaryLight + '18', borderColor: colors.primary + '44' }]}>
+            <Store size={12} color={colors.primary} strokeWidth={2} />
+            <Text style={[styles.visitLabel, { color: colors.primary }]}>Visit</Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+});
 
 export default function VendorListTab() {
   const { colors } = useTheme();
@@ -189,98 +277,15 @@ export default function VendorListTab() {
 
   const hasActiveFilters = appliedState !== '' || appliedAddress !== '';
 
-  const openStore = (vendor: VendorItem) => {
+  const openStore = useCallback((vendor: VendorItem) => {
     setSelectedVendorId(vendor.id);
     setSelectedVendorName(vendor.business_name);
     setStoreVisible(true);
-  };
+  }, []);
 
-  const getInitials = (name: string) =>
-    name
-      .split(' ')
-      .slice(0, 2)
-      .map((w) => w[0] || '')
-      .join('')
-      .toUpperCase();
-
-  const renderVendorCard = ({ item }: { item: VendorItem }) => {
-    const initials = getInitials(item.business_name);
-    const productCount = item.product_count || 0;
-
-    return (
-      <Animated.View
-        style={[
-          styles.cardWrapper,
-          {
-            opacity: fadeAnim,
-            transform: [{ translateY: fadeAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }],
-          },
-        ]}
-      >
-        <TouchableOpacity
-          style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}
-          onPress={() => openStore(item)}
-          activeOpacity={0.88}
-        >
-          <View style={styles.cardTop}>
-            <View style={styles.avatarWrap}>
-              {item.avatar_url ? (
-                <Image source={{ uri: item.avatar_url }} style={styles.avatarImg} />
-              ) : (
-                <LinearGradient
-                  colors={['#f97316', '#ea580c']}
-                  style={styles.avatarFallback}
-                >
-                  <Text style={styles.avatarInitials}>{initials}</Text>
-                </LinearGradient>
-              )}
-              <View style={[styles.activeDot, { backgroundColor: '#22c55e', borderColor: colors.surface }]} />
-            </View>
-
-            <View style={styles.cardInfo}>
-              <Text style={[styles.vendorName, { color: colors.text }]} numberOfLines={1}>
-                {item.business_name}
-              </Text>
-
-              {item.business_description ? (
-                <Text style={[styles.vendorDesc, { color: colors.textMuted }]} numberOfLines={2}>
-                  {item.business_description}
-                </Text>
-              ) : null}
-
-              <View style={styles.metaRow}>
-                {item.business_address ? (
-                  <View style={styles.metaItem}>
-                    <MapPin size={11} color={colors.textMuted} strokeWidth={2} />
-                    <Text style={[styles.metaText, { color: colors.textMuted }]} numberOfLines={1}>
-                      {item.business_address}
-                    </Text>
-                  </View>
-                ) : null}
-              </View>
-            </View>
-
-            <ChevronRight size={16} color={colors.textMuted} strokeWidth={2} />
-          </View>
-
-          <View style={[styles.cardDivider, { backgroundColor: colors.borderLight }]} />
-
-          <View style={styles.cardBottom}>
-            <View style={styles.statItem}>
-              <Package size={13} color={colors.primary} strokeWidth={2} />
-              <Text style={[styles.statValue, { color: colors.text }]}>{productCount}</Text>
-              <Text style={[styles.statLabel, { color: colors.textMuted }]}>products</Text>
-            </View>
-
-            <View style={[styles.visitBtn, { backgroundColor: colors.primaryLight + '18', borderColor: colors.primary + '44' }]}>
-              <Store size={12} color={colors.primary} strokeWidth={2} />
-              <Text style={[styles.visitLabel, { color: colors.primary }]}>Visit</Text>
-            </View>
-          </View>
-        </TouchableOpacity>
-      </Animated.View>
-    );
-  };
+  const renderVendorCard = useCallback(({ item }: { item: VendorItem }) => (
+    <VendorCard item={item} colors={colors} fadeAnim={fadeAnim} onPress={openStore} />
+  ), [colors, fadeAnim, openStore]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
