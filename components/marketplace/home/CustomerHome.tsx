@@ -63,6 +63,7 @@ export default function CustomerHome() {
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(16)).current;
+  const fetchAbortRef = useRef<number>(0);
 
   const restoreFilters = async () => {
     try {
@@ -139,6 +140,7 @@ export default function CustomerHome() {
   };
 
   const fetchProducts = async (pageNum: number = 0, reset: boolean = false) => {
+    const fetchId = reset ? ++fetchAbortRef.current : fetchAbortRef.current;
     try {
       if (reset) setLoading(true);
       else setLoadingMore(true);
@@ -170,6 +172,7 @@ export default function CustomerHome() {
 
       const { data, error, count } = await query.range(from, to);
       if (error) throw error;
+      if (fetchAbortRef.current !== fetchId) return;
 
       const newProducts = data || [];
       if (reset) {
