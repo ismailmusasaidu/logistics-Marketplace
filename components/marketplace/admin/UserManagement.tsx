@@ -372,14 +372,6 @@ export default function UserManagement({ onBack }: UserManagementProps) {
     setActiveFilter(key);
   };
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#ff8c00" />
-      </View>
-    );
-  }
-
   const renderUserItem = useCallback(({ item }: { item: UserProfile }) => {
     const RoleIcon = roleIcons[item.role];
     const roleColor = roleColors[item.role];
@@ -498,6 +490,14 @@ export default function UserManagement({ onBack }: UserManagementProps) {
       </View>
     );
   }, [currentUser, actionLoading, roleColors, formatDate, openEditModal, toggleSuspension, deleteUser]);
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#ff8c00" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

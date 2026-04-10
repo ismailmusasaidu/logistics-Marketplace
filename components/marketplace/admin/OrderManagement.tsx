@@ -416,14 +416,6 @@ export default function OrderManagement({ onBack }: OrderManagementProps) {
     }
   };
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#ff8c00" />
-      </View>
-    );
-  }
-
   const renderOrderItem = useCallback(({ item }: { item: OrderWithCustomer }) => {
     const StatusIcon = statusIcons[item.status];
     const statusColor = statusColors[item.status];
@@ -536,6 +528,14 @@ export default function OrderManagement({ onBack }: OrderManagementProps) {
       </TouchableOpacity>
     );
   }, [statusColors, statusBgColors, formatDate, getStatusLabel, getPaymentLabel, markAsPaid, setSelectedOrder, fetchSelectedOrderItems, setShowStatusModal, setSelectedOrderItems]);
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#ff8c00" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

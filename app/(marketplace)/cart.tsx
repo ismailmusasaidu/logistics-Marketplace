@@ -261,28 +261,6 @@ export default function CartScreen() {
     }
   };
 
-  if (loading) {
-    return (
-      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
-  }
-
-  if (cartItems.length === 0) {
-    return (
-      <View style={[styles.emptyContainer, { backgroundColor: colors.background }]}>
-        <EmptyState
-          variant="cart"
-          title="Your cart is empty"
-          subtitle="Add some products to get started."
-          actionLabel="Start Shopping"
-          onAction={() => router.push('/(marketplace)')}
-        />
-      </View>
-    );
-  }
-
   const renderCartItem = useCallback(({ item }: { item: typeof cartItems[0] }) => (
     <View style={[styles.cartItem, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
       <TouchableOpacity
@@ -354,6 +332,28 @@ export default function CartScreen() {
       </TouchableOpacity>
     </View>
   ), [colors, handleViewProduct, updateQuantity, removeItem, setReturnPolicyProduct]);
+
+  if (loading) {
+    return (
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (cartItems.length === 0) {
+    return (
+      <View style={[styles.emptyContainer, { backgroundColor: colors.background }]}>
+        <EmptyState
+          variant="cart"
+          title="Your cart is empty"
+          subtitle="Add some products to get started."
+          actionLabel="Start Shopping"
+          onAction={() => router.push('/(marketplace)')}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>

@@ -233,31 +233,6 @@ export default function OrdersScreen() {
     );
   });
 
-  if (loading) {
-    return (
-      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
-  }
-
-  const showEmptyOrders = orders.length === 0;
-  const showNoResults = !showEmptyOrders && filteredOrders.length === 0;
-
-  if (showEmptyOrders) {
-    return (
-      <View style={[styles.emptyContainer, { backgroundColor: colors.background }]}>
-        <EmptyState
-          variant="orders"
-          title="No orders yet"
-          subtitle="Your marketplace orders will appear here once you make a purchase."
-          actionLabel="Start Shopping"
-          onAction={() => router.back()}
-        />
-      </View>
-    );
-  }
-
   const renderOrderItem = useCallback(({ item }: { item: Order }) => {
     const StatusIcon = statusIcons[item.status];
     const statusColor = statusColors[item.status];
@@ -385,6 +360,31 @@ export default function OrdersScreen() {
       </View>
     );
   }, [orderItems, statusColors, colors, handleViewReceipt, handleOpenReturn, formatDate, getStatusLabel, setReviewProduct]);
+
+  if (loading) {
+    return (
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  const showEmptyOrders = orders.length === 0;
+  const showNoResults = !showEmptyOrders && filteredOrders.length === 0;
+
+  if (showEmptyOrders) {
+    return (
+      <View style={[styles.emptyContainer, { backgroundColor: colors.background }]}>
+        <EmptyState
+          variant="orders"
+          title="No orders yet"
+          subtitle="Your marketplace orders will appear here once you make a purchase."
+          actionLabel="Start Shopping"
+          onAction={() => router.back()}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>

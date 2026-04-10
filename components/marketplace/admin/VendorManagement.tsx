@@ -227,14 +227,6 @@ export default function VendorManagement({ onBack }: VendorManagementProps) {
     return vendors.filter((v) => v.vendor_status === key).length;
   };
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#ff8c00" />
-      </View>
-    );
-  }
-
   const renderVendorItem = useCallback(({ item }: { item: Profile }) => {
     const config = statusConfig[(item as any).vendor_status] || statusConfig.pending;
     const StatusIcon = config.icon;
@@ -306,6 +298,14 @@ export default function VendorManagement({ onBack }: VendorManagementProps) {
       </TouchableOpacity>
     );
   }, [setSelectedVendor, setShowModal]);
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#ff8c00" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

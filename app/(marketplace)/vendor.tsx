@@ -180,58 +180,6 @@ export default function VendorScreen() {
     }
   };
 
-  if (loading || loadingVendorData) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
-  }
-
-  if (!isSetupComplete) {
-    return <StoreSetup onComplete={handleSetupComplete} />;
-  }
-
-  if (showAddProduct) {
-    return (
-      <AddProduct
-        onBack={() => setShowAddProduct(false)}
-        onSuccess={() => {
-          setShowAddProduct(false);
-          fetchProducts();
-        }}
-      />
-    );
-  }
-
-  if (editingProduct) {
-    return (
-      <EditProduct
-        product={editingProduct}
-        onBack={() => setEditingProduct(null)}
-        onSuccess={() => {
-          setEditingProduct(null);
-          fetchProducts();
-        }}
-      />
-    );
-  }
-
-  if (!vendor) {
-    return (
-      <View style={styles.container}>
-        <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-          <Text style={styles.title}>My Store</Text>
-          <Text style={styles.subtitle}>Loading...</Text>
-        </View>
-        <View style={styles.emptyContainer}>
-          <Package size={48} color="#d1d5db" />
-          <Text style={styles.emptyText}>Loading store information...</Text>
-        </View>
-      </View>
-    );
-  }
-
   const filteredProducts = products
     .filter((product) => {
       const matchesSearch =
@@ -310,6 +258,58 @@ export default function VendorScreen() {
       </View>
     </TouchableOpacity>
   ), [setEditingProduct, handleDeleteProduct]);
+
+  if (loading || loadingVendorData) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (!isSetupComplete) {
+    return <StoreSetup onComplete={handleSetupComplete} />;
+  }
+
+  if (showAddProduct) {
+    return (
+      <AddProduct
+        onBack={() => setShowAddProduct(false)}
+        onSuccess={() => {
+          setShowAddProduct(false);
+          fetchProducts();
+        }}
+      />
+    );
+  }
+
+  if (editingProduct) {
+    return (
+      <EditProduct
+        product={editingProduct}
+        onBack={() => setEditingProduct(null)}
+        onSuccess={() => {
+          setEditingProduct(null);
+          fetchProducts();
+        }}
+      />
+    );
+  }
+
+  if (!vendor) {
+    return (
+      <View style={styles.container}>
+        <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+          <Text style={styles.title}>My Store</Text>
+          <Text style={styles.subtitle}>Loading...</Text>
+        </View>
+        <View style={styles.emptyContainer}>
+          <Package size={48} color="#d1d5db" />
+          <Text style={styles.emptyText}>Loading store information...</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
