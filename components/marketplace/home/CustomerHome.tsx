@@ -181,7 +181,11 @@ export default function CustomerHome() {
           await AsyncStorage.setItem(cacheKey, JSON.stringify({ data: newProducts, timestamp: Date.now() }));
         } catch {}
       } else {
-        setProducts((prev) => [...prev, ...newProducts]);
+        setProducts((prev) => {
+          const existingIds = new Set(prev.map((p) => p.id));
+          const unique = newProducts.filter((p) => !existingIds.has(p.id));
+          return [...prev, ...unique];
+        });
       }
 
       fetchImagesForProducts(newProducts);
