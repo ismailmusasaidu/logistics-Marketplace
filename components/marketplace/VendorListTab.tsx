@@ -9,9 +9,11 @@ import {
   ActivityIndicator,
   Image,
   Animated,
+  ScrollView,
+  Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Search, Store, MapPin, Package, X, ChevronRight } from 'lucide-react-native';
+import { Search, Store, MapPin, Package, X, ChevronRight, SlidersHorizontal, ChevronDown } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '@/lib/marketplace/supabase';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -19,6 +21,14 @@ import { Fonts } from '@/constants/fonts';
 import VendorStorePage from '@/components/marketplace/VendorStorePage';
 
 const PAGE_SIZE = 12;
+
+const NIGERIAN_STATES = [
+  'Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue',
+  'Borno', 'Cross River', 'Delta', 'Ebonyi', 'Edo', 'Ekiti', 'Enugu',
+  'FCT Abuja', 'Gombe', 'Imo', 'Jigawa', 'Kaduna', 'Kano', 'Katsina',
+  'Kebbi', 'Kogi', 'Kwara', 'Lagos', 'Nasarawa', 'Niger', 'Ogun', 'Ondo',
+  'Osun', 'Oyo', 'Plateau', 'Rivers', 'Sokoto', 'Taraba', 'Yobe', 'Zamfara',
+];
 
 interface VendorItem {
   id: string;
@@ -41,6 +51,12 @@ export default function VendorListTab() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchDebounced, setSearchDebounced] = useState('');
   const [totalCount, setTotalCount] = useState(0);
+
+  const [filterVisible, setFilterVisible] = useState(false);
+  const [selectedState, setSelectedState] = useState('');
+  const [addressFilter, setAddressFilter] = useState('');
+  const [appliedState, setAppliedState] = useState('');
+  const [appliedAddress, setAppliedAddress] = useState('');
 
   const [storeVisible, setStoreVisible] = useState(false);
   const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
@@ -67,10 +83,16 @@ export default function VendorListTab() {
     setVendors([]);
     setPage(0);
     setHasMore(true);
-    fetchVendors(0, true, searchDebounced);
-  }, [searchDebounced]);
+    fetchVendors(0, true, searchDebounced, appliedState, appliedAddress);
+  }, [searchDebounced, appliedState, appliedAddress]);
 
-  const fetchVendors = async (pageNum: number, reset: boolean, search: string) => {
+  const fetchVendors = async (
+    pageNum: number,
+    reset: boolean,
+    search: string,
+    state: string,
+    address: string,
+  ) => {
     try {
       if (reset) setLoading(true);
       else setLoadingMore(true);
@@ -87,6 +109,12 @@ export default function VendorListTab() {
 
       if (search.trim()) {
         query = query.ilike('business_name', `%${search.trim()}%`);
+      }
+
+      if (state) {
+        query = query.ilike('business_address', `%${state}%`);
+      } else if (address.trim()) {
+        query = query.ilike('business_address', `%${address.trim()}%`);
       }
 
       query = query.order('created_at', { ascending: false });
@@ -141,9 +169,25 @@ export default function VendorListTab() {
     if (!loadingMore && hasMore) {
       const next = page + 1;
       setPage(next);
-      fetchVendors(next, false, searchDebounced);
+      fetchVendors(next, false, searchDebounced, appliedState, appliedAddress);
     }
   };
+
+  const applyFilters = () => {
+    setAppliedState(selectedState);
+    setAppliedAddress(addressFilter);
+    setFilterVisible(false);
+  };
+
+  const clearFilters = () => {
+    setSelectedState('');
+    setAddressFilter('');
+    setAppliedState('');
+    setAppliedAddress('');
+    setFilterVisible(false);
+  };
+
+  const hasActiveFilters = appliedState !== '' || appliedAddress !== '';
 
   const openStore = (vendor: VendorItem) => {
     setSelectedVendorId(vendor.id);
@@ -159,7 +203,7 @@ export default function VendorListTab() {
       .join('')
       .toUpperCase();
 
-  const renderVendorCard = ({ item, index }: { item: VendorItem; index: number }) => {
+  const renderVendorCard = ({ item }: { item: VendorItem }) => {
     const initials = getInitials(item.business_name);
     const productCount = item.product_count || 0;
 
@@ -259,26 +303,72 @@ export default function VendorListTab() {
           </View>
         </View>
 
-        <View style={[styles.searchBar, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
-          <Search size={16} color="rgba(255,255,255,0.5)" strokeWidth={2} />
-          <TextInput
-            style={styles.searchInput}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder="Search stores..."
-            placeholderTextColor="rgba(255,255,255,0.4)"
-            returnKeyType="search"
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <X size={15} color="rgba(255,255,255,0.5)" strokeWidth={2.5} />
-            </TouchableOpacity>
-          )}
+        <View style={styles.searchRow}>
+          <View style={[styles.searchBar, { backgroundColor: 'rgba(255,255,255,0.1)', flex: 1 }]}>
+            <Search size={16} color="rgba(255,255,255,0.5)" strokeWidth={2} />
+            <TextInput
+              style={styles.searchInput}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search stores..."
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              returnKeyType="search"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <X size={15} color="rgba(255,255,255,0.5)" strokeWidth={2.5} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <TouchableOpacity
+            style={[
+              styles.filterBtn,
+              hasActiveFilters && styles.filterBtnActive,
+            ]}
+            onPress={() => {
+              setSelectedState(appliedState);
+              setAddressFilter(appliedAddress);
+              setFilterVisible(true);
+            }}
+          >
+            <SlidersHorizontal size={16} color={hasActiveFilters ? '#f97316' : 'rgba(255,255,255,0.7)'} strokeWidth={2} />
+            {hasActiveFilters && <View style={styles.filterDot} />}
+          </TouchableOpacity>
         </View>
+
+        {hasActiveFilters && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.activePills}>
+            {appliedState ? (
+              <View style={styles.activePill}>
+                <MapPin size={10} color="#f97316" strokeWidth={2} />
+                <Text style={styles.activePillText}>{appliedState}</Text>
+                <TouchableOpacity
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                  onPress={() => setAppliedState('')}
+                >
+                  <X size={10} color="#f97316" strokeWidth={2.5} />
+                </TouchableOpacity>
+              </View>
+            ) : null}
+            {appliedAddress ? (
+              <View style={styles.activePill}>
+                <MapPin size={10} color="#f97316" strokeWidth={2} />
+                <Text style={styles.activePillText}>{appliedAddress}</Text>
+                <TouchableOpacity
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                  onPress={() => setAppliedAddress('')}
+                >
+                  <X size={10} color="#f97316" strokeWidth={2.5} />
+                </TouchableOpacity>
+              </View>
+            ) : null}
+          </ScrollView>
+        )}
 
         {!loading && (
           <Text style={styles.resultCount}>
-            {totalCount} {totalCount === 1 ? 'store' : 'stores'} available
+            {totalCount} {totalCount === 1 ? 'store' : 'stores'}{hasActiveFilters ? ' matched' : ' available'}
           </Text>
         )}
       </LinearGradient>
@@ -294,19 +384,19 @@ export default function VendorListTab() {
             <Store size={36} color={colors.primary} strokeWidth={1.5} />
           </View>
           <Text style={[styles.emptyTitle, { color: colors.text }]}>
-            {searchQuery ? 'No stores found' : 'No stores yet'}
+            {searchQuery || hasActiveFilters ? 'No stores found' : 'No stores yet'}
           </Text>
           <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
-            {searchQuery
-              ? `No stores match "${searchQuery}". Try a different search.`
+            {searchQuery || hasActiveFilters
+              ? 'Try adjusting your search or filters.'
               : 'Vendors will appear here once approved.'}
           </Text>
-          {searchQuery ? (
+          {(searchQuery || hasActiveFilters) ? (
             <TouchableOpacity
               style={[styles.clearBtn, { backgroundColor: colors.primary }]}
-              onPress={() => setSearchQuery('')}
+              onPress={() => { setSearchQuery(''); clearFilters(); }}
             >
-              <Text style={styles.clearBtnText}>Clear search</Text>
+              <Text style={styles.clearBtnText}>Clear all</Text>
             </TouchableOpacity>
           ) : null}
         </View>
@@ -341,6 +431,94 @@ export default function VendorListTab() {
           setSelectedVendorId(null);
         }}
       />
+
+      <Modal
+        visible={filterVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setFilterVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setFilterVisible(false)} />
+          <View style={[styles.filterSheet, { backgroundColor: colors.surface }]}>
+            <View style={[styles.filterSheetHandle, { backgroundColor: colors.borderLight }]} />
+
+            <View style={styles.filterSheetHeader}>
+              <Text style={[styles.filterSheetTitle, { color: colors.text }]}>Filter Stores</Text>
+              <TouchableOpacity onPress={() => setFilterVisible(false)}>
+                <X size={20} color={colors.textMuted} strokeWidth={2} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={styles.filterBody}>
+              <Text style={[styles.filterSectionLabel, { color: colors.textMuted }]}>FILTER BY STATE</Text>
+              <View style={styles.statesGrid}>
+                {NIGERIAN_STATES.map((state) => (
+                  <TouchableOpacity
+                    key={state}
+                    style={[
+                      styles.stateChip,
+                      { borderColor: colors.borderLight, backgroundColor: colors.background },
+                      selectedState === state && { borderColor: '#f97316', backgroundColor: '#f9731610' },
+                    ]}
+                    onPress={() => setSelectedState(selectedState === state ? '' : state)}
+                  >
+                    <Text
+                      style={[
+                        styles.stateChipText,
+                        { color: colors.textMuted },
+                        selectedState === state && { color: '#f97316', fontFamily: Fonts.semiBold },
+                      ]}
+                    >
+                      {state}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <View style={[styles.filterDivider, { backgroundColor: colors.borderLight }]} />
+
+              <Text style={[styles.filterSectionLabel, { color: colors.textMuted }]}>FILTER BY ADDRESS KEYWORD</Text>
+              <Text style={[styles.filterSectionHint, { color: colors.textMuted }]}>
+                Type a city, area, or street name
+              </Text>
+              <View style={[styles.addressInput, { backgroundColor: colors.background, borderColor: colors.borderLight }]}>
+                <MapPin size={15} color={colors.textMuted} strokeWidth={2} />
+                <TextInput
+                  style={[styles.addressInputText, { color: colors.text }]}
+                  value={addressFilter}
+                  onChangeText={(v) => {
+                    setAddressFilter(v);
+                    if (v) setSelectedState('');
+                  }}
+                  placeholder="e.g. Lagos Island, Kano, Abuja..."
+                  placeholderTextColor={colors.textMuted}
+                />
+                {addressFilter.length > 0 && (
+                  <TouchableOpacity onPress={() => setAddressFilter('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <X size={14} color={colors.textMuted} strokeWidth={2.5} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </ScrollView>
+
+            <View style={[styles.filterActions, { borderTopColor: colors.borderLight }]}>
+              <TouchableOpacity
+                style={[styles.filterClearBtn, { borderColor: colors.borderLight }]}
+                onPress={clearFilters}
+              >
+                <Text style={[styles.filterClearText, { color: colors.textMuted }]}>Clear all</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.filterApplyBtn}
+                onPress={applyFilters}
+              >
+                <Text style={styles.filterApplyText}>Apply filters</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -402,6 +580,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -416,6 +599,49 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
     color: '#ffffff',
     padding: 0,
+  },
+  filterBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  filterBtnActive: {
+    backgroundColor: 'rgba(249,115,22,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(249,115,22,0.4)',
+  },
+  filterDot: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#f97316',
+  },
+  activePills: {
+    marginTop: -6,
+  },
+  activePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(249,115,22,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(249,115,22,0.35)',
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginRight: 8,
+  },
+  activePillText: {
+    fontSize: 11,
+    fontFamily: Fonts.medium,
+    color: '#f97316',
   },
   resultCount: {
     fontSize: 12,
@@ -576,11 +802,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: Fonts.regular,
   },
-  statDivider: {
-    width: 1,
-    height: 16,
-    marginHorizontal: 10,
-  },
   visitBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -608,5 +829,120 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: Fonts.medium,
     paddingVertical: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  filterSheet: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '85%',
+    paddingBottom: 32,
+  },
+  filterSheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  filterSheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  filterSheetTitle: {
+    fontSize: 18,
+    fontFamily: Fonts.bold,
+    letterSpacing: -0.2,
+  },
+  filterBody: {
+    paddingHorizontal: 20,
+  },
+  filterSectionLabel: {
+    fontSize: 11,
+    fontFamily: Fonts.semiBold,
+    letterSpacing: 1,
+    marginBottom: 12,
+  },
+  filterSectionHint: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    marginBottom: 10,
+    marginTop: -8,
+  },
+  statesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 20,
+  },
+  stateChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  stateChipText: {
+    fontSize: 12,
+    fontFamily: Fonts.medium,
+  },
+  filterDivider: {
+    height: 1,
+    marginBottom: 20,
+  },
+  addressInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 24,
+  },
+  addressInputText: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    padding: 0,
+  },
+  filterActions: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    borderTopWidth: 1,
+  },
+  filterClearBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  filterClearText: {
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
+  },
+  filterApplyBtn: {
+    flex: 2,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#f97316',
+    alignItems: 'center',
+  },
+  filterApplyText: {
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
+    color: '#ffffff',
   },
 });
