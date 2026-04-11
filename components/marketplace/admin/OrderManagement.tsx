@@ -126,7 +126,21 @@ export default function OrderManagement({ onBack }: OrderManagementProps) {
   searchRef.current = searchQuery;
   filterRef.current = activeFilter;
 
-  const buildQuery = useCallback((search: string, filter: string, from: number, to: number) => {
+  const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+  const resolveSearchIds = useCallback(async (search: string): Promise<{ customerIds: string[]; vendorUserIds: string[] }> => {
+    const term = search.trim();
+    const [customerRes, vendorRes] = await Promise.all([
+      supabase.from('profiles').select('id').ilike('full_name', `%${term}%`),
+      supabase.from('vendors').select('user_id').ilike('business_name', `%${term}%`),
+    ]);
+    return {
+      customerIds: (customerRes.data || []).map((r: any) => r.id),
+      vendorUserIds: (vendorRes.data || []).map((r: any) => r.user_id),
+    };
+  }, []);
+
+  const buildQuery = useCallback(async (search: string, filter: string, from: number, to: number) => {
     let q = supabase
       .from('orders')
       .select(`*, customer:profiles!orders_customer_id_fkey(full_name, email, phone)`, { count: 'exact' })
@@ -141,11 +155,19 @@ export default function OrderManagement({ onBack }: OrderManagementProps) {
     }
 
     if (search.trim()) {
-      q = q.or(`order_number.ilike.%${search.trim()}%,id.eq.${search.trim()}`);
+      const term = search.trim();
+      const { customerIds, vendorUserIds } = await resolveSearchIds(term);
+
+      const orParts: string[] = [`order_number.ilike.%${term}%`];
+      if (UUID_REGEX.test(term)) orParts.push(`id.eq.${term}`);
+      if (customerIds.length > 0) orParts.push(`customer_id.in.(${customerIds.join(',')})`);
+      if (vendorUserIds.length > 0) orParts.push(`vendor_user_id.in.(${vendorUserIds.join(',')})`);
+
+      q = q.or(orParts.join(','));
     }
 
     return q;
-  }, []);
+  }, [resolveSearchIds]);
 
   const attachVendors = useCallback(async (data: any[]): Promise<OrderWithCustomer[]> => {
     const vendorUserIds = [...new Set(data.map((o: any) => o.vendor_user_id).filter(Boolean))];
