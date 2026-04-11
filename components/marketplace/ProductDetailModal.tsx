@@ -251,15 +251,18 @@ export default function ProductDetailModal({
       } else {
         const { error } = await supabase
           .from('carts')
-          .insert({
-            user_id: profile.id,
-            product_id: product.id,
-            quantity: quantity,
-            selected_size: selectedSize || null,
-            selected_color: selectedColor || null,
-            selected_option: selectedPricingOption ? selectedPricingOption.label : null,
-            option_price: selectedPricingOption ? selectedPricingOption.price : null,
-          });
+          .upsert(
+            {
+              user_id: profile.id,
+              product_id: product.id,
+              quantity: quantity,
+              selected_size: selectedSize || null,
+              selected_color: selectedColor || null,
+              selected_option: selectedPricingOption ? selectedPricingOption.label : null,
+              option_price: selectedPricingOption ? selectedPricingOption.price : null,
+            },
+            { onConflict: 'user_id,product_id,selected_size,selected_color,selected_option', ignoreDuplicates: false }
+          );
 
         if (error) throw error;
       }
