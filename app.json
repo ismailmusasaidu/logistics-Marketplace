@@ -4,7 +4,7 @@
     "slug": "danhausa",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/danhausa.png",
+    "icon": "./assets/images/danhausa-icon.png",
     "scheme": "danhausa",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -22,7 +22,7 @@
       "package": "com.danhausa.app",
       "versionCode": 1,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/danhausa.png",
+        "foregroundImage": "./assets/images/danhausa-icon.png",
         "backgroundColor": "#ffffff"
       },
       "splash": {
