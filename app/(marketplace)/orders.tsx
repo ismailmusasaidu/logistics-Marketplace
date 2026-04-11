@@ -11,7 +11,7 @@ import {
   Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Package, Clock, CircleCheck as CheckCircle, Truck, Circle as XCircle, ShoppingBag, Search, X, Star, Receipt } from 'lucide-react-native';
+import { Package, Clock, CircleCheck as CheckCircle, Truck, Circle as XCircle, ShoppingBag, Search, X, Star, Receipt, RotateCcw, RefreshCw, CircleAlert as AlertCircle } from 'lucide-react-native';
 import { supabase } from '@/lib/marketplace/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -33,6 +33,13 @@ const statusIcons: Record<OrderStatus, any> = {
   cancelled: XCircle,
 };
 
+const RETURN_STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; Icon: any; description?: string }> = {
+  pending: { label: 'Return Request Submitted', color: '#f59e0b', bg: '#fef3c7', Icon: Clock, description: 'Your request is under review by our team.' },
+  approved: { label: 'Return Approved', color: '#059669', bg: '#d1fae5', Icon: CheckCircle, description: 'Your return has been approved. Refund or exchange is being processed.' },
+  rejected: { label: 'Return Rejected', color: '#ef4444', bg: '#fee2e2', Icon: XCircle, description: 'Your return request was not approved.' },
+  completed: { label: 'Return Completed', color: '#3b82f6', bg: '#dbeafe', Icon: CheckCircle, description: 'Your return has been fully processed.' },
+};
+
 interface OrderItemWithProduct extends OrderItem {
   product: Product;
   hasReview: boolean;
@@ -51,6 +58,7 @@ export default function OrdersScreen() {
   const [receiptItems, setReceiptItems] = useState<any[]>([]);
   const [returnOrder, setReturnOrder] = useState<Order | null>(null);
   const [returnOrderItems, setReturnOrderItems] = useState<any[]>([]);
+  const [orderReturns, setOrderReturns] = useState<Record<string, { status: string; return_type: string; admin_notes: string | null }>>({});
 
   const statusColors: Record<OrderStatus, string> = {
     pending: colors.statusPending,
@@ -104,7 +112,31 @@ export default function OrdersScreen() {
         fetchOrderItems(order.id);
       }
     });
+    if (orders.length > 0 && profile) {
+      fetchOrderReturns(orders.map(o => o.id));
+    }
   }, [orders]);
+
+  const fetchOrderReturns = async (orderIds: string[]) => {
+    if (!profile || orderIds.length === 0) return;
+    try {
+      const { data } = await supabase
+        .from('order_returns')
+        .select('order_id, status, return_type, admin_notes')
+        .in('order_id', orderIds)
+        .eq('customer_id', profile.id)
+        .order('created_at', { ascending: false });
+      const map: Record<string, { status: string; return_type: string; admin_notes: string | null }> = {};
+      (data || []).forEach((r: any) => {
+        if (!map[r.order_id]) {
+          map[r.order_id] = { status: r.status, return_type: r.return_type, admin_notes: r.admin_notes };
+        }
+      });
+      setOrderReturns(map);
+    } catch (e) {
+      console.error('Error fetching order returns:', e);
+    }
+  };
 
   const fetchOrders = async () => {
     if (!profile) return;
@@ -237,6 +269,9 @@ export default function OrdersScreen() {
     const StatusIcon = statusIcons[item.status];
     const statusColor = statusColors[item.status];
     const items = orderItems[item.id] || [];
+    const returnInfo = orderReturns[item.id];
+    const returnConfig = returnInfo ? RETURN_STATUS_CONFIG[returnInfo.status] : null;
+    const canRequestReturn = item.status === 'delivered' && !returnInfo;
 
     return (
       <View style={[styles.orderCard, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
@@ -298,6 +333,29 @@ export default function OrdersScreen() {
           </View>
         </TouchableOpacity>
 
+        {returnConfig && (
+          <View style={[styles.returnStatusBanner, { backgroundColor: returnConfig.bg, borderColor: returnConfig.color + '40' }]}>
+            <View style={styles.returnStatusRow}>
+              <returnConfig.Icon size={16} color={returnConfig.color} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.returnStatusLabel, { color: returnConfig.color }]}>
+                  {returnConfig.label}
+                  {returnInfo.return_type ? ` · ${returnInfo.return_type.charAt(0).toUpperCase() + returnInfo.return_type.slice(1)}` : ''}
+                </Text>
+                {returnConfig.description ? (
+                  <Text style={[styles.returnStatusDesc, { color: returnConfig.color + 'cc' }]}>{returnConfig.description}</Text>
+                ) : null}
+              </View>
+            </View>
+            {returnInfo.admin_notes ? (
+              <View style={[styles.adminNotesBox, { borderTopColor: returnConfig.color + '30' }]}>
+                <Text style={[styles.adminNotesLabel, { color: returnConfig.color + 'aa' }]}>Admin Note</Text>
+                <Text style={[styles.adminNotesText, { color: returnConfig.color }]}>{returnInfo.admin_notes}</Text>
+              </View>
+            ) : null}
+          </View>
+        )}
+
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <TouchableOpacity
             style={[styles.receiptButton, { flex: 1, backgroundColor: colors.primary + '15', borderColor: colors.primary + '40' }]}
@@ -308,14 +366,23 @@ export default function OrdersScreen() {
             <Text style={[styles.receiptButtonText, { color: colors.primary }]}>View Receipt</Text>
           </TouchableOpacity>
           {item.status === 'delivered' && (
-            <TouchableOpacity
-              style={[styles.receiptButton, { flex: 1, backgroundColor: colors.successLight, borderColor: colors.success + '40' }]}
-              onPress={() => handleOpenReturn(item)}
-              activeOpacity={0.7}
-            >
-              <Receipt size={18} color={colors.success} />
-              <Text style={[styles.receiptButtonText, { color: colors.success }]}>Return</Text>
-            </TouchableOpacity>
+            canRequestReturn ? (
+              <TouchableOpacity
+                style={[styles.receiptButton, { flex: 1, backgroundColor: colors.successLight, borderColor: colors.success + '40' }]}
+                onPress={() => handleOpenReturn(item)}
+                activeOpacity={0.7}
+              >
+                <RotateCcw size={18} color={colors.success} />
+                <Text style={[styles.receiptButtonText, { color: colors.success }]}>Return</Text>
+              </TouchableOpacity>
+            ) : returnConfig ? (
+              <View style={[styles.receiptButton, { flex: 1, backgroundColor: returnConfig.bg, borderColor: returnConfig.color + '40', opacity: 0.9 }]}>
+                <returnConfig.Icon size={18} color={returnConfig.color} />
+                <Text style={[styles.receiptButtonText, { color: returnConfig.color }]} numberOfLines={1}>
+                  {returnInfo!.status.charAt(0).toUpperCase() + returnInfo!.status.slice(1)}
+                </Text>
+              </View>
+            ) : null
           )}
         </View>
 
@@ -359,7 +426,7 @@ export default function OrdersScreen() {
         )}
       </View>
     );
-  }, [orderItems, statusColors, colors, handleViewReceipt, handleOpenReturn, formatDate, getStatusLabel, setReviewProduct]);
+  }, [orderItems, orderReturns, statusColors, colors, handleViewReceipt, handleOpenReturn, formatDate, getStatusLabel, setReviewProduct]);
 
   if (loading) {
     return (
@@ -476,7 +543,10 @@ export default function OrdersScreen() {
           orderNumber={returnOrder.order_number}
           orderTotal={returnOrder.total}
           items={returnOrderItems}
-          onSuccess={() => setReturnOrder(null)}
+          onSuccess={() => {
+            setReturnOrder(null);
+            fetchOrderReturns(orders.map(o => o.id));
+          }}
         />
       )}
     </View>
@@ -759,6 +829,46 @@ const styles = StyleSheet.create({
   reviewedText: {
     fontSize: 12,
     fontFamily: Fonts.spaceSemiBold,
+  },
+  returnStatusBanner: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+    marginTop: 10,
+  },
+  returnStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  returnStatusLabel: {
+    fontSize: 13,
+    fontFamily: Fonts.spaceSemiBold,
+    lineHeight: 18,
+  },
+  returnStatusDesc: {
+    fontSize: 12,
+    fontFamily: Fonts.spaceRegular,
+    lineHeight: 17,
+    marginTop: 2,
+  },
+  adminNotesBox: {
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+  },
+  adminNotesLabel: {
+    fontSize: 10,
+    fontFamily: Fonts.spaceSemiBold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 3,
+  },
+  adminNotesText: {
+    fontSize: 13,
+    fontFamily: Fonts.spaceRegular,
+    lineHeight: 18,
   },
   emptyContainer: {
     flex: 1,
