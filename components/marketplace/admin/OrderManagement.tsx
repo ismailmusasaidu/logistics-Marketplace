@@ -141,7 +141,7 @@ export default function OrderManagement({ onBack }: OrderManagementProps) {
     }
 
     if (search.trim()) {
-      q = q.or(`order_number.ilike.%${search.trim()}%,id.ilike.%${search.trim()}%`);
+      q = q.or(`order_number.ilike.%${search.trim()}%,id.eq.${search.trim()}`);
     }
 
     return q;
