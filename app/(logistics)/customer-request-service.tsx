@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, RefreshControl, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Package, Truck, X, CircleCheck as CheckCircle, Clock, ChevronRight, ArrowUpRight, MapPin, Phone, User, CircleAlert as AlertCircle } from 'lucide-react-native';
@@ -294,8 +294,13 @@ export default function CustomerRequestService() {
         visible={modalVisible}
         animationType="slide"
         transparent
+        statusBarTranslucent
         onRequestClose={() => setModalVisible(false)}>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}>
+          <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setModalVisible(false)} />
           <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <View style={styles.modalHandle} />
 
@@ -321,7 +326,13 @@ export default function CustomerRequestService() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={styles.modalBody}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="interactive"
+              contentContainerStyle={{ paddingBottom: 8 }}>
+
               <View style={styles.infoBox}>
                 <AlertCircle size={16} color="#2563eb" />
                 <Text style={styles.infoText}>
@@ -400,7 +411,7 @@ export default function CustomerRequestService() {
               <View style={{ height: 8 }} />
             </ScrollView>
 
-            <View style={[styles.modalFooter, { borderTopColor: colors.borderLight }]}>
+            <View style={[styles.modalFooter, { borderTopColor: colors.borderLight, paddingBottom: Math.max(insets.bottom, 20) }]}>
               <TouchableOpacity
                 style={[styles.cancelButton, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}
                 onPress={() => setModalVisible(false)}>
@@ -417,7 +428,7 @@ export default function CustomerRequestService() {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Toast
@@ -708,8 +719,11 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
   },
   modalContent: {
     backgroundColor: '#ffffff',
