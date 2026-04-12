@@ -303,6 +303,7 @@ export default function OrderReceipt({
       <div class="section">
         <div class="section-title">Delivery Information</div>
         ${order.delivery_type ? `<div class="delivery-type">${(order as any).delivery_type === 'home_delivery' || order.delivery_type === 'delivery' ? 'Home Delivery' : 'Self Pickup'}</div>` : ''}
+        ${(order as any).delivery_speed ? `<div class="row" style="margin-top:8px"><span class="label">Delivery Speed:</span><span class="value">${(order as any).delivery_speed.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}</span></div>` : ''}
         <div class="address">${order.delivery_address}</div>
       </div>
 
@@ -331,6 +332,7 @@ export default function OrderReceipt({
           <span>Delivery Fee:</span>
           <span>₦${order.delivery_fee.toFixed(2)}</span>
         </div>
+        ${(order as any).delivery_speed_cost && (order as any).delivery_speed_cost > 0 ? `<div class="summary-row"><span>${(order as any).delivery_speed ? (order as any).delivery_speed.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) : 'Speed'} Surcharge:</span><span>₦${Number((order as any).delivery_speed_cost).toFixed(2)}</span></div>` : ''}
         <div class="summary-row">
           <span>Tax:</span>
           <span>₦${order.tax.toFixed(2)}</span>
@@ -548,16 +550,6 @@ export default function OrderReceipt({
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.receiptCard}>
-              {Platform.OS !== 'web' && (
-                <View style={{ padding: 12, backgroundColor: '#fef3c7', borderRadius: 8, marginBottom: 12 }}>
-                  <Text style={{ fontSize: 12, color: '#92400e', fontFamily: Fonts.semiBold }}>
-                    Debug: {orderItems.length} items loaded
-                  </Text>
-                  <Text style={{ fontSize: 10, color: '#92400e', marginTop: 4 }}>
-                    Order ID: {order.id.substring(0, 8)}...
-                  </Text>
-                </View>
-              )}
               {orderItems.length === 0 && (
                 <View style={{ padding: 20, alignItems: 'center' }}>
                   <Text style={{ fontSize: 16, color: '#ef4444' }}>
@@ -607,6 +599,14 @@ export default function OrderReceipt({
                   <View style={styles.deliveryTypeBadge}>
                     <Text style={styles.deliveryTypeText}>
                       {(order as any).delivery_type === 'home_delivery' ? 'Home Delivery' : order.delivery_type === 'delivery' ? 'Home Delivery' : 'Self Pickup'}
+                    </Text>
+                  </View>
+                )}
+                {(order as any).delivery_speed && (
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>Delivery Speed</Text>
+                    <Text style={[styles.infoValue, { color: '#ff8c00' }]}>
+                      {(order as any).delivery_speed.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
                     </Text>
                   </View>
                 )}
@@ -661,6 +661,16 @@ export default function OrderReceipt({
                   <Text style={styles.summaryLabel}>Delivery Fee</Text>
                   <Text style={styles.summaryValue}>₦{order.delivery_fee.toFixed(2)}</Text>
                 </View>
+                {(order as any).delivery_speed_cost > 0 && (
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>
+                      {(order as any).delivery_speed
+                        ? (order as any).delivery_speed.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) + ' Surcharge'
+                        : 'Speed Surcharge'}
+                    </Text>
+                    <Text style={styles.summaryValue}>₦{Number((order as any).delivery_speed_cost).toFixed(2)}</Text>
+                  </View>
+                )}
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Tax</Text>
                   <Text style={styles.summaryValue}>₦{order.tax.toFixed(2)}</Text>

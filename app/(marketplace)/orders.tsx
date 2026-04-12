@@ -300,6 +300,14 @@ export default function OrdersScreen() {
               <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Delivery Fee</Text>
               <Text style={[styles.detailValue, { color: colors.text }]}>₦{item.delivery_fee.toFixed(2)}</Text>
             </View>
+            {(item as any).delivery_speed && (
+              <View style={styles.detailRow}>
+                <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Delivery Speed</Text>
+                <Text style={[styles.detailValue, { color: colors.primary }]}>
+                  {(item as any).delivery_speed.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                </Text>
+              </View>
+            )}
             <View style={styles.detailRow}>
               <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Tax</Text>
               <Text style={[styles.detailValue, { color: colors.text }]}>₦{item.tax.toFixed(2)}</Text>
