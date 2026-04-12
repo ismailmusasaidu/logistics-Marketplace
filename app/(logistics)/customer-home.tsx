@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Modal, TextInput, Platform, Linking, ActivityIndicator, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Modal, TextInput, Platform, Linking, ActivityIndicator, Dimensions, KeyboardAvoidingView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Package, MapPin, Clock, Plus, X, User, Phone, ChevronDown, ChevronUp, Layers, Navigation, Search, Tag, Receipt, Star, ArrowDown, Truck, CircleCheck as CheckCircle2, CircleDot, RefreshCw, Calendar } from 'lucide-react-native';
@@ -1199,8 +1199,13 @@ export default function CustomerHome() {
         visible={modalVisible}
         animationType="slide"
         transparent={true}
+        statusBarTranslucent
         onRequestClose={() => setModalVisible(false)}>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior="padding"
+          keyboardVerticalOffset={0}>
+          <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={() => { setModalVisible(false); setFieldErrors({}); }} />
           <View style={[styles.modalContent, { backgroundColor: colors.backgroundSecondary }]}>
             <View style={styles.modalHandle} />
             <LinearGradient
@@ -1222,7 +1227,7 @@ export default function CustomerHome() {
               </View>
             </LinearGradient>
 
-            <ScrollView showsVerticalScrollIndicator={false} style={styles.modalScrollView} contentContainerStyle={styles.modalScrollContent}>
+            <ScrollView showsVerticalScrollIndicator={false} style={styles.modalScrollView} contentContainerStyle={styles.modalScrollContent} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
               <View style={[styles.formSection, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
                 <View style={styles.sectionHeader}>
                   <View style={styles.sectionDot} />
@@ -1476,7 +1481,7 @@ export default function CustomerHome() {
               </TouchableOpacity>
             </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {pricingBreakdown && (

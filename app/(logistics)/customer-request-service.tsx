@@ -298,7 +298,7 @@ export default function CustomerRequestService() {
         onRequestClose={() => setModalVisible(false)}>
         <KeyboardAvoidingView
           style={styles.modalOverlay}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior="padding"
           keyboardVerticalOffset={0}>
           <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setModalVisible(false)} />
           <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
@@ -331,7 +331,7 @@ export default function CustomerRequestService() {
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="interactive"
-              contentContainerStyle={{ paddingBottom: 8 }}>
+              contentContainerStyle={{ paddingBottom: 24 }}>
 
               <View style={styles.infoBox}>
                 <AlertCircle size={16} color="#2563eb" />
