@@ -9,6 +9,7 @@ import {
   Switch,
   ActivityIndicator,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import {
   Store,
@@ -147,7 +148,14 @@ export default function StoreSetup({ onComplete }: StoreSetupProps) {
   ];
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <ScrollView
+      style={styles.container}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="interactive">
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <Text style={styles.headerTitle}>Set Up Your Store</Text>
         <Text style={styles.headerSub}>Step {step} of {totalSteps}</Text>
@@ -379,6 +387,7 @@ export default function StoreSetup({ onComplete }: StoreSetupProps) {
 
       <View style={{ height: 40 }} />
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
