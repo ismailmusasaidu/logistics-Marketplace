@@ -10,6 +10,8 @@ import {
   Image,
   Animated,
   Modal,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Search, Store, MapPin, Package, X, ChevronRight, SlidersHorizontal } from 'lucide-react-native';
@@ -451,9 +453,12 @@ export default function VendorListTab() {
         transparent
         onRequestClose={() => setFilterVisible(false)}
       >
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
           <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setFilterVisible(false)} />
-          <View style={[styles.filterSheet, { backgroundColor: colors.surface }]}>
+          <View style={[styles.filterSheet, { backgroundColor: colors.surface, paddingBottom: insets.bottom || 24 }]}>
             <View style={[styles.filterSheetHandle, { backgroundColor: colors.borderLight }]} />
 
             <View style={styles.filterSheetHeader}>
@@ -501,7 +506,7 @@ export default function VendorListTab() {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -837,7 +842,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: '85%',
-    paddingBottom: 32,
   },
   filterSheetHandle: {
     width: 36,
