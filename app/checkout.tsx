@@ -103,6 +103,7 @@ export default function CheckoutScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
+  const [confirmedTotal, setConfirmedTotal] = useState(0);
   const [showPaymentOptions, setShowPaymentOptions] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'transfer' | 'online' | 'wallet' | 'cash_on_delivery' | null>(null);
   const [walletBalance, setWalletBalance] = useState<number>(0);
@@ -244,6 +245,7 @@ export default function CheckoutScreen() {
           clearInterval(interval);
           setShowPaymentWebView(false);
           setShowPaymentOptions(false);
+          setConfirmedTotal(calculateTotal());
           // Webhook created the order server-side; clear cart locally and notify badge
           await supabase.from('carts').delete().eq('user_id', profile?.id);
           setCartItems([]);
@@ -717,6 +719,7 @@ export default function CheckoutScreen() {
       if (pendingRow?.status === 'completed') {
         // Webhook handled it — clear cart locally and show success
         setShowPaymentWebView(false);
+        setConfirmedTotal(calculateTotal());
         await supabase.from('carts').delete().eq('user_id', profile.id);
         setCartItems([]);
         cartEvents.emit();
@@ -918,6 +921,7 @@ export default function CheckoutScreen() {
 
       const primaryOrderNumber = createdOrderNumbers[0];
       setOrderNumber(primaryOrderNumber);
+      setConfirmedTotal(total);
       setOrderPlaced(true);
       setShowPaymentOptions(false);
       if (paymentMethod === 'wallet') {
@@ -996,7 +1000,7 @@ export default function CheckoutScreen() {
 
             <View style={styles.orderDetailRow}>
               <Text style={styles.orderDetailLabel}>Total Amount</Text>
-              <Text style={styles.orderTotalValue}>₦{calculateTotal().toFixed(2)}</Text>
+              <Text style={styles.orderTotalValue}>₦{confirmedTotal.toFixed(2)}</Text>
             </View>
           </View>
 
