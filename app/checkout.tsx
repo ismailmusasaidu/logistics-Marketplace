@@ -38,6 +38,8 @@ interface CartItemWithProduct {
     unit: string;
     vendor_id: string;
     weight_kg: number | null;
+    discount_percentage: number | null;
+    discount_active: boolean | null;
   };
 }
 
@@ -346,7 +348,9 @@ export default function CheckoutScreen() {
             price,
             unit,
             vendor_id,
-            weight_kg
+            weight_kg,
+            discount_percentage,
+            discount_active
           )
         `
         )
@@ -393,11 +397,17 @@ export default function CheckoutScreen() {
     }
   };
 
+  const getEffectivePrice = (item: CartItemWithProduct) => {
+    if (item.option_price != null) return item.option_price;
+    const { price, discount_active, discount_percentage } = item.product;
+    if (discount_active && discount_percentage && discount_percentage > 0) {
+      return price * (1 - discount_percentage / 100);
+    }
+    return price;
+  };
+
   const calculateSubtotal = () => {
-    return cartItems.reduce((sum, item) => {
-      const unitPrice = item.option_price ?? item.product.price;
-      return sum + unitPrice * item.quantity;
-    }, 0);
+    return cartItems.reduce((sum, item) => sum + getEffectivePrice(item) * item.quantity, 0);
   };
 
   const getSpeedCost = () => {
@@ -554,7 +564,7 @@ export default function CheckoutScreen() {
       if (!vendorGroups[vid]) {
         vendorGroups[vid] = { items: [], subtotal: 0, delivery_fee: 0, discount_amount: 0, weight_surcharge_amount: 0, delivery_speed_cost: 0, total: 0 };
       }
-      const unitPrice = item.option_price ?? item.product.price;
+      const unitPrice = getEffectivePrice(item);
       vendorGroups[vid].items.push({
         product_id: item.product_id,
         quantity: item.quantity,
@@ -850,8 +860,7 @@ export default function CheckoutScreen() {
       for (const vendorId of vendorIds) {
         const vendorItems = vendorGroups[vendorId];
         const vendorSubtotal = vendorItems.reduce((sum, item) => {
-          const unitPrice = item.option_price ?? item.product.price;
-          return sum + unitPrice * item.quantity;
+          return sum + getEffectivePrice(item) * item.quantity;
         }, 0);
         const vendorTotal = vendorSubtotal + sharedDeliveryFee + sharedWeightSurcharge - sharedDiscount;
         const vendorOrderNumber = vendorCount > 1
@@ -887,7 +896,7 @@ export default function CheckoutScreen() {
         if (orderError) throw orderError;
 
         const orderItems = vendorItems.map((item) => {
-          const unitPrice = item.option_price ?? item.product.price;
+          const unitPrice = getEffectivePrice(item);
           return {
             order_id: orderData.id,
             product_id: item.product_id,
@@ -1255,7 +1264,7 @@ export default function CheckoutScreen() {
           <Text style={styles.sectionTitle}>Order Summary</Text>
           <View style={styles.summaryCard}>
             {cartItems.map((item) => {
-              const unitPrice = item.option_price ?? item.product.price;
+              const unitPrice = getEffectivePrice(item);
               return (
                 <View key={item.id} style={styles.summaryRow}>
                   <Text style={styles.summaryText}>

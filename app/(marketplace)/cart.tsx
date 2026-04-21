@@ -37,6 +37,8 @@ interface CartItemWithProduct {
     vendor_id: string;
     weight_kg: number | null;
     return_policy: string | null;
+    discount_percentage: number | null;
+    discount_active: boolean | null;
   };
 }
 
@@ -118,7 +120,9 @@ export default function CartScreen() {
             image_url,
             vendor_id,
             weight_kg,
-            return_policy
+            return_policy,
+            discount_percentage,
+            discount_active
           )
         `
         )
@@ -194,11 +198,17 @@ export default function CartScreen() {
     }
   };
 
+  const getEffectivePrice = (item: CartItemWithProduct) => {
+    if (item.option_price != null) return item.option_price;
+    const { price, discount_active, discount_percentage } = item.product;
+    if (discount_active && discount_percentage && discount_percentage > 0) {
+      return price * (1 - discount_percentage / 100);
+    }
+    return price;
+  };
+
   const calculateTotal = () => {
-    return cartItems.reduce((sum, item) => {
-      const unitPrice = item.option_price ?? item.product.price;
-      return sum + unitPrice * item.quantity;
-    }, 0);
+    return cartItems.reduce((sum, item) => sum + getEffectivePrice(item) * item.quantity, 0);
   };
 
   const calculateTotalWeight = () => {
@@ -282,9 +292,16 @@ export default function CartScreen() {
               <Text style={[styles.optionBadgeText, { color: colors.primary }]}>{item.selected_option}</Text>
             </View>
           )}
-          <Text style={[styles.itemPrice, { color: colors.primaryDark }]}>
-            ₦{(item.option_price ?? item.product.price).toFixed(2)} / {item.product.unit}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={[styles.itemPrice, { color: colors.primaryDark }]}>
+              ₦{getEffectivePrice(item).toFixed(2)} / {item.product.unit}
+            </Text>
+            {item.option_price == null && item.product.discount_active && (item.product.discount_percentage ?? 0) > 0 && (
+              <Text style={{ fontSize: 11, color: colors.textMuted, textDecorationLine: 'line-through' }}>
+                ₦{item.product.price.toFixed(2)}
+              </Text>
+            )}
+          </View>
         </TouchableOpacity>
         {item.product.weight_kg != null && (
           <View style={styles.itemWeightRow}>
