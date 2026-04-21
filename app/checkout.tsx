@@ -21,7 +21,6 @@ import { router } from 'expo-router';
 import { BankAccount } from '@/types/database';
 import { Fonts } from '@/constants/fonts';
 import { sendMarketplaceOrderPlacedEmail } from '@/lib/emailService';
-import { cartEvents } from '@/lib/marketplace/cartEvents';
 
 interface CartItemWithProduct {
   id: string;
@@ -38,8 +37,6 @@ interface CartItemWithProduct {
     unit: string;
     vendor_id: string;
     weight_kg: number | null;
-    discount_percentage: number | null;
-    discount_active: boolean | null;
   };
 }
 
@@ -105,7 +102,6 @@ export default function CheckoutScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
-  const [confirmedTotal, setConfirmedTotal] = useState(0);
   const [showPaymentOptions, setShowPaymentOptions] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'transfer' | 'online' | 'wallet' | 'cash_on_delivery' | null>(null);
   const [walletBalance, setWalletBalance] = useState<number>(0);
@@ -239,22 +235,15 @@ export default function CheckoutScreen() {
       try {
         const { data } = await supabase
           .from('pending_orders')
-          .select('status, order_data')
+          .select('status')
           .eq('paystack_reference', paymentReference)
           .maybeSingle();
 
         if (data?.status === 'completed') {
           clearInterval(interval);
           setShowPaymentWebView(false);
-          setShowPaymentOptions(false);
-          setConfirmedTotal(calculateTotal());
-          const batchTs = data.order_data?.batch_timestamp;
-          if (batchTs) setOrderNumber(`ORD-${batchTs}`);
-          // Webhook created the order server-side; clear cart locally and notify badge
-          await supabase.from('carts').delete().eq('user_id', profile?.id);
-          setCartItems([]);
-          cartEvents.emit();
           setOrderPlaced(true);
+          setShowPaymentOptions(false);
         }
       } catch {
         // Non-fatal polling error
@@ -348,9 +337,7 @@ export default function CheckoutScreen() {
             price,
             unit,
             vendor_id,
-            weight_kg,
-            discount_percentage,
-            discount_active
+            weight_kg
           )
         `
         )
@@ -397,17 +384,11 @@ export default function CheckoutScreen() {
     }
   };
 
-  const getEffectivePrice = (item: CartItemWithProduct) => {
-    if (item.option_price != null) return item.option_price;
-    const { price, discount_active, discount_percentage } = item.product;
-    if (discount_active && discount_percentage && discount_percentage > 0) {
-      return price * (1 - discount_percentage / 100);
-    }
-    return price;
-  };
-
   const calculateSubtotal = () => {
-    return cartItems.reduce((sum, item) => sum + getEffectivePrice(item) * item.quantity, 0);
+    return cartItems.reduce((sum, item) => {
+      const unitPrice = item.option_price ?? item.product.price;
+      return sum + unitPrice * item.quantity;
+    }, 0);
   };
 
   const getSpeedCost = () => {
@@ -564,7 +545,7 @@ export default function CheckoutScreen() {
       if (!vendorGroups[vid]) {
         vendorGroups[vid] = { items: [], subtotal: 0, delivery_fee: 0, discount_amount: 0, weight_surcharge_amount: 0, delivery_speed_cost: 0, total: 0 };
       }
-      const unitPrice = getEffectivePrice(item);
+      const unitPrice = item.option_price ?? item.product.price;
       vendorGroups[vid].items.push({
         product_id: item.product_id,
         quantity: item.quantity,
@@ -724,19 +705,15 @@ export default function CheckoutScreen() {
       // First check if the webhook already created the order automatically
       const { data: pendingRow } = await supabase
         .from('pending_orders')
-        .select('status, order_data')
+        .select('status')
         .eq('paystack_reference', paymentReference)
         .maybeSingle();
 
       if (pendingRow?.status === 'completed') {
-        // Webhook handled it — clear cart locally and show success
+        // Webhook handled it — show success without re-creating orders
         setShowPaymentWebView(false);
-        setConfirmedTotal(calculateTotal());
-        await supabase.from('carts').delete().eq('user_id', profile.id);
-        setCartItems([]);
-        cartEvents.emit();
-        const batchTs = pendingRow.order_data?.batch_timestamp;
-        const primaryOrderNumber = batchTs ? `ORD-${batchTs}` : `ORD-${Date.now()}`;
+        const batchTimestamp = Date.now();
+        const primaryOrderNumber = `ORD-${batchTimestamp}`;
         setOrderNumber(primaryOrderNumber);
         setOrderPlaced(true);
         setShowPaymentOptions(false);
@@ -860,7 +837,8 @@ export default function CheckoutScreen() {
       for (const vendorId of vendorIds) {
         const vendorItems = vendorGroups[vendorId];
         const vendorSubtotal = vendorItems.reduce((sum, item) => {
-          return sum + getEffectivePrice(item) * item.quantity;
+          const unitPrice = item.option_price ?? item.product.price;
+          return sum + unitPrice * item.quantity;
         }, 0);
         const vendorTotal = vendorSubtotal + sharedDeliveryFee + sharedWeightSurcharge - sharedDiscount;
         const vendorOrderNumber = vendorCount > 1
@@ -896,7 +874,7 @@ export default function CheckoutScreen() {
         if (orderError) throw orderError;
 
         const orderItems = vendorItems.map((item) => {
-          const unitPrice = getEffectivePrice(item);
+          const unitPrice = item.option_price ?? item.product.price;
           return {
             order_id: orderData.id,
             product_id: item.product_id,
@@ -921,7 +899,6 @@ export default function CheckoutScreen() {
         .eq('user_id', profile.id);
 
       if (deleteError) throw deleteError;
-      cartEvents.emit();
 
       if (appliedPromo) {
         await supabase
@@ -932,7 +909,6 @@ export default function CheckoutScreen() {
 
       const primaryOrderNumber = createdOrderNumbers[0];
       setOrderNumber(primaryOrderNumber);
-      setConfirmedTotal(total);
       setOrderPlaced(true);
       setShowPaymentOptions(false);
       if (paymentMethod === 'wallet') {
@@ -1011,7 +987,7 @@ export default function CheckoutScreen() {
 
             <View style={styles.orderDetailRow}>
               <Text style={styles.orderDetailLabel}>Total Amount</Text>
-              <Text style={styles.orderTotalValue}>₦{confirmedTotal.toFixed(2)}</Text>
+              <Text style={styles.orderTotalValue}>₦{calculateTotal().toFixed(2)}</Text>
             </View>
           </View>
 
@@ -1264,7 +1240,7 @@ export default function CheckoutScreen() {
           <Text style={styles.sectionTitle}>Order Summary</Text>
           <View style={styles.summaryCard}>
             {cartItems.map((item) => {
-              const unitPrice = getEffectivePrice(item);
+              const unitPrice = item.option_price ?? item.product.price;
               return (
                 <View key={item.id} style={styles.summaryRow}>
                   <Text style={styles.summaryText}>
