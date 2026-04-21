@@ -21,6 +21,7 @@ import { router } from 'expo-router';
 import { BankAccount } from '@/types/database';
 import { Fonts } from '@/constants/fonts';
 import { sendMarketplaceOrderPlacedEmail } from '@/lib/emailService';
+import { cartEvents } from '@/lib/marketplace/cartEvents';
 
 interface CartItemWithProduct {
   id: string;
@@ -242,8 +243,12 @@ export default function CheckoutScreen() {
         if (data?.status === 'completed') {
           clearInterval(interval);
           setShowPaymentWebView(false);
-          setOrderPlaced(true);
           setShowPaymentOptions(false);
+          // Webhook created the order server-side; clear cart locally and notify badge
+          await supabase.from('carts').delete().eq('user_id', profile?.id);
+          setCartItems([]);
+          cartEvents.emit();
+          setOrderPlaced(true);
         }
       } catch {
         // Non-fatal polling error
@@ -710,8 +715,11 @@ export default function CheckoutScreen() {
         .maybeSingle();
 
       if (pendingRow?.status === 'completed') {
-        // Webhook handled it — show success without re-creating orders
+        // Webhook handled it — clear cart locally and show success
         setShowPaymentWebView(false);
+        await supabase.from('carts').delete().eq('user_id', profile.id);
+        setCartItems([]);
+        cartEvents.emit();
         const batchTimestamp = Date.now();
         const primaryOrderNumber = `ORD-${batchTimestamp}`;
         setOrderNumber(primaryOrderNumber);
@@ -899,6 +907,7 @@ export default function CheckoutScreen() {
         .eq('user_id', profile.id);
 
       if (deleteError) throw deleteError;
+      cartEvents.emit();
 
       if (appliedPromo) {
         await supabase
