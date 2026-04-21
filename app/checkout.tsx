@@ -237,7 +237,7 @@ export default function CheckoutScreen() {
       try {
         const { data } = await supabase
           .from('pending_orders')
-          .select('status')
+          .select('status, order_data')
           .eq('paystack_reference', paymentReference)
           .maybeSingle();
 
@@ -246,6 +246,8 @@ export default function CheckoutScreen() {
           setShowPaymentWebView(false);
           setShowPaymentOptions(false);
           setConfirmedTotal(calculateTotal());
+          const batchTs = data.order_data?.batch_timestamp;
+          if (batchTs) setOrderNumber(`ORD-${batchTs}`);
           // Webhook created the order server-side; clear cart locally and notify badge
           await supabase.from('carts').delete().eq('user_id', profile?.id);
           setCartItems([]);
@@ -712,7 +714,7 @@ export default function CheckoutScreen() {
       // First check if the webhook already created the order automatically
       const { data: pendingRow } = await supabase
         .from('pending_orders')
-        .select('status')
+        .select('status, order_data')
         .eq('paystack_reference', paymentReference)
         .maybeSingle();
 
@@ -723,8 +725,8 @@ export default function CheckoutScreen() {
         await supabase.from('carts').delete().eq('user_id', profile.id);
         setCartItems([]);
         cartEvents.emit();
-        const batchTimestamp = Date.now();
-        const primaryOrderNumber = `ORD-${batchTimestamp}`;
+        const batchTs = pendingRow.order_data?.batch_timestamp;
+        const primaryOrderNumber = batchTs ? `ORD-${batchTs}` : `ORD-${Date.now()}`;
         setOrderNumber(primaryOrderNumber);
         setOrderPlaced(true);
         setShowPaymentOptions(false);
