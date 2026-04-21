@@ -374,6 +374,41 @@ export default function CustomerHome() {
   const verifyAndCreateOrder = async (reference: string, orderDetails: any) => {
     setVerifyingPayment(true);
     try {
+      // First check if the webhook already created the order automatically
+      const { data: pendingRow } = await coreBackend
+        .from('pending_orders')
+        .select('status')
+        .eq('paystack_reference', reference)
+        .maybeSingle();
+
+      if (pendingRow?.status === 'completed') {
+        // Webhook already handled it — just refresh orders and show success
+        setVerifyingPayment(false);
+        setModalVisible(false);
+        setCheckoutModalVisible(false);
+        setNewOrder({
+          pickupAddress: '',
+          pickupInstructions: '',
+          deliveryAddress: '',
+          deliveryInstructions: '',
+          recipientName: '',
+          recipientPhone: '',
+          packageDescription: '',
+          orderTypes: [],
+          orderSize: '',
+          promoCode: '',
+        });
+        setCalculatedDistance(null);
+        setPricingBreakdown(null);
+        setValidatedPromo(null);
+        setGeocodingError(null);
+        setPendingPaymentData(null);
+        showToast('Payment successful! Order created.', 'success');
+        loadOrders();
+        return true;
+      }
+
+      // Fallback: webhook hasn't fired yet — verify manually and create order
       const apiUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/verify-payment`;
       const { data: { session } } = await coreBackend.auth.getSession();
 
@@ -448,6 +483,14 @@ export default function CustomerHome() {
         .single();
 
       if (orderError) throw orderError;
+
+      // Mark pending_order as completed so webhook won't double-create
+      await coreBackend
+        .from('pending_orders')
+        .update({ status: 'completed' })
+        .eq('paystack_reference', reference)
+        .eq('status', 'pending')
+        .then(({ error: e }) => { if (e) console.error('Failed to mark pending order completed:', e); });
 
       if (orderDetails.validatedPromo) {
         await pricingCalculator.incrementPromoUsage(orderDetails.validatedPromo.code);
@@ -1492,6 +1535,24 @@ export default function CustomerHome() {
           pricing={pricingBreakdown}
           userId={profile?.id || ''}
           userEmail={profile?.email || ''}
+          pendingOrderSnapshot={profile ? {
+            customer_id: profile.id,
+            customer_email: profile.email,
+            customer_name: profile.full_name || 'Customer',
+            order_number: `ORD-${Date.now()}`,
+            pickup_address: newOrder.pickupAddress,
+            pickup_instructions: newOrder.pickupInstructions,
+            delivery_address: newOrder.deliveryAddress,
+            delivery_instructions: newOrder.deliveryInstructions,
+            recipient_name: newOrder.recipientName,
+            recipient_phone: newOrder.recipientPhone,
+            package_description: newOrder.packageDescription,
+            order_size: newOrder.orderSize,
+            order_types: newOrder.orderTypes,
+            delivery_fee: pricingBreakdown.finalPrice,
+            notes: buildNotesFromForm(),
+            promo_code: validatedPromo?.code || null,
+          } : undefined}
         />
       )}
 

@@ -227,6 +227,32 @@ export default function CheckoutScreen() {
     }
   }, [paymentUrl, showPaymentWebView]);
 
+  // Auto-poll pending_orders every 3 seconds while waiting for Paystack webhook
+  useEffect(() => {
+    if (!showPaymentWebView || !paymentReference) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const { data } = await supabase
+          .from('pending_orders')
+          .select('status')
+          .eq('paystack_reference', paymentReference)
+          .maybeSingle();
+
+        if (data?.status === 'completed') {
+          clearInterval(interval);
+          setShowPaymentWebView(false);
+          setOrderPlaced(true);
+          setShowPaymentOptions(false);
+        }
+      } catch {
+        // Non-fatal polling error
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [showPaymentWebView, paymentReference]);
+
   const loadZonesAndStoreAddress = async () => {
     const [zonesResult, pricingResult] = await Promise.all([
       supabase.from('delivery_zones').select('*').eq('is_active', true).order('min_distance_km'),
@@ -504,6 +530,67 @@ export default function CheckoutScreen() {
     setShowPaymentOptions(true);
   };
 
+  const buildMarketplacePendingSnapshot = (batchTimestamp: number) => {
+    const subtotal = calculateSubtotal();
+    const deliveryFee = deliveryType === 'delivery' ? calculatedDeliveryFee : 0;
+    const discount = calculateDiscount();
+    const weightSurchargeAmount = getWeightSurchargeAmount();
+    const appliedWeightSurcharge = getApplicableWeightSurcharge();
+    const total = calculateTotal();
+    const speedCost = getSpeedCost();
+
+    const vendorGroups: Record<string, any> = {};
+    for (const item of cartItems) {
+      const vid = item.product.vendor_id;
+      if (!vendorGroups[vid]) {
+        vendorGroups[vid] = { items: [], subtotal: 0, delivery_fee: 0, discount_amount: 0, weight_surcharge_amount: 0, delivery_speed_cost: 0, total: 0 };
+      }
+      const unitPrice = item.option_price ?? item.product.price;
+      vendorGroups[vid].items.push({
+        product_id: item.product_id,
+        quantity: item.quantity,
+        unit_price: unitPrice,
+        subtotal: unitPrice * item.quantity,
+        selected_size: item.selected_size ?? null,
+        selected_color: item.selected_color ?? null,
+      });
+      vendorGroups[vid].subtotal += unitPrice * item.quantity;
+    }
+
+    const vendorIds = Object.keys(vendorGroups);
+    const vendorCount = vendorIds.length;
+    for (const vid of vendorIds) {
+      const sharedDeliveryFee = deliveryFee / vendorCount;
+      const sharedDiscount = discount / vendorCount;
+      const sharedWeightSurcharge = weightSurchargeAmount / vendorCount;
+      const sharedSpeedCost = speedCost / vendorCount;
+      vendorGroups[vid].delivery_fee = sharedDeliveryFee;
+      vendorGroups[vid].discount_amount = sharedDiscount;
+      vendorGroups[vid].weight_surcharge_amount = sharedWeightSurcharge;
+      vendorGroups[vid].delivery_speed_cost = sharedSpeedCost;
+      vendorGroups[vid].total = Math.max(0, vendorGroups[vid].subtotal + sharedDeliveryFee + sharedWeightSurcharge - sharedDiscount);
+    }
+
+    return {
+      customer_id: profile!.id,
+      customer_email: profile!.email,
+      customer_name: profile!.full_name || 'Customer',
+      batch_timestamp: batchTimestamp,
+      vendor_groups: vendorGroups,
+      delivery_type: deliveryType,
+      delivery_address: deliveryType === 'delivery' ? `${deliveryName}\n${deliveryPhone}\n${deliveryAddress}` : 'N/A',
+      delivery_speed: deliveryType === 'delivery' ? (selectedSpeed?.name || null) : null,
+      delivery_speed_cost: speedCost,
+      weight_surcharge_amount: weightSurchargeAmount,
+      weight_surcharge_label: appliedWeightSurcharge?.label || null,
+      promo_code: appliedPromo?.code || null,
+      promo_id: appliedPromo?.id || null,
+      promo_usage_count: appliedPromo?.usage_count || 0,
+      total,
+      total_item_count: cartItems.length,
+    };
+  };
+
   const handlePayOnline = async () => {
     if (!profile) return;
 
@@ -524,13 +611,19 @@ export default function CheckoutScreen() {
         return;
       }
 
+      const batchTimestamp = Date.now();
+
       const response = await fetch(`${CORE_URL}/functions/v1/initialize-payment`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ amount: total, email }),
+        body: JSON.stringify({
+          amount: total,
+          email,
+          metadata: { type: 'order', source: 'marketplace' },
+        }),
       });
 
       const result = await response.json();
@@ -548,7 +641,6 @@ export default function CheckoutScreen() {
           return;
         }
 
-        // Show detailed error from Paystack
         const detailedError = result?.details ?
           `${errorMsg}\n\nDetails: ${JSON.stringify(result.details, null, 2)}` :
           errorMsg;
@@ -556,8 +648,24 @@ export default function CheckoutScreen() {
         throw new Error(detailedError);
       }
 
+      const reference = result.data.reference;
+
+      // Save full order snapshot to pending_orders so webhook can auto-create the order
+      const snapshot = buildMarketplacePendingSnapshot(batchTimestamp);
+      await supabase
+        .from('pending_orders')
+        .insert({
+          paystack_reference: reference,
+          source: 'marketplace',
+          customer_id: profile.id,
+          order_data: snapshot,
+        })
+        .then(({ error: insertError }) => {
+          if (insertError) console.error('Failed to save pending order:', insertError);
+        });
+
       setPaymentUrl(result.data.authorization_url);
-      setPaymentReference(result.data.reference);
+      setPaymentReference(reference);
 
       if (Platform.OS === 'web') {
         window.open(result.data.authorization_url, '_blank');
@@ -594,6 +702,25 @@ export default function CheckoutScreen() {
     try {
       setSubmitting(true);
 
+      // First check if the webhook already created the order automatically
+      const { data: pendingRow } = await supabase
+        .from('pending_orders')
+        .select('status')
+        .eq('paystack_reference', paymentReference)
+        .maybeSingle();
+
+      if (pendingRow?.status === 'completed') {
+        // Webhook handled it — show success without re-creating orders
+        setShowPaymentWebView(false);
+        const batchTimestamp = Date.now();
+        const primaryOrderNumber = `ORD-${batchTimestamp}`;
+        setOrderNumber(primaryOrderNumber);
+        setOrderPlaced(true);
+        setShowPaymentOptions(false);
+        return;
+      }
+
+      // Fallback: webhook hasn't fired yet — verify manually then create orders
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         Alert.alert('Error', 'Session expired. Please try again.');
@@ -609,6 +736,13 @@ export default function CheckoutScreen() {
       }
 
       if (result.success) {
+        // Mark pending order as completed so webhook won't double-create
+        await supabase
+          .from('pending_orders')
+          .update({ status: 'completed' })
+          .eq('paystack_reference', paymentReference)
+          .eq('status', 'pending');
+
         setShowPaymentWebView(false);
         await handlePlaceOrder('online', true);
       } else {
@@ -1535,7 +1669,7 @@ export default function CheckoutScreen() {
                   A new window has been opened for you to complete your payment on Paystack.
                 </Text>
                 <Text style={styles.paymentInstructionsText}>
-                  After completing the payment, click the button below to verify and complete your order.
+                  Your order will be confirmed automatically once payment is detected. You can also tap the button below to check manually.
                 </Text>
               </View>
 

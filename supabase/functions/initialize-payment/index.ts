@@ -55,6 +55,13 @@ Deno.serve(async (req: Request) => {
     if (metadata || orderId) {
       payload.metadata = { ...metadata, orderId };
     }
+    // Ensure type is always present so the webhook can distinguish order payments from wallet recharges
+    if (!payload.metadata) {
+      payload.metadata = {};
+    }
+    if (!(payload.metadata as any).type) {
+      (payload.metadata as any).type = 'order';
+    }
 
     const initializeResponse = await fetch(initializeUrl, {
       method: "POST",

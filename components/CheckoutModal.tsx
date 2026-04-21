@@ -8,6 +8,7 @@ import { PaymentMethod, walletService } from '@/lib/wallet';
 import { PricingBreakdown } from './PricingBreakdown';
 import { PaymentVerificationModal } from './PaymentVerificationModal';
 import { supabase } from '@/lib/supabase';
+import { coreBackend } from '@/lib/coreBackend';
 
 type BankAccount = {
   id: string;
@@ -28,6 +29,8 @@ type CheckoutModalProps = {
   userId: string;
   userEmail: string;
   orderId?: string;
+  // Snapshot of order data to persist before opening Paystack (enables webhook auto-creation)
+  pendingOrderSnapshot?: Record<string, any>;
 };
 
 function getOrderError(error: any): string {
@@ -84,7 +87,7 @@ function getOrderError(error: any): string {
   return error?.message || 'Failed to place order. Please try again.';
 }
 
-export function CheckoutModal({ visible, onClose, onConfirm, pricing, userId, userEmail, orderId }: CheckoutModalProps) {
+export function CheckoutModal({ visible, onClose, onConfirm, pricing, userId, userEmail, orderId, pendingOrderSnapshot }: CheckoutModalProps) {
   const insets = useSafeAreaInsets();
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod>('cash_on_delivery');
   const [walletBalance, setWalletBalance] = useState(0);
@@ -153,6 +156,7 @@ export function CheckoutModal({ visible, onClose, onConfirm, pricing, userId, us
             userId,
             deliveryFee: pricing.finalPrice,
             promoCode: pricing.promoApplied,
+            type: 'order',
           },
         },
       });
@@ -165,13 +169,30 @@ export function CheckoutModal({ visible, onClose, onConfirm, pricing, userId, us
         throw new Error(data?.error || 'Failed to initialize payment');
       }
 
+      const reference = data.data.reference;
+
+      // Save order snapshot to pending_orders so the webhook can auto-create the order
+      if (pendingOrderSnapshot) {
+        await coreBackend
+          .from('pending_orders')
+          .insert({
+            paystack_reference: reference,
+            source: 'logistics',
+            customer_id: userId,
+            order_data: pendingOrderSnapshot,
+          })
+          .then(({ error: insertError }) => {
+            if (insertError) console.error('Failed to save pending order:', insertError);
+          });
+      }
+
       const authUrl = data.data.authorization_url;
       const supported = await Linking.canOpenURL(authUrl);
       if (supported) {
         await Linking.openURL(authUrl);
 
         setProcessingPayment(false);
-        setPaystackRef(data.data.reference);
+        setPaystackRef(reference);
         setVerificationPaymentMethod('online');
         setShowVerificationModal(true);
       } else {

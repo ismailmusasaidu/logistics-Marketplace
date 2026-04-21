@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ActivityIndicator, TextInput, Alert, ScrollView } from 'react-native';
 import { X, CircleCheck as CheckCircle, Upload, CircleAlert as AlertCircle } from 'lucide-react-native';
 import { PaymentMethod } from '@/lib/wallet';
+import { coreBackend } from '@/lib/coreBackend';
 
 type PaymentVerificationModalProps = {
   visible: boolean;
@@ -23,6 +24,38 @@ export function PaymentVerificationModal({
   const [loading, setLoading] = useState(false);
   const [transferReference, setTransferReference] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Auto-poll pending_orders every 3 seconds while waiting for Paystack webhook
+  useEffect(() => {
+    if (!visible || paymentMethod !== 'online' || !paystackReference) return;
+
+    pollIntervalRef.current = setInterval(async () => {
+      try {
+        const { data } = await coreBackend
+          .from('pending_orders')
+          .select('status')
+          .eq('paystack_reference', paystackReference)
+          .maybeSingle();
+
+        if (data?.status === 'completed') {
+          clearInterval(pollIntervalRef.current!);
+          pollIntervalRef.current = null;
+          setLoading(true);
+          await onVerify(undefined);
+        }
+      } catch {
+        // Polling errors are non-fatal
+      }
+    }, 3000);
+
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+    };
+  }, [visible, paymentMethod, paystackReference]);
 
   const handleVerify = async () => {
     setError(null);
@@ -76,7 +109,7 @@ export function PaymentVerificationModal({
                 <View style={styles.infoBox}>
                   <AlertCircle size={16} color="#f97316" />
                   <Text style={styles.infoText}>
-                    Once payment is complete, return here and tap "Verify Payment" to confirm your order.
+                    Your order will be confirmed automatically once payment is complete. You can also tap "Verify Payment" to check manually.
                   </Text>
                 </View>
                 {paystackReference && (
