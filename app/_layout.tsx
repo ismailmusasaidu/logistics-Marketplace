@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Stack, SplashScreen } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Platform } from 'react-native';
-import AnimatedSplashScreen from '@/components/AnimatedSplashScreen';
 import { useFonts } from 'expo-font';
 import {
   Inter_400Regular,
@@ -45,7 +44,6 @@ if (!__DEV__) {
 
 export default function RootLayout() {
   useFrameworkReady();
-  const [splashDone, setSplashDone] = useState(false);
 
   const [fontsLoaded, fontError] = useFonts({
     'Inter-Regular': Inter_400Regular,
@@ -141,9 +139,6 @@ export default function RootLayout() {
                 </Stack>
                 <StatusBar style="dark" />
               </>
-            )}
-            {!splashDone && (
-              <AnimatedSplashScreen appReady={appReady} onFinish={() => setSplashDone(true)} />
             )}
           </WishlistProvider>
         </AuthProvider>
