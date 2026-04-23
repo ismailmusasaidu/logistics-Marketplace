@@ -513,7 +513,7 @@ export default function VendorOrderManagement({ onBack }: VendorOrderManagementP
         <Pressable style={styles.modalOverlay} onPress={() => { setSelectedOrder(null); setSelectedOrderItems([]); }}>
           <Pressable style={styles.detailsModalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHandle} />
-            <View style={styles.detailsHeader}>
+            <View style={styles.detailsHeader} onStartShouldSetResponder={() => true}>
               <Text style={styles.detailsTitle}>Order Details</Text>
               <View style={styles.detailsHeaderActions}>
                 <TouchableOpacity
@@ -532,7 +532,13 @@ export default function VendorOrderManagement({ onBack }: VendorOrderManagementP
             </View>
 
             {selectedOrder && (
-              <ScrollView style={styles.detailsBody} showsVerticalScrollIndicator={false}>
+              <ScrollView
+                style={styles.detailsBody}
+                contentContainerStyle={styles.detailsBodyContent}
+                showsVerticalScrollIndicator={false}
+                bounces={true}
+                keyboardShouldPersistTaps="handled"
+              >
                 <View style={styles.detailSection}>
                   <View style={styles.detailSectionHeader}>
                     <Package size={16} color="#78716c" />
@@ -997,8 +1003,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    paddingBottom: 40,
-    maxHeight: '85%',
+    maxHeight: '90%',
+    flex: 0,
   },
   detailsHeader: {
     flexDirection: 'row',
@@ -1030,7 +1036,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   detailsBody: {
+    flexGrow: 1,
+    flexShrink: 1,
+  },
+  detailsBodyContent: {
     padding: 16,
+    paddingBottom: 40,
   },
   detailSection: {
     marginBottom: 20,
