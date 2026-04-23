@@ -116,6 +116,7 @@ export default function LoginScreen() {
       });
       if (resendError) throw resendError;
       setResendSuccess(true);
+      router.push({ pathname: '/auth/confirm', params: { email } });
     } catch (err: any) {
       setError(err.message || 'Failed to resend confirmation email');
     } finally {

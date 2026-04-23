@@ -11,7 +11,7 @@ import {
   KeyboardAvoidingView,
   ScrollView,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CircleCheck, CircleX, Mail, ShieldCheck } from 'lucide-react-native';
 import * as Linking from 'expo-linking';
@@ -23,11 +23,12 @@ type ConfirmState = 'loading' | 'otp_entry' | 'success' | 'error';
 
 export default function ConfirmPage() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ email?: string }>();
   const insets = useSafeAreaInsets();
   const [state, setState] = useState<ConfirmState>('loading');
   const [errorMessage, setErrorMessage] = useState('');
   const [otp, setOtp] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(params.email || '');
   const [otpLoading, setOtpLoading] = useState(false);
   const [otpError, setOtpError] = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
