@@ -37,6 +37,8 @@ interface CartItemWithProduct {
     unit: string;
     vendor_id: string;
     weight_kg: number | null;
+    discount_percentage: number;
+    discount_active: boolean;
   };
 }
 
@@ -337,7 +339,9 @@ export default function CheckoutScreen() {
             price,
             unit,
             vendor_id,
-            weight_kg
+            weight_kg,
+            discount_percentage,
+            discount_active
           )
         `
         )
@@ -384,10 +388,17 @@ export default function CheckoutScreen() {
     }
   };
 
+  const getEffectiveUnitPrice = (item: CartItemWithProduct) => {
+    const basePrice = item.option_price ?? item.product.price;
+    if (item.product.discount_active && item.product.discount_percentage > 0) {
+      return basePrice * (1 - item.product.discount_percentage / 100);
+    }
+    return basePrice;
+  };
+
   const calculateSubtotal = () => {
     return cartItems.reduce((sum, item) => {
-      const unitPrice = item.option_price ?? item.product.price;
-      return sum + unitPrice * item.quantity;
+      return sum + getEffectiveUnitPrice(item) * item.quantity;
     }, 0);
   };
 
@@ -545,7 +556,7 @@ export default function CheckoutScreen() {
       if (!vendorGroups[vid]) {
         vendorGroups[vid] = { items: [], subtotal: 0, delivery_fee: 0, discount_amount: 0, weight_surcharge_amount: 0, delivery_speed_cost: 0, total: 0 };
       }
-      const unitPrice = item.option_price ?? item.product.price;
+      const unitPrice = getEffectiveUnitPrice(item);
       vendorGroups[vid].items.push({
         product_id: item.product_id,
         quantity: item.quantity,
@@ -874,7 +885,7 @@ export default function CheckoutScreen() {
         if (orderError) throw orderError;
 
         const orderItems = vendorItems.map((item) => {
-          const unitPrice = item.option_price ?? item.product.price;
+          const unitPrice = getEffectiveUnitPrice(item);
           return {
             order_id: orderData.id,
             product_id: item.product_id,

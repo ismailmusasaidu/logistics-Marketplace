@@ -37,6 +37,8 @@ interface CartItemWithProduct {
     vendor_id: string;
     weight_kg: number | null;
     return_policy: string | null;
+    discount_percentage: number;
+    discount_active: boolean;
   };
 }
 
@@ -118,7 +120,9 @@ export default function CartScreen() {
             image_url,
             vendor_id,
             weight_kg,
-            return_policy
+            return_policy,
+            discount_percentage,
+            discount_active
           )
         `
         )
@@ -194,10 +198,17 @@ export default function CartScreen() {
     }
   };
 
+  const getEffectiveUnitPrice = (item: CartItemWithProduct) => {
+    const basePrice = item.option_price ?? item.product.price;
+    if (item.product.discount_active && item.product.discount_percentage > 0) {
+      return basePrice * (1 - item.product.discount_percentage / 100);
+    }
+    return basePrice;
+  };
+
   const calculateTotal = () => {
     return cartItems.reduce((sum, item) => {
-      const unitPrice = item.option_price ?? item.product.price;
-      return sum + unitPrice * item.quantity;
+      return sum + getEffectiveUnitPrice(item) * item.quantity;
     }, 0);
   };
 
@@ -282,9 +293,23 @@ export default function CartScreen() {
               <Text style={styles.optionBadgeText}>{item.selected_option}</Text>
             </View>
           )}
-          <Text style={[styles.itemPrice, { color: colors.primaryDark }]}>
-            ₦{(item.option_price ?? item.product.price).toFixed(2)} / {item.product.unit}
-          </Text>
+          {item.product.discount_active && item.product.discount_percentage > 0 ? (
+            <View style={styles.itemPriceRow}>
+              <Text style={[styles.itemPrice, { color: colors.primaryDark }]}>
+                ₦{getEffectiveUnitPrice(item).toFixed(2)} / {item.product.unit}
+              </Text>
+              <Text style={[styles.itemPriceOriginal, { color: colors.textMuted }]}>
+                ₦{(item.option_price ?? item.product.price).toFixed(2)}
+              </Text>
+              <View style={styles.discountBadge}>
+                <Text style={styles.discountBadgeText}>-{item.product.discount_percentage}%</Text>
+              </View>
+            </View>
+          ) : (
+            <Text style={[styles.itemPrice, { color: colors.primaryDark }]}>
+              ₦{(item.option_price ?? item.product.price).toFixed(2)} / {item.product.unit}
+            </Text>
+          )}
         </TouchableOpacity>
         {item.product.weight_kg != null && (
           <View style={styles.itemWeightRow}>
@@ -551,6 +576,31 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.spaceBold,
     marginTop: 2,
     letterSpacing: -0.2,
+  },
+  itemPriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 2,
+  },
+  itemPriceOriginal: {
+    fontSize: 12,
+    fontFamily: Fonts.spaceRegular,
+    textDecorationLine: 'line-through',
+  },
+  discountBadge: {
+    backgroundColor: '#dcfce7',
+    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+  },
+  discountBadgeText: {
+    fontSize: 10,
+    fontFamily: Fonts.spaceSemiBold,
+    color: '#15803d',
   },
   optionBadge: {
     alignSelf: 'flex-start',
