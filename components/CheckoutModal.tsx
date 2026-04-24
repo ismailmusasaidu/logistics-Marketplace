@@ -7,7 +7,6 @@ import { PricingBreakdown as PricingBreakdownType } from '@/lib/pricingCalculato
 import { PaymentMethod, walletService } from '@/lib/wallet';
 import { PricingBreakdown } from './PricingBreakdown';
 import { PaymentVerificationModal } from './PaymentVerificationModal';
-import { supabase } from '@/lib/supabase';
 import { coreBackend } from '@/lib/coreBackend';
 
 type BankAccount = {
@@ -147,8 +146,17 @@ export function CheckoutModal({ visible, onClose, onConfirm, pricing, userId, us
     try {
       const tempOrderId = orderId || `ORD${Date.now()}${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
-      const { data, error: invokeError } = await supabase.functions.invoke('initialize-payment', {
-        body: {
+      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || process.env.EXPO_PUBLIC_CORE_BACKEND_URL;
+      const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || process.env.EXPO_PUBLIC_CORE_BACKEND_ANON_KEY;
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/initialize-payment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey || '',
+        },
+        body: JSON.stringify({
           email: userEmail,
           amount: pricing.finalPrice,
           orderId: tempOrderId,
@@ -158,12 +166,10 @@ export function CheckoutModal({ visible, onClose, onConfirm, pricing, userId, us
             promoCode: pricing.promoApplied,
             type: 'order',
           },
-        },
+        }),
       });
 
-      if (invokeError) {
-        throw new Error(invokeError.message || 'Failed to initialize payment');
-      }
+      const data = await response.json();
 
       if (!data?.success) {
         throw new Error(data?.error || 'Failed to initialize payment');
