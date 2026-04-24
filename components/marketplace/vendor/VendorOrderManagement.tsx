@@ -11,6 +11,7 @@ import {
   TextInput,
   Platform,
   Pressable,
+  Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Package, Clock, CircleCheck as CheckCircle, Truck, Circle as XCircle, ArrowLeft, ShoppingBag, Search, Receipt, X, ChevronRight, User, MapPin, CreditCard, Calendar } from 'lucide-react-native';
@@ -88,6 +89,8 @@ export default function VendorOrderManagement({ onBack }: VendorOrderManagementP
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<OrderWithCustomer | null>(null);
+  const [showDetailPage, setShowDetailPage] = useState(false);
+  const detailSlide = useRef(new Animated.Value(0)).current;
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [vendorId, setVendorId] = useState<string | null>(null);
@@ -210,6 +213,32 @@ export default function VendorOrderManagement({ onBack }: VendorOrderManagementP
     return () => { supabase.removeChannel(channel); };
   }, [vendorId, selectedOrder?.id]);
 
+  const openDetailPage = (order: OrderWithCustomer) => {
+    setSelectedOrder(order);
+    setSelectedOrderItems([]);
+    fetchSelectedOrderItems(order.id);
+    setShowDetailPage(true);
+    detailSlide.setValue(1);
+    Animated.spring(detailSlide, {
+      toValue: 0,
+      useNativeDriver: true,
+      tension: 120,
+      friction: 14,
+    }).start();
+  };
+
+  const closeDetailPage = () => {
+    Animated.timing(detailSlide, {
+      toValue: 1,
+      duration: 220,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowDetailPage(false);
+      setSelectedOrder(null);
+      setSelectedOrderItems([]);
+    });
+  };
+
   const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
     try {
       setUpdatingStatus(true);
@@ -221,7 +250,6 @@ export default function VendorOrderManagement({ onBack }: VendorOrderManagementP
       if (error) throw error;
 
       setShowStatusModal(false);
-      setSelectedOrder(null);
     } catch (error) {
       console.error('Error updating order status:', error);
     } finally {
@@ -313,11 +341,7 @@ export default function VendorOrderManagement({ onBack }: VendorOrderManagementP
     return (
       <Pressable
         style={({ pressed }) => [styles.orderCard, pressed && styles.orderCardPressed]}
-        onPress={() => {
-          setSelectedOrder(item);
-          setSelectedOrderItems([]);
-          fetchSelectedOrderItems(item.id);
-        }}
+        onPress={() => openDetailPage(item)}
       >
         <View style={styles.orderCardTop}>
           <View style={styles.orderIdRow}>
@@ -452,17 +476,14 @@ export default function VendorOrderManagement({ onBack }: VendorOrderManagementP
         visible={showStatusModal}
         transparent
         animationType="slide"
-        onRequestClose={() => {
-          setShowStatusModal(false);
-          setSelectedOrder(null);
-        }}
+        onRequestClose={() => setShowStatusModal(false)}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => { setShowStatusModal(false); setSelectedOrder(null); }}>
+        <Pressable style={styles.modalOverlay} onPress={() => setShowStatusModal(false)}>
           <Pressable style={styles.statusModalContent} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHandle} />
             <View style={styles.statusModalHeader}>
               <Text style={styles.statusModalTitle}>Update Status</Text>
-              <TouchableOpacity onPress={() => { setShowStatusModal(false); setSelectedOrder(null); }}>
+              <TouchableOpacity onPress={() => setShowStatusModal(false)}>
                 <X size={22} color="#78716c" />
               </TouchableOpacity>
             </View>
@@ -503,194 +524,193 @@ export default function VendorOrderManagement({ onBack }: VendorOrderManagementP
         </Pressable>
       </Modal>
 
-      {/* Order Details Modal */}
-      <Modal
-        visible={!!selectedOrder && !showStatusModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => { setSelectedOrder(null); setSelectedOrderItems([]); }}
-      >
-        <Pressable style={styles.modalOverlay} onPress={() => { setSelectedOrder(null); setSelectedOrderItems([]); }}>
-          <Pressable style={styles.detailsModalContent} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modalHandle} />
-            <View style={styles.detailsHeader} onStartShouldSetResponder={() => true}>
-              <Text style={styles.detailsTitle}>Order Details</Text>
-              <View style={styles.detailsHeaderActions}>
-                <TouchableOpacity
-                  style={styles.receiptBtn}
-                  onPress={() => {
-                    if (selectedOrder) handleViewReceipt(selectedOrder);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Receipt size={18} color="#1a1a1a" />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => { setSelectedOrder(null); setSelectedOrderItems([]); }}>
-                  <X size={22} color="#78716c" />
-                </TouchableOpacity>
+      {/* Order Details Page */}
+      {showDetailPage && selectedOrder && (
+        <Animated.View
+          style={[
+            styles.detailPage,
+            { transform: [{ translateX: detailSlide.interpolate({ inputRange: [0, 1], outputRange: [0, 500] }) }] },
+          ]}
+        >
+          <View style={[styles.detailPageHeader, { paddingTop: insets.top + 12 }]}>
+            <TouchableOpacity onPress={closeDetailPage} style={styles.detailBackBtn} activeOpacity={0.7}>
+              <ArrowLeft size={22} color="#fafaf9" />
+            </TouchableOpacity>
+            <Text style={styles.detailPageTitle}>Order Details</Text>
+            <TouchableOpacity
+              style={styles.detailReceiptBtn}
+              onPress={() => handleViewReceipt(selectedOrder)}
+              activeOpacity={0.7}
+            >
+              <Receipt size={18} color="#fafaf9" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            style={styles.detailsBody}
+            contentContainerStyle={[styles.detailsBodyContent, { paddingBottom: insets.bottom + 40 }]}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={styles.detailSection}>
+              <View style={styles.detailSectionHeader}>
+                <Package size={16} color="#78716c" />
+                <Text style={styles.detailSectionTitle}>Order Info</Text>
+              </View>
+              <View style={styles.detailCard}>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Order No.</Text>
+                  <Text style={styles.detailValue}>#{selectedOrder.order_number}</Text>
+                </View>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Status</Text>
+                  <View style={[styles.statusBadge, { backgroundColor: statusBgColors[selectedOrder.status] }]}>
+                    {(() => {
+                      const Icon = statusIcons[selectedOrder.status];
+                      return <Icon size={13} color={statusColors[selectedOrder.status]} />;
+                    })()}
+                    <Text style={[styles.statusText, { color: statusColors[selectedOrder.status] }]}>
+                      {selectedOrder.status.replace(/_/g, ' ')}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Date</Text>
+                  <Text style={styles.detailValue}>{formatDate(selectedOrder.created_at)}</Text>
+                </View>
               </View>
             </View>
 
-            {selectedOrder && (
-              <ScrollView
-                style={styles.detailsBody}
-                contentContainerStyle={styles.detailsBodyContent}
-                showsVerticalScrollIndicator={false}
-                bounces={true}
-                keyboardShouldPersistTaps="handled"
-              >
-                <View style={styles.detailSection}>
-                  <View style={styles.detailSectionHeader}>
-                    <Package size={16} color="#78716c" />
-                    <Text style={styles.detailSectionTitle}>Order Info</Text>
+            <View style={styles.detailSection}>
+              <View style={styles.detailSectionHeader}>
+                <User size={16} color="#78716c" />
+                <Text style={styles.detailSectionTitle}>Customer</Text>
+              </View>
+              <View style={styles.detailCard}>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Name</Text>
+                  <Text style={styles.detailValue}>{selectedOrder.customer.full_name}</Text>
+                </View>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Email</Text>
+                  <Text style={styles.detailValue}>{selectedOrder.customer.email}</Text>
+                </View>
+                {selectedOrder.customer.phone && (
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Phone</Text>
+                    <Text style={styles.detailValue}>{selectedOrder.customer.phone}</Text>
                   </View>
-                  <View style={styles.detailCard}>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Order No.</Text>
-                      <Text style={styles.detailValue}>#{selectedOrder.order_number}</Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Status</Text>
-                      <View style={[styles.statusBadge, { backgroundColor: statusBgColors[selectedOrder.status] }]}>
-                        {(() => {
-                          const Icon = statusIcons[selectedOrder.status];
-                          return <Icon size={13} color={statusColors[selectedOrder.status]} />;
-                        })()}
-                        <Text style={[styles.statusText, { color: statusColors[selectedOrder.status] }]}>
-                          {selectedOrder.status.replace(/_/g, ' ')}
+                )}
+              </View>
+            </View>
+
+            <View style={styles.detailSection}>
+              <View style={styles.detailSectionHeader}>
+                <MapPin size={16} color="#78716c" />
+                <Text style={styles.detailSectionTitle}>Delivery</Text>
+              </View>
+              <View style={styles.detailCard}>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Type</Text>
+                  <Text style={styles.detailValue}>{selectedOrder.delivery_type || 'N/A'}</Text>
+                </View>
+                {selectedOrder.delivery_address && selectedOrder.delivery_address !== 'N/A' && (
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Address</Text>
+                    <Text style={[styles.detailValue, { maxWidth: '60%', textAlign: 'right' }]}>{selectedOrder.delivery_address}</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+
+            <View style={styles.detailSection}>
+              <View style={styles.detailSectionHeader}>
+                <Package size={16} color="#78716c" />
+                <Text style={styles.detailSectionTitle}>Order Items</Text>
+              </View>
+              <View style={styles.detailCard}>
+                {loadingItems ? (
+                  <ActivityIndicator size="small" color="#ff8c00" style={{ paddingVertical: 10 }} />
+                ) : selectedOrderItems.length === 0 ? (
+                  <Text style={styles.noItemsText}>No items found</Text>
+                ) : (
+                  selectedOrderItems.map((item, index) => (
+                    <View
+                      key={item.id}
+                      style={[
+                        styles.itemRow,
+                        index < selectedOrderItems.length - 1 && styles.itemRowBorder,
+                      ]}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.itemName}>{item.products?.name || 'Product'}</Text>
+                        <Text style={styles.itemQty}>
+                          Qty: {item.quantity} × ₦{Number(item.unit_price).toLocaleString()}
+                          {(item as any).selected_size ? `\nSize: ${(item as any).selected_size}` : ''}
+                          {(item as any).selected_color ? `  ${(item as any).selected_color}` : ''}
                         </Text>
                       </View>
-                    </View>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Date</Text>
-                      <Text style={styles.detailValue}>{formatDate(selectedOrder.created_at)}</Text>
-                    </View>
-                  </View>
-                </View>
-
-                <View style={styles.detailSection}>
-                  <View style={styles.detailSectionHeader}>
-                    <User size={16} color="#78716c" />
-                    <Text style={styles.detailSectionTitle}>Customer</Text>
-                  </View>
-                  <View style={styles.detailCard}>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Name</Text>
-                      <Text style={styles.detailValue}>{selectedOrder.customer.full_name}</Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Email</Text>
-                      <Text style={styles.detailValue}>{selectedOrder.customer.email}</Text>
-                    </View>
-                    {selectedOrder.customer.phone && (
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Phone</Text>
-                        <Text style={styles.detailValue}>{selectedOrder.customer.phone}</Text>
-                      </View>
-                    )}
-                  </View>
-                </View>
-
-                <View style={styles.detailSection}>
-                  <View style={styles.detailSectionHeader}>
-                    <MapPin size={16} color="#78716c" />
-                    <Text style={styles.detailSectionTitle}>Delivery</Text>
-                  </View>
-                  <View style={styles.detailCard}>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Type</Text>
-                      <Text style={styles.detailValue}>{selectedOrder.delivery_type || 'N/A'}</Text>
-                    </View>
-                    {selectedOrder.delivery_address && selectedOrder.delivery_address !== 'N/A' && (
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Address</Text>
-                        <Text style={[styles.detailValue, { maxWidth: '60%', textAlign: 'right' }]}>{selectedOrder.delivery_address}</Text>
-                      </View>
-                    )}
-                  </View>
-                </View>
-
-                <View style={styles.detailSection}>
-                  <View style={styles.detailSectionHeader}>
-                    <Package size={16} color="#78716c" />
-                    <Text style={styles.detailSectionTitle}>Order Items</Text>
-                  </View>
-                  <View style={styles.detailCard}>
-                    {loadingItems ? (
-                      <ActivityIndicator size="small" color="#ff8c00" style={{ paddingVertical: 10 }} />
-                    ) : selectedOrderItems.length === 0 ? (
-                      <Text style={styles.noItemsText}>No items found</Text>
-                    ) : (
-                      selectedOrderItems.map((item, index) => (
-                        <View
-                          key={item.id}
-                          style={[
-                            styles.itemRow,
-                            index < selectedOrderItems.length - 1 && styles.itemRowBorder,
-                          ]}
-                        >
-                          <View style={{ flex: 1 }}>
-                            <Text style={styles.itemName}>{item.products?.name || 'Product'}</Text>
-                            <Text style={styles.itemQty}>
-                              Qty: {item.quantity} × ₦{Number(item.unit_price).toLocaleString()}
-                              {(item as any).selected_size ? `\nSize: ${(item as any).selected_size}` : ''}
-                              {(item as any).selected_color ? `  ${(item as any).selected_color}` : ''}
-                            </Text>
-                          </View>
-                          <Text style={styles.itemTotal}>
-                            ₦{(Number(item.unit_price) * item.quantity).toLocaleString()}
-                          </Text>
-                        </View>
-                      ))
-                    )}
-                  </View>
-                </View>
-
-                <View style={styles.detailSection}>
-                  <View style={styles.detailSectionHeader}>
-                    <CreditCard size={16} color="#78716c" />
-                    <Text style={styles.detailSectionTitle}>Payment</Text>
-                  </View>
-                  <View style={styles.detailCard}>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Method</Text>
-                      <Text style={styles.detailValueAccent}>
-                        {selectedOrder.payment_method === 'cash_on_delivery' ? 'Cash on Delivery' :
-                         selectedOrder.payment_method === 'wallet' ? 'Wallet' :
-                         selectedOrder.payment_method === 'online' ? 'Online Payment' :
-                         'Bank Transfer'}
+                      <Text style={styles.itemTotal}>
+                        ₦{(Number(item.unit_price) * item.quantity).toLocaleString()}
                       </Text>
                     </View>
-                    {selectedOrder.payment_method === 'transfer' && (
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Status</Text>
-                        {selectedOrder.payment_status === 'completed' ? (
-                          <View style={styles.paidBadge}>
-                            <CheckCircle size={13} color="#059669" />
-                            <Text style={styles.paidText}>Paid</Text>
-                          </View>
-                        ) : (
-                          <TouchableOpacity
-                            style={styles.markPaidBtn}
-                            onPress={() => markAsPaid(selectedOrder.id)}
-                            activeOpacity={0.7}
-                          >
-                            <Text style={styles.markPaidText}>Mark as Paid</Text>
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                    )}
-                    <View style={[styles.detailRow, styles.totalRow]}>
-                      <Text style={styles.totalLabel}>Total</Text>
-                      <Text style={styles.totalValue}>{'\u20A6'}{parseFloat(selectedOrder.total.toString()).toLocaleString()}</Text>
-                    </View>
-                  </View>
+                  ))
+                )}
+              </View>
+            </View>
+
+            <View style={styles.detailSection}>
+              <View style={styles.detailSectionHeader}>
+                <CreditCard size={16} color="#78716c" />
+                <Text style={styles.detailSectionTitle}>Payment</Text>
+              </View>
+              <View style={styles.detailCard}>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Method</Text>
+                  <Text style={styles.detailValueAccent}>
+                    {selectedOrder.payment_method === 'cash_on_delivery' ? 'Cash on Delivery' :
+                     selectedOrder.payment_method === 'wallet' ? 'Wallet' :
+                     selectedOrder.payment_method === 'online' ? 'Online Payment' :
+                     'Bank Transfer'}
+                  </Text>
                 </View>
-              </ScrollView>
-            )}
-          </Pressable>
-        </Pressable>
-      </Modal>
+                {selectedOrder.payment_method === 'transfer' && (
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Status</Text>
+                    {selectedOrder.payment_status === 'completed' ? (
+                      <View style={styles.paidBadge}>
+                        <CheckCircle size={13} color="#059669" />
+                        <Text style={styles.paidText}>Paid</Text>
+                      </View>
+                    ) : (
+                      <TouchableOpacity
+                        style={styles.markPaidBtn}
+                        onPress={() => markAsPaid(selectedOrder.id)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.markPaidText}>Mark as Paid</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
+                <View style={[styles.detailRow, styles.totalRow]}>
+                  <Text style={styles.totalLabel}>Total</Text>
+                  <Text style={styles.totalValue}>{'\u20A6'}{parseFloat(selectedOrder.total.toString()).toLocaleString()}</Text>
+                </View>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={styles.updateStatusPageBtn}
+              onPress={() => setShowStatusModal(true)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.updateStatusPageText}>Update Order Status</Text>
+              <ChevronRight size={18} color="#fff" />
+            </TouchableOpacity>
+          </ScrollView>
+        </Animated.View>
+      )}
 
       <OrderReceipt
         visible={showReceipt}
@@ -999,41 +1019,55 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
   },
-  detailsModalContent: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '90%',
-    flex: 0,
+  detailPage: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#f8f5f0',
+    zIndex: 10,
   },
-  detailsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  detailPageHeader: {
+    backgroundColor: '#2d1f12',
     paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f5f5f4',
-  },
-  detailsTitle: {
-    fontSize: 20,
-    fontFamily: Fonts.groteskBold,
-    color: '#1a1a1a',
-  },
-  detailsHeaderActions: {
+    paddingBottom: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    justifyContent: 'space-between',
   },
-  receiptBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    backgroundColor: '#faf8f5',
-    borderWidth: 1,
-    borderColor: '#ede8e0',
+  detailBackBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  detailPageTitle: {
+    fontSize: 20,
+    fontFamily: Fonts.groteskBold,
+    color: '#fafaf9',
+    letterSpacing: -0.3,
+  },
+  detailReceiptBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  updateStatusPageBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2d1f12',
+    borderRadius: 14,
+    paddingVertical: 16,
+    gap: 8,
+    marginTop: 8,
+  },
+  updateStatusPageText: {
+    fontSize: 15,
+    fontFamily: Fonts.groteskSemiBold,
+    color: '#fff',
   },
   detailsBody: {
     flexGrow: 1,
