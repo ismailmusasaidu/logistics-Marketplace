@@ -278,8 +278,8 @@ export default function CartScreen() {
         <TouchableOpacity activeOpacity={0.7} onPress={() => handleViewProduct(item.product_id)} style={styles.itemNamePressable}>
           <Text style={[styles.itemName, { color: colors.text }]}>{item.product.name}</Text>
           {item.selected_option && (
-            <View style={[styles.optionBadge, { backgroundColor: colors.primaryLight ?? '#fff7ed', borderColor: colors.primary + '30' }]}>
-              <Text style={[styles.optionBadgeText, { color: colors.primary }]}>{item.selected_option}</Text>
+            <View style={styles.optionBadge}>
+              <Text style={styles.optionBadgeText}>{item.selected_option}</Text>
             </View>
           )}
           <Text style={[styles.itemPrice, { color: colors.primaryDark }]}>
@@ -560,11 +560,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginTop: 3,
     marginBottom: 1,
+    backgroundColor: '#fff7ed',
+    borderColor: '#fed7aa',
   },
   optionBadgeText: {
     fontSize: 11,
     fontFamily: Fonts.spaceSemiBold,
     letterSpacing: 0.1,
+    color: '#92400e',
   },
   quantityContainer: {
     flexDirection: 'row',
