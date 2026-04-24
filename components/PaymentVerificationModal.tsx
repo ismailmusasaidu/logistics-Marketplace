@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, ActivityIndicator, TextInput, Alert, ScrollView, AppState, AppStateStatus } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, ActivityIndicator, TextInput, Alert, ScrollView } from 'react-native';
 import { X, CircleCheck as CheckCircle, Upload, CircleAlert as AlertCircle } from 'lucide-react-native';
 import { PaymentMethod } from '@/lib/wallet';
 import { coreBackend } from '@/lib/coreBackend';
@@ -25,66 +25,34 @@ export function PaymentVerificationModal({
   const [transferReference, setTransferReference] = useState('');
   const [error, setError] = useState<string | null>(null);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const verifyingRef = useRef(false);
-  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
 
-  const checkAndAutoVerify = async () => {
-    if (!paystackReference || verifyingRef.current) return;
-    try {
-      const { data } = await coreBackend
-        .from('pending_orders')
-        .select('status')
-        .eq('paystack_reference', paystackReference)
-        .maybeSingle();
-
-      if (data?.status === 'completed') {
-        if (pollIntervalRef.current) {
-          clearInterval(pollIntervalRef.current);
-          pollIntervalRef.current = null;
-        }
-        verifyingRef.current = true;
-        setLoading(true);
-        await onVerify(undefined);
-      }
-    } catch {
-      // Non-fatal
-    }
-  };
-
-  // Poll every 3 seconds and also check immediately when app comes back to foreground
+  // Auto-poll pending_orders every 3 seconds while waiting for Paystack webhook
   useEffect(() => {
     if (!visible || paymentMethod !== 'online' || !paystackReference) return;
 
-    verifyingRef.current = false;
+    pollIntervalRef.current = setInterval(async () => {
+      try {
+        const { data } = await coreBackend
+          .from('pending_orders')
+          .select('status')
+          .eq('paystack_reference', paystackReference)
+          .maybeSingle();
 
-    // Start polling
-    pollIntervalRef.current = setInterval(checkAndAutoVerify, 3000);
-
-    // Native: listen for app returning to foreground after Paystack browser
-    const subscription = AppState.addEventListener('change', (nextState: AppStateStatus) => {
-      if (appStateRef.current.match(/inactive|background/) && nextState === 'active') {
-        checkAndAutoVerify();
+        if (data?.status === 'completed') {
+          clearInterval(pollIntervalRef.current!);
+          pollIntervalRef.current = null;
+          setLoading(true);
+          await onVerify(undefined);
+        }
+      } catch {
+        // Polling errors are non-fatal
       }
-      appStateRef.current = nextState;
-    });
-
-    // Web: listen for tab regaining focus (user returns from Paystack tab)
-    const handleWindowFocus = () => checkAndAutoVerify();
-    if (typeof window !== 'undefined') {
-      window.addEventListener('focus', handleWindowFocus);
-      document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') checkAndAutoVerify();
-      });
-    }
+    }, 3000);
 
     return () => {
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
         pollIntervalRef.current = null;
-      }
-      subscription.remove();
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('focus', handleWindowFocus);
       }
     };
   }, [visible, paymentMethod, paystackReference]);
@@ -133,26 +101,18 @@ export function PaymentVerificationModal({
             {paymentMethod === 'online' ? (
               <>
                 <View style={styles.iconContainer}>
-                  {loading ? (
-                    <ActivityIndicator size="large" color="#10b981" />
-                  ) : (
-                    <CheckCircle size={64} color="#10b981" />
-                  )}
+                  <CheckCircle size={64} color="#10b981" />
                 </View>
                 <Text style={styles.message}>
-                  {loading
-                    ? 'Confirming your payment and creating your order...'
-                    : 'Complete your payment on the Paystack page. Your order will be created automatically once payment is confirmed.'}
+                  Payment window has been opened. Please complete your payment on the Paystack page.
                 </Text>
-                {!loading && (
-                  <View style={styles.infoBox}>
-                    <AlertCircle size={16} color="#f97316" />
-                    <Text style={styles.infoText}>
-                      After paying, come back to this screen — your order will be confirmed automatically. This usually takes a few seconds.
-                    </Text>
-                  </View>
-                )}
-                {!loading && paystackReference && (
+                <View style={styles.infoBox}>
+                  <AlertCircle size={16} color="#f97316" />
+                  <Text style={styles.infoText}>
+                    Your order will be confirmed automatically once payment is complete. You can also tap "Verify Payment" to check manually.
+                  </Text>
+                </View>
+                {paystackReference && (
                   <View style={styles.referenceBox}>
                     <Text style={styles.referenceLabel}>Payment Reference:</Text>
                     <Text style={styles.referenceValue}>{paystackReference}</Text>
@@ -225,23 +185,25 @@ export function PaymentVerificationModal({
                   <Text style={styles.cancelButtonText}>Close</Text>
                 </TouchableOpacity>
               </>
-            ) : loading ? (
-              <TouchableOpacity style={[styles.verifyButton, styles.verifyButtonDisabled]} disabled>
-                <ActivityIndicator size="small" color="#ffffff" />
-              </TouchableOpacity>
             ) : (
               <>
                 <TouchableOpacity
-                  style={styles.verifyButton}
-                  onPress={handleVerify}>
-                  <Text style={styles.verifyButtonText}>
-                    {paymentMethod === 'online' ? 'I Already Paid — Check Now' : 'Submit & Place Order'}
-                  </Text>
+                  style={[styles.verifyButton, loading && styles.verifyButtonDisabled]}
+                  onPress={handleVerify}
+                  disabled={loading}>
+                  {loading ? (
+                    <ActivityIndicator size="small" color="#ffffff" />
+                  ) : (
+                    <Text style={styles.verifyButtonText}>
+                      {paymentMethod === 'online' ? 'Verify Payment' : 'Submit & Place Order'}
+                    </Text>
+                  )}
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.cancelButton}
-                  onPress={handleClose}>
-                  <Text style={styles.cancelButtonText}>I'll come back later</Text>
+                  onPress={handleClose}
+                  disabled={loading}>
+                  <Text style={styles.cancelButtonText}>I'll verify later</Text>
                 </TouchableOpacity>
               </>
             )}
