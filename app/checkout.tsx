@@ -1096,12 +1096,12 @@ export default function CheckoutScreen() {
             style={[styles.optionCard, deliveryType === 'pickup' && styles.optionCardActive]}
             onPress={() => setDeliveryType('pickup')}
           >
-            <View style={styles.optionIcon}>
+            <View style={[styles.optionIcon, deliveryType === 'pickup' && styles.optionIconActive]}>
               <Package size={24} color={deliveryType === 'pickup' ? '#ff8c00' : '#64748b'} />
             </View>
             <View style={styles.optionContent}>
-              <Text style={styles.optionTitle}>Pickup</Text>
-              <Text style={styles.optionDescription}>Pick up from the vendor</Text>
+              <Text style={[styles.optionTitle, deliveryType === 'pickup' && styles.optionTitleActive]}>Pickup</Text>
+              <Text style={[styles.optionDescription, deliveryType === 'pickup' && styles.optionDescriptionActive]}>Pick up from the vendor</Text>
             </View>
             {deliveryType === 'pickup' && <View style={styles.selectedDot} />}
           </TouchableOpacity>
@@ -1110,12 +1110,12 @@ export default function CheckoutScreen() {
             style={[styles.optionCard, deliveryType === 'delivery' && styles.optionCardActive]}
             onPress={() => setDeliveryType('delivery')}
           >
-            <View style={styles.optionIcon}>
+            <View style={[styles.optionIcon, deliveryType === 'delivery' && styles.optionIconActive]}>
               <Truck size={24} color={deliveryType === 'delivery' ? '#ff8c00' : '#64748b'} />
             </View>
             <View style={styles.optionContent}>
-              <Text style={styles.optionTitle}>Delivery</Text>
-              <Text style={styles.optionDescription}>Delivered to your address</Text>
+              <Text style={[styles.optionTitle, deliveryType === 'delivery' && styles.optionTitleActive]}>Delivery</Text>
+              <Text style={[styles.optionDescription, deliveryType === 'delivery' && styles.optionDescriptionActive]}>Delivered to your address</Text>
             </View>
             {deliveryType === 'delivery' && <View style={styles.selectedDot} />}
           </TouchableOpacity>
@@ -1887,6 +1887,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  optionIconActive: {
+    backgroundColor: '#ffe8cc',
+  },
   optionContent: {
     flex: 1,
     marginLeft: 12,
@@ -1897,10 +1900,16 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
     marginBottom: 2,
   },
+  optionTitleActive: {
+    color: '#c25e00',
+  },
   optionDescription: {
     fontSize: 14,
     fontFamily: Fonts.regular,
     color: '#6b7280',
+  },
+  optionDescriptionActive: {
+    color: '#92400e',
   },
   selectedDot: {
     width: 22,
