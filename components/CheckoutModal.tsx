@@ -7,6 +7,7 @@ import { PricingBreakdown as PricingBreakdownType } from '@/lib/pricingCalculato
 import { PaymentMethod, walletService } from '@/lib/wallet';
 import { PricingBreakdown } from './PricingBreakdown';
 import { PaymentVerificationModal } from './PaymentVerificationModal';
+import { supabase } from '@/lib/supabase';
 import { coreBackend } from '@/lib/coreBackend';
 
 type BankAccount = {
@@ -146,17 +147,8 @@ export function CheckoutModal({ visible, onClose, onConfirm, pricing, userId, us
     try {
       const tempOrderId = orderId || `ORD${Date.now()}${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
-      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || process.env.EXPO_PUBLIC_CORE_BACKEND_URL;
-      const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || process.env.EXPO_PUBLIC_CORE_BACKEND_ANON_KEY;
-
-      const response = await fetch(`${supabaseUrl}/functions/v1/initialize-payment`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseAnonKey}`,
-          'apikey': supabaseAnonKey || '',
-        },
-        body: JSON.stringify({
+      const { data, error: invokeError } = await supabase.functions.invoke('initialize-payment', {
+        body: {
           email: userEmail,
           amount: pricing.finalPrice,
           orderId: tempOrderId,
@@ -166,27 +158,39 @@ export function CheckoutModal({ visible, onClose, onConfirm, pricing, userId, us
             promoCode: pricing.promoApplied,
             type: 'order',
           },
-          // Pass snapshot so edge function saves it server-side with service role key.
-          // This guarantees the pending order exists even if the user's session expires
-          // or they never return to the app after paying.
-          customerId: userId,
-          source: 'logistics',
-          pendingOrderSnapshot: pendingOrderSnapshot || null,
-        }),
+        },
       });
 
-      const data = await response.json();
+      if (invokeError) {
+        throw new Error(invokeError.message || 'Failed to initialize payment');
+      }
 
       if (!data?.success) {
         throw new Error(data?.error || 'Failed to initialize payment');
       }
 
-      const authUrl = data.data.authorization_url;
       const reference = data.data.reference;
 
+      // Save order snapshot to pending_orders so the webhook can auto-create the order
+      if (pendingOrderSnapshot) {
+        await coreBackend
+          .from('pending_orders')
+          .insert({
+            paystack_reference: reference,
+            source: 'logistics',
+            customer_id: userId,
+            order_data: pendingOrderSnapshot,
+          })
+          .then(({ error: insertError }) => {
+            if (insertError) console.error('Failed to save pending order:', insertError);
+          });
+      }
+
+      const authUrl = data.data.authorization_url;
       const supported = await Linking.canOpenURL(authUrl);
       if (supported) {
         await Linking.openURL(authUrl);
+
         setProcessingPayment(false);
         setPaystackRef(reference);
         setVerificationPaymentMethod('online');

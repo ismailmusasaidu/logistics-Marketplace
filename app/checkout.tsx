@@ -18,7 +18,6 @@ import { supabase } from '@/lib/marketplace/supabase';
 import { CORE_URL } from '@/lib/coreBackend';
 import { useAuth } from '@/contexts/AuthContext';
 import { router } from 'expo-router';
-import { cartEvents } from '@/lib/marketplace/cartEvents';
 import { BankAccount } from '@/types/database';
 import { Fonts } from '@/constants/fonts';
 import { sendMarketplaceOrderPlacedEmail } from '@/lib/emailService';
@@ -245,8 +244,6 @@ export default function CheckoutScreen() {
         if (data?.status === 'completed') {
           clearInterval(interval);
           setShowPaymentWebView(false);
-          setCartItems([]);
-          cartEvents.emit();
           setOrderPlaced(true);
           setShowPaymentOptions(false);
         }
@@ -923,8 +920,6 @@ export default function CheckoutScreen() {
 
       const primaryOrderNumber = createdOrderNumbers[0];
       setOrderNumber(primaryOrderNumber);
-      setCartItems([]);
-      cartEvents.emit();
       setOrderPlaced(true);
       setShowPaymentOptions(false);
       if (paymentMethod === 'wallet') {
