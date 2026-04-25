@@ -65,6 +65,9 @@ export default function CustomerHome() {
     reference: string;
     orderDetails: any;
   } | null>(null);
+  // Stable order number generated when checkout opens — shared between pendingOrderSnapshot
+  // and createOrderWithPayment so both the webhook and manual fallback use the same number
+  const [checkoutOrderNumber, setCheckoutOrderNumber] = useState<string>('');
   const [verifyingPayment, setVerifyingPayment] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [receiptModalVisible, setReceiptModalVisible] = useState(false);
@@ -326,6 +329,7 @@ export default function CustomerHome() {
       return;
     }
 
+    setCheckoutOrderNumber(`ORD-${Date.now()}`);
     setCheckoutModalVisible(true);
   };
 
@@ -559,7 +563,7 @@ export default function CustomerHome() {
     }
 
     try {
-      const orderNumber = `ORD-${Date.now()}`;
+      const orderNumber = checkoutOrderNumber || `ORD-${Date.now()}`;
       const deliveryAddress = buildDeliveryAddress();
       const notes = buildNotesFromForm();
 
@@ -1539,7 +1543,7 @@ export default function CustomerHome() {
             customer_id: profile.id,
             customer_email: profile.email,
             customer_name: profile.full_name || 'Customer',
-            order_number: `ORD-${Date.now()}`,
+            order_number: checkoutOrderNumber,
             pickup_address: newOrder.pickupAddress,
             pickup_instructions: newOrder.pickupInstructions,
             delivery_address: newOrder.deliveryAddress,

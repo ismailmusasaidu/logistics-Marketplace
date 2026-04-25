@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "npm:@supabase/supabase-js@2.58.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,7 +16,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { email, amount, orderId, metadata } = await req.json();
+    const { email, amount, orderId, metadata, pendingOrderSnapshot, source, customerId } = await req.json();
 
     if (!email || !amount) {
       return new Response(
@@ -89,12 +90,37 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    const reference = initializeData.data.reference;
+
+    // Save pending order server-side using service role — guaranteed even if user's
+    // session expires or they never return to the app after paying
+    if (pendingOrderSnapshot && customerId && source) {
+      try {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+        const { error: insertError } = await adminClient
+          .from("pending_orders")
+          .insert({
+            paystack_reference: reference,
+            source,
+            customer_id: customerId,
+            order_data: pendingOrderSnapshot,
+          });
+        if (insertError) {
+          console.error("Failed to save pending order:", insertError);
+        }
+      } catch (e) {
+        console.error("Pending order save error:", e);
+      }
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
         data: {
           authorization_url: initializeData.data.authorization_url,
-          reference: initializeData.data.reference,
+          reference,
           access_code: initializeData.data.access_code,
         },
       }),
