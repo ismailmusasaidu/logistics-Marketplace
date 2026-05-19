@@ -245,6 +245,7 @@ export default function CheckoutScreen() {
 
         if (data?.status === 'completed') {
           clearInterval(interval);
+          cartEvents.emit();
           setShowPaymentWebView(false);
           setOrderPlaced(true);
           setShowPaymentOptions(false);
