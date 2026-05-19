@@ -620,6 +620,12 @@ export default function VendorOrderManagement({ onBack }: VendorOrderManagementP
                     <Text style={[styles.detailValue, { maxWidth: '60%', textAlign: 'right' }]}>{selectedOrder.delivery_address}</Text>
                   </View>
                 )}
+                {(selectedOrder as any).delivery_instructions ? (
+                  <View style={styles.detailRow}>
+                    <Text style={styles.detailLabel}>Location Details</Text>
+                    <Text style={[styles.detailValue, { maxWidth: '60%', textAlign: 'right' }]}>{(selectedOrder as any).delivery_instructions}</Text>
+                  </View>
+                ) : null}
               </View>
             </View>
 

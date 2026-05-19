@@ -94,6 +94,7 @@ export default function CheckoutScreen() {
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [deliveryName, setDeliveryName] = useState('');
   const [deliveryPhone, setDeliveryPhone] = useState('');
+  const [deliveryAddressDescription, setDeliveryAddressDescription] = useState('');
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
   const [calculatedDeliveryFee, setCalculatedDeliveryFee] = useState<number>(0);
   const [zones, setZones] = useState<DeliveryZone[]>([]);
@@ -590,6 +591,7 @@ export default function CheckoutScreen() {
       vendor_groups: vendorGroups,
       delivery_type: deliveryType,
       delivery_address: deliveryType === 'delivery' ? `${deliveryName}\n${deliveryPhone}\n${deliveryAddress}` : 'N/A',
+      delivery_instructions: deliveryType === 'delivery' && deliveryAddressDescription.trim() ? deliveryAddressDescription.trim() : null,
       delivery_speed: deliveryType === 'delivery' ? (selectedSpeed?.name || null) : null,
       delivery_speed_cost: speedCost,
       weight_surcharge_amount: weightSurchargeAmount,
@@ -870,6 +872,7 @@ export default function CheckoutScreen() {
             total: Math.max(0, vendorTotal),
             delivery_type: deliveryType,
             delivery_address: deliveryType === 'delivery' ? `${deliveryName}\n${deliveryPhone}\n${deliveryAddress}` : 'N/A',
+            delivery_instructions: deliveryType === 'delivery' && deliveryAddressDescription.trim() ? deliveryAddressDescription.trim() : null,
             delivery_speed: deliveryType === 'delivery' ? (selectedSpeed?.name || null) : null,
             delivery_speed_cost: deliveryType === 'delivery' ? (getSpeedCost() / vendorCount) : 0,
             weight_surcharge_amount: sharedWeightSurcharge,
@@ -1165,6 +1168,17 @@ export default function CheckoutScreen() {
                 numberOfLines={3}
               />
             </View>
+
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder="Describe exact location (e.g. 2nd floor, beside blue gate, landmark near market)"
+              placeholderTextColor="#9ca3af"
+              value={deliveryAddressDescription}
+              onChangeText={setDeliveryAddressDescription}
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+            />
 
             {geocoding && (
               <View style={styles.geocodingStatus}>
@@ -1943,6 +1957,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#f0ebe4',
     marginBottom: 16,
+  },
+  textArea: {
+    minHeight: 88,
+    textAlignVertical: 'top',
+    paddingTop: 14,
   },
   addressInputContainer: {
     flexDirection: 'row',

@@ -338,6 +338,12 @@ export default function OrdersScreen() {
           <View style={[styles.addressContainer, { backgroundColor: colors.surfaceSecondary, borderColor: colors.borderLight }]}>
             <Text style={[styles.addressLabel, { color: colors.textMuted }]}>Delivery Address</Text>
             <Text style={[styles.addressText, { color: colors.text }]}>{item.delivery_address}</Text>
+            {item.delivery_instructions ? (
+              <View style={[styles.deliveryInstructionsBox, { borderTopColor: colors.borderLight }]}>
+                <Text style={[styles.addressLabel, { color: colors.textMuted }]}>Exact Location Description</Text>
+                <Text style={[styles.addressText, { color: colors.text }]}>{item.delivery_instructions}</Text>
+              </View>
+            ) : null}
           </View>
         </TouchableOpacity>
 
@@ -766,6 +772,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Fonts.spaceMedium,
     flexWrap: 'wrap',
+  },
+  deliveryInstructionsBox: {
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
   },
   receiptButton: {
     flexDirection: 'row',

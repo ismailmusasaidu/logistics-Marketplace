@@ -718,6 +718,12 @@ export default function OrderManagement({ onBack }: OrderManagementProps) {
                           : selectedOrder.delivery_address || 'N/A'}
                       </Text>
                     </View>
+                    {(selectedOrder as any).delivery_instructions ? (
+                      <View style={styles.modalDetailRow}>
+                        <Text style={styles.modalDetailLabel}>Location Details</Text>
+                        <Text style={[styles.modalDetailValue, { flex: 1, flexWrap: 'wrap' }]}>{(selectedOrder as any).delivery_instructions}</Text>
+                      </View>
+                    ) : null}
                   </View>
 
                   <Text style={styles.modalSectionLabel}>Order Items</Text>
