@@ -72,6 +72,13 @@ export default function CartScreen() {
   );
 
   useEffect(() => {
+    const unsubscribe = cartEvents.subscribe(() => {
+      fetchCartItems(false);
+    });
+    return unsubscribe;
+  }, [profile]);
+
+  useEffect(() => {
     if (!profile) return;
 
     const channel = supabase
