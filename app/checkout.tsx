@@ -745,7 +745,8 @@ export default function CheckoutScreen() {
         .maybeSingle();
 
       if (pendingRow?.status === 'completed') {
-        // Webhook handled it — clear cart and show success
+        // Webhook handled it — capture total before clearing cart
+        setConfirmedTotal(calculateTotal());
         await supabase.from('carts').delete().eq('user_id', profile.id);
         setCartItems([]);
         cartEvents.emit();
