@@ -119,6 +119,7 @@ export default function CheckoutScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
+  const [confirmedTotal, setConfirmedTotal] = useState(0);
   const [transferOrderRef, setTransferOrderRef] = useState('');
   const [showPaymentOptions, setShowPaymentOptions] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'transfer' | 'online' | 'wallet' | 'cash_on_delivery' | null>(null);
@@ -933,6 +934,8 @@ export default function CheckoutScreen() {
         indexCounter++;
       }
 
+      setConfirmedTotal(total);
+
       const { error: deleteError } = await supabase
         .from('carts')
         .delete()
@@ -1029,7 +1032,7 @@ export default function CheckoutScreen() {
 
             <View style={styles.orderDetailRow}>
               <Text style={styles.orderDetailLabel}>Total Amount</Text>
-              <Text style={styles.orderTotalValue}>₦{calculateTotal().toFixed(2)}</Text>
+              <Text style={styles.orderTotalValue}>₦{confirmedTotal.toFixed(2)}</Text>
             </View>
           </View>
 
