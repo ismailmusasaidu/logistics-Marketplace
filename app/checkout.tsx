@@ -260,6 +260,24 @@ export default function CheckoutScreen() {
 
         if (data?.status === 'completed') {
           clearInterval(interval);
+
+          // Fetch real order number created by webhook
+          const { data: orderRow } = await supabase
+            .from('orders')
+            .select('order_number, total')
+            .eq('customer_id', profile?.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (orderRow) {
+            setOrderNumber(orderRow.order_number);
+            setConfirmedTotal(orderRow.total);
+          } else {
+            // Fallback: use cart total before it's cleared
+            setConfirmedTotal(calculateTotal());
+          }
+
           // Ensure cart is cleared from client side (webhook may have already done it server-side)
           if (profile) {
             await supabase.from('carts').delete().eq('user_id', profile.id);
@@ -745,15 +763,26 @@ export default function CheckoutScreen() {
         .maybeSingle();
 
       if (pendingRow?.status === 'completed') {
-        // Webhook handled it — capture total before clearing cart
-        setConfirmedTotal(calculateTotal());
+        // Webhook handled it — fetch real order number and total from DB
+        const { data: orderRow } = await supabase
+          .from('orders')
+          .select('order_number, total')
+          .eq('customer_id', profile.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (orderRow) {
+          setOrderNumber(orderRow.order_number);
+          setConfirmedTotal(orderRow.total);
+        } else {
+          setConfirmedTotal(calculateTotal());
+        }
+
         await supabase.from('carts').delete().eq('user_id', profile.id);
         setCartItems([]);
         cartEvents.emit();
         setShowPaymentWebView(false);
-        const batchTimestamp = Date.now();
-        const primaryOrderNumber = `ORD-${batchTimestamp}`;
-        setOrderNumber(primaryOrderNumber);
         setOrderPlaced(true);
         setShowPaymentOptions(false);
         return;
