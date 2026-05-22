@@ -13,7 +13,7 @@ import {
   Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Package, Truck, MapPin, CreditCard, ChevronLeft, CircleCheck as CheckCircle, Clock, Wallet, Building2, Banknote } from 'lucide-react-native';
+import { Package, Truck, MapPin, CreditCard, ChevronLeft, CircleCheck as CheckCircle, Clock, Wallet, Building2, Banknote, Copy } from 'lucide-react-native';
 import { supabase } from '@/lib/marketplace/supabase';
 import { CORE_URL } from '@/lib/coreBackend';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,6 +22,7 @@ import { BankAccount } from '@/types/database';
 import { Fonts } from '@/constants/fonts';
 import { sendMarketplaceOrderPlacedEmail } from '@/lib/emailService';
 import { cartEvents } from '@/lib/marketplace/cartEvents';
+import { useToast } from '@/contexts/ToastContext';
 
 interface CartItemWithProduct {
   id: string;
@@ -88,8 +89,20 @@ interface PromoCode {
 
 export default function CheckoutScreen() {
   const { profile } = useAuth();
+  const { showToast } = useToast();
   const insets = useSafeAreaInsets();
   const orderSubmittedRef = useRef(false);
+
+  const copyToClipboard = async (value: string, label: string) => {
+    try {
+      if (Platform.OS === 'web' && navigator?.clipboard) {
+        await navigator.clipboard.writeText(value);
+      }
+      showToast(`${label} copied!`, 'success');
+    } catch {
+      showToast('Could not copy', 'error');
+    }
+  };
   const [cartItems, setCartItems] = useState<CartItemWithProduct[]>([]);
   const [deliveryType, setDeliveryType] = useState<'pickup' | 'delivery'>('pickup');
   const [deliveryAddress, setDeliveryAddress] = useState('');
@@ -1518,7 +1531,16 @@ export default function CheckoutScreen() {
                   {/* Order ID box */}
                   <View style={styles.transferOrderIdCard}>
                     <Text style={styles.transferOrderIdLabel}>Your Order ID</Text>
-                    <Text style={styles.transferOrderIdValue}>{transferOrderRef}</Text>
+                    <TouchableOpacity
+                      style={styles.copyableRow}
+                      onPress={() => copyToClipboard(transferOrderRef, 'Order ID')}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.transferOrderIdValue}>{transferOrderRef}</Text>
+                      <View style={styles.copyIconBtn}>
+                        <Copy size={16} color="#c2410c" />
+                      </View>
+                    </TouchableOpacity>
                     <Text style={styles.transferOrderIdHint}>
                       Include this Order ID in your transfer narration/description so we can match your payment.
                     </Text>
@@ -1536,12 +1558,26 @@ export default function CheckoutScreen() {
 
                       <View style={styles.bankDetailRow}>
                         <Text style={styles.bankDetailLabel}>Bank Name:</Text>
-                        <Text style={styles.bankDetailValue}>{account.bank_name}</Text>
+                        <TouchableOpacity
+                          style={styles.bankDetailCopyRow}
+                          onPress={() => copyToClipboard(account.bank_name, 'Bank name')}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={styles.bankDetailValue}>{account.bank_name}</Text>
+                          <Copy size={14} color="#ff8c00" />
+                        </TouchableOpacity>
                       </View>
 
                       <View style={styles.bankDetailRow}>
                         <Text style={styles.bankDetailLabel}>Account Number:</Text>
-                        <Text style={styles.bankDetailValue}>{account.account_number}</Text>
+                        <TouchableOpacity
+                          style={styles.bankDetailCopyRow}
+                          onPress={() => copyToClipboard(account.account_number, 'Account number')}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={styles.bankDetailValue}>{account.account_number}</Text>
+                          <Copy size={14} color="#ff8c00" />
+                        </TouchableOpacity>
                       </View>
 
                       <View style={styles.bankDetailRow}>
@@ -2568,6 +2604,23 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 20,
     lineHeight: 20,
+  },
+  copyableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  copyIconBtn: {
+    padding: 4,
+    borderRadius: 6,
+    backgroundColor: '#fde8d0',
+  },
+  bankDetailCopyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+    justifyContent: 'flex-end',
   },
   transferOrderIdCard: {
     backgroundColor: '#fff7ed',
