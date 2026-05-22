@@ -106,6 +106,7 @@ export default function CheckoutScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
+  const [transferOrderRef, setTransferOrderRef] = useState('');
   const [showPaymentOptions, setShowPaymentOptions] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'transfer' | 'online' | 'wallet' | 'cash_on_delivery' | null>(null);
   const [walletBalance, setWalletBalance] = useState<number>(0);
@@ -803,7 +804,7 @@ export default function CheckoutScreen() {
     }
   };
 
-  const handlePlaceOrder = async (paymentMethod: 'transfer' | 'online' | 'wallet' | 'cash_on_delivery', paymentCompleted: boolean = false) => {
+  const handlePlaceOrder = async (paymentMethod: 'transfer' | 'online' | 'wallet' | 'cash_on_delivery', paymentCompleted: boolean = false, preGeneratedRef?: string) => {
     if (!profile) return;
     if (orderSubmittedRef.current) return;
     orderSubmittedRef.current = true;
@@ -817,7 +818,9 @@ export default function CheckoutScreen() {
       const weightSurchargeAmount = getWeightSurchargeAmount();
       const appliedWeightSurcharge = getApplicableWeightSurcharge();
       const total = calculateTotal();
-      const batchTimestamp = Date.now();
+      const batchTimestamp = preGeneratedRef
+        ? parseInt(preGeneratedRef.replace('ORD-', ''), 10)
+        : Date.now();
 
       if (paymentMethod === 'wallet') {
         if (walletBalance < total) {
@@ -1427,6 +1430,7 @@ export default function CheckoutScreen() {
                 style={styles.paymentOptionCard}
                 onPress={() => {
                   fetchBankAccounts();
+                  setTransferOrderRef(`ORD-${Date.now()}`);
                   setSelectedPaymentMethod('transfer');
                 }}
               >
@@ -1511,8 +1515,14 @@ export default function CheckoutScreen() {
                 </View>
               ) : (
                 <>
-                  <Text style={styles.amountToPayLabel}>Amount to Pay:</Text>
-                  <Text style={styles.amountToPayValue}>₦{calculateTotal().toFixed(2)}</Text>
+                  {/* Order ID box */}
+                  <View style={styles.transferOrderIdCard}>
+                    <Text style={styles.transferOrderIdLabel}>Your Order ID</Text>
+                    <Text style={styles.transferOrderIdValue}>{transferOrderRef}</Text>
+                    <Text style={styles.transferOrderIdHint}>
+                      Include this Order ID in your transfer narration/description so we can match your payment.
+                    </Text>
+                  </View>
 
                   <Text style={styles.bankAccountsSectionTitle}>
                     Transfer to any of the accounts below:
@@ -1551,7 +1561,7 @@ export default function CheckoutScreen() {
                   <View style={styles.importantNoteCard}>
                     <Text style={styles.importantNoteTitle}>Important Notes:</Text>
                     <Text style={styles.importantNoteText}>
-                      • Make sure to include your Order ID in the transfer details
+                      • Include <Text style={{ fontFamily: Fonts.semiBold }}>{transferOrderRef}</Text> as your transfer narration
                     </Text>
                     <Text style={styles.importantNoteText}>
                       • Keep your payment receipt for verification
@@ -1563,7 +1573,7 @@ export default function CheckoutScreen() {
 
                   <TouchableOpacity
                     style={[styles.confirmButton, submitting && styles.buttonDisabled]}
-                    onPress={() => handlePlaceOrder('transfer')}
+                    onPress={() => handlePlaceOrder('transfer', false, transferOrderRef)}
                     disabled={submitting}
                   >
                     {submitting ? (
@@ -2558,6 +2568,95 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 20,
     lineHeight: 20,
+  },
+  transferOrderIdCard: {
+    backgroundColor: '#fff7ed',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: '#ff8c00',
+    alignItems: 'center',
+  },
+  transferOrderIdLabel: {
+    fontSize: 12,
+    fontFamily: Fonts.semiBold,
+    color: '#92400e',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 6,
+  },
+  transferOrderIdValue: {
+    fontSize: 22,
+    fontFamily: Fonts.poppinsBold,
+    color: '#c2410c',
+    marginBottom: 8,
+    letterSpacing: 0.5,
+  },
+  transferOrderIdHint: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: '#92400e',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  transferOrderSummaryCard: {
+    backgroundColor: '#fafaf8',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  transferOrderSummaryTitle: {
+    fontSize: 15,
+    fontFamily: Fonts.poppinsBold,
+    color: '#1a1a1a',
+    marginBottom: 12,
+  },
+  transferOrderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+    gap: 8,
+  },
+  transferOrderItemName: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: '#374151',
+    lineHeight: 18,
+  },
+  transferOrderItemPrice: {
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
+    color: '#1a1a1a',
+  },
+  transferOrderDivider: {
+    height: 1,
+    backgroundColor: '#e2e8f0',
+    marginVertical: 8,
+  },
+  transferOrderLabel: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: '#6b7280',
+  },
+  transferOrderValue: {
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
+    color: '#374151',
+  },
+  transferOrderTotal: {
+    fontSize: 14,
+    fontFamily: Fonts.poppinsBold,
+    color: '#1a1a1a',
+  },
+  transferOrderTotalValue: {
+    fontSize: 16,
+    fontFamily: Fonts.poppinsBold,
+    color: '#c2410c',
   },
   confirmButton: {
     backgroundColor: '#ff8c00',
