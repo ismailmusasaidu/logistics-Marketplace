@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Modal,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Trash2, Plus, Minus, Scale, RotateCcw, X, ShieldCheck, Clock, CircleAlert as AlertCircle } from 'lucide-react-native';
@@ -59,6 +60,7 @@ export default function CartScreen() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showProductDetail, setShowProductDetail] = useState(false);
   const suppressRealtimeRef = useRef(false);
+  const lastFetchedAtRef = useRef(0);
   const [weightSurchargeTiers, setWeightSurchargeTiers] = useState<WeightSurchargeTier[]>([]);
   const [returnPolicyProduct, setReturnPolicyProduct] = useState<{ name: string; policy: string } | null>(null);
 
@@ -67,15 +69,32 @@ export default function CartScreen() {
       if (profile) {
         fetchCartItems();
         fetchWeightSurchargeTiers();
+        lastFetchedAtRef.current = Date.now();
       }
     }, [profile])
   );
 
+  // Refetch when cart is invalidated (e.g. after checkout clears it)
   useEffect(() => {
     const unsubscribe = cartEvents.subscribe(() => {
       fetchCartItems(false);
+      lastFetchedAtRef.current = Date.now();
     });
     return unsubscribe;
+  }, [profile]);
+
+  // On web, refetch when the tab/window regains visibility (covers the case where
+  // cartEvents fired while this screen was on a different stack route)
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !profile) return;
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && cartEvents.lastInvalidatedAt > lastFetchedAtRef.current) {
+        fetchCartItems(false);
+        lastFetchedAtRef.current = Date.now();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [profile]);
 
   useEffect(() => {

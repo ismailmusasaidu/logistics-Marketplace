@@ -2,6 +2,7 @@ type CartEventListener = () => void;
 
 class CartEventEmitter {
   private listeners: CartEventListener[] = [];
+  lastInvalidatedAt = 0;
 
   subscribe(listener: CartEventListener) {
     this.listeners.push(listener);
@@ -11,6 +12,7 @@ class CartEventEmitter {
   }
 
   emit() {
+    this.lastInvalidatedAt = Date.now();
     this.listeners.forEach((listener) => listener());
   }
 }

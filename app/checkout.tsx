@@ -245,6 +245,11 @@ export default function CheckoutScreen() {
 
         if (data?.status === 'completed') {
           clearInterval(interval);
+          // Ensure cart is cleared from client side (webhook may have already done it server-side)
+          if (profile) {
+            await supabase.from('carts').delete().eq('user_id', profile.id);
+          }
+          setCartItems([]);
           cartEvents.emit();
           setShowPaymentWebView(false);
           setOrderPlaced(true);
@@ -727,6 +732,7 @@ export default function CheckoutScreen() {
       if (pendingRow?.status === 'completed') {
         // Webhook handled it — clear cart and show success
         await supabase.from('carts').delete().eq('user_id', profile.id);
+        setCartItems([]);
         cartEvents.emit();
         setShowPaymentWebView(false);
         const batchTimestamp = Date.now();
@@ -917,6 +923,7 @@ export default function CheckoutScreen() {
         .eq('user_id', profile.id);
 
       if (deleteError) throw deleteError;
+      setCartItems([]);
       cartEvents.emit();
 
       if (appliedPromo) {
@@ -1070,14 +1077,26 @@ export default function CheckoutScreen() {
           <View style={styles.buttonContainer}>
             <TouchableOpacity
               style={styles.primaryButton}
-              onPress={() => router.replace('/(marketplace)/orders')}
+              onPress={async () => {
+                if (profile) {
+                  await supabase.from('carts').delete().eq('user_id', profile.id);
+                  cartEvents.emit();
+                }
+                router.replace('/(marketplace)/orders');
+              }}
             >
               <Text style={styles.primaryButtonText}>View My Orders</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.secondaryButton}
-              onPress={() => router.replace('/(marketplace)')}
+              onPress={async () => {
+                if (profile) {
+                  await supabase.from('carts').delete().eq('user_id', profile.id);
+                  cartEvents.emit();
+                }
+                router.replace('/(marketplace)');
+              }}
             >
               <Text style={styles.secondaryButtonText}>Continue Shopping</Text>
             </TouchableOpacity>
