@@ -1022,7 +1022,7 @@ export default function CheckoutScreen() {
           <Text style={styles.title}>Order Placed!</Text>
         </View>
 
-        <ScrollView style={styles.content} contentContainerStyle={[styles.successContent, { paddingBottom: insets.bottom + 32 }]}>
+        <ScrollView style={styles.content} contentContainerStyle={styles.successContent}>
           <View style={styles.successIconContainer}>
             <View style={styles.successIconCircle}>
               <CheckCircle size={64} color="#ff8c00" strokeWidth={2} />
@@ -2385,7 +2385,7 @@ const styles = StyleSheet.create({
   buttonContainer: {
     width: '100%',
     gap: 12,
-    marginTop: 8,
+    marginBottom: 20,
   },
   primaryButton: {
     backgroundColor: '#ff8c00',
