@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, ActivityIndicator, ScrollView, Alert, Linking, TextInput } from 'react-native';
-import { X, Wallet, CreditCard, Banknote, CircleCheck as CheckCircle2, Building2, Info, Calendar, Clock } from 'lucide-react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, ActivityIndicator, ScrollView, Alert, Linking, TextInput, Platform } from 'react-native';
+import { X, Wallet, CreditCard, Banknote, CircleCheck as CheckCircle2, Building2, Info, Calendar, Clock, ChevronLeft, ChevronRight as ChevronRightIcon } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Fonts } from '@/constants/fonts';
 import { PricingBreakdown as PricingBreakdownType } from '@/lib/pricingCalculator';
@@ -102,6 +102,11 @@ export function CheckoutModal({ visible, onClose, onConfirm, pricing, userId, us
   const [isScheduled, setIsScheduled] = useState(false);
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
 
   useEffect(() => {
     if (visible) {
@@ -110,6 +115,9 @@ export function CheckoutModal({ visible, onClose, onConfirm, pricing, userId, us
       setIsScheduled(false);
       setScheduledDate('');
       setScheduledTime('');
+      setShowCalendar(false);
+      const now = new Date();
+      setCalendarMonth(new Date(now.getFullYear(), now.getMonth(), 1));
     }
   }, [visible]);
 
@@ -361,7 +369,9 @@ export function CheckoutModal({ visible, onClose, onConfirm, pricing, userId, us
                   <View style={styles.inputGroup}>
                     <Text style={styles.inputLabel}>Date</Text>
                     <View style={styles.inputWithIcon}>
-                      <Calendar size={18} color="#6b7280" />
+                      <TouchableOpacity onPress={() => setShowCalendar(true)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                        <Calendar size={18} color="#f97316" />
+                      </TouchableOpacity>
                       <TextInput
                         style={styles.input}
                         placeholder="YYYY-MM-DD (e.g., 2025-12-28)"
@@ -565,9 +575,110 @@ export function CheckoutModal({ visible, onClose, onConfirm, pricing, userId, us
       paystackReference={paystackRef}
       orderId={orderId}
     />
+
+    <Modal
+      visible={showCalendar}
+      animationType="fade"
+      transparent
+      onRequestClose={() => setShowCalendar(false)}>
+      <View style={styles.calendarOverlay}>
+        <TouchableOpacity style={StyleSheet.absoluteFillObject} onPress={() => setShowCalendar(false)} />
+        <View style={styles.calendarContainer}>
+          <View style={styles.calendarHeader}>
+            <TouchableOpacity onPress={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1))} style={styles.calendarNavBtn}>
+              <ChevronLeft size={20} color="#374151" />
+            </TouchableOpacity>
+            <Text style={styles.calendarMonthLabel}>
+              {calendarMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+            </Text>
+            <TouchableOpacity onPress={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1))} style={styles.calendarNavBtn}>
+              <ChevronRightIcon size={20} color="#374151" />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.calendarWeekRow}>
+            {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((d) => (
+              <Text key={d} style={styles.calendarWeekDay}>{d}</Text>
+            ))}
+          </View>
+          <CalendarGrid
+            month={calendarMonth}
+            selectedDate={scheduledDate}
+            onSelectDate={(dateStr) => {
+              setScheduledDate(dateStr);
+              setShowCalendar(false);
+            }}
+          />
+          <TouchableOpacity style={styles.calendarCancelBtn} onPress={() => setShowCalendar(false)}>
+            <Text style={styles.calendarCancelText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
     </>
   );
 }
+
+function CalendarGrid({ month, selectedDate, onSelectDate }: { month: Date; selectedDate: string; onSelectDate: (d: string) => void }) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const year = month.getFullYear();
+  const mon = month.getMonth();
+  const firstDay = new Date(year, mon, 1).getDay();
+  const daysInMonth = new Date(year, mon + 1, 0).getDate();
+
+  const cells: (number | null)[] = [];
+  for (let i = 0; i < firstDay; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const rows: (number | null)[][] = [];
+  for (let i = 0; i < cells.length; i += 7) rows.push(cells.slice(i, i + 7));
+
+  const pad = (n: number) => n.toString().padStart(2, '0');
+
+  return (
+    <View style={calStyles.grid}>
+      {rows.map((row, ri) => (
+        <View key={ri} style={calStyles.row}>
+          {row.map((day, ci) => {
+            if (!day) return <View key={ci} style={calStyles.cell} />;
+            const date = new Date(year, mon, day);
+            date.setHours(0, 0, 0, 0);
+            const isPast = date < today;
+            const dateStr = `${year}-${pad(mon + 1)}-${pad(day)}`;
+            const isSelected = dateStr === selectedDate;
+            const isToday = date.getTime() === today.getTime();
+            return (
+              <TouchableOpacity
+                key={ci}
+                style={[calStyles.cell, isSelected && calStyles.cellSelected, isToday && !isSelected && calStyles.cellToday, isPast && calStyles.cellPast]}
+                onPress={() => !isPast && onSelectDate(dateStr)}
+                disabled={isPast}>
+                <Text style={[calStyles.cellText, isSelected && calStyles.cellTextSelected, isPast && calStyles.cellTextPast, isToday && !isSelected && calStyles.cellTextToday]}>
+                  {day}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+const calStyles = StyleSheet.create({
+  grid: { paddingHorizontal: 8, paddingBottom: 8 },
+  row: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 4 },
+  cell: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
+  cellSelected: { backgroundColor: '#f97316' },
+  cellToday: { borderWidth: 1.5, borderColor: '#f97316' },
+  cellPast: { opacity: 0.3 },
+  cellText: { fontSize: 14, fontFamily: Fonts.poppinsRegular, color: '#111827' },
+  cellTextSelected: { color: '#ffffff', fontFamily: Fonts.poppinsSemiBold },
+  cellTextPast: { color: '#9ca3af' },
+  cellTextToday: { color: '#f97316', fontFamily: Fonts.poppinsSemiBold },
+});
 
 const styles = StyleSheet.create({
   overlay: {
@@ -896,5 +1007,72 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Fonts.poppinsRegular,
     color: '#111827',
+  },
+  calendarOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  calendarContainer: {
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    width: '100%',
+    maxWidth: 360,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 10,
+    overflow: 'hidden',
+  },
+  calendarHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  calendarNavBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#f9fafb',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  calendarMonthLabel: {
+    fontSize: 16,
+    fontFamily: Fonts.poppinsBold,
+    color: '#111827',
+  },
+  calendarWeekRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingHorizontal: 8,
+    paddingVertical: 10,
+  },
+  calendarWeekDay: {
+    width: 38,
+    textAlign: 'center',
+    fontSize: 12,
+    fontFamily: Fonts.poppinsSemiBold,
+    color: '#9ca3af',
+  },
+  calendarCancelBtn: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: '#f3f4f6',
+    alignItems: 'center',
+  },
+  calendarCancelText: {
+    fontSize: 14,
+    fontFamily: Fonts.poppinsSemiBold,
+    color: '#374151',
   },
 });
