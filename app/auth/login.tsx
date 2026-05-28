@@ -183,21 +183,16 @@ export default function LoginScreen() {
                   <Text style={styles.confirmBoxTitle}>Email Not Confirmed</Text>
                 </View>
                 <Text style={styles.confirmBoxText}>
-                  Please check your inbox and click the confirmation link before signing in.
+                  Your email is not verified yet. Enter the code sent to your inbox to activate your account.
                 </Text>
                 {resendSuccess ? (
                   <Text style={styles.confirmBoxSent}>Confirmation email sent! Check your inbox.</Text>
                 ) : (
                   <TouchableOpacity
                     style={styles.resendButton}
-                    onPress={handleResendConfirmation}
-                    disabled={resendLoading}
+                    onPress={() => router.push({ pathname: '/auth/confirm', params: { email } })}
                   >
-                    {resendLoading ? (
-                      <ActivityIndicator size="small" color="#d97706" />
-                    ) : (
-                      <Text style={styles.resendButtonText}>Resend Confirmation Email</Text>
-                    )}
+                    <Text style={styles.resendButtonText}>Verify Email</Text>
                   </TouchableOpacity>
                 )}
               </View>
