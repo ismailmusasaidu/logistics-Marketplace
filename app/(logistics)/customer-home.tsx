@@ -75,6 +75,7 @@ export default function CustomerHome() {
   const [ratingRiderName, setRatingRiderName] = useState('Your Rider');
   const [adModalVisible, setAdModalVisible] = useState(false);
   const [activeAdvert, setActiveAdvert] = useState<any>(null);
+  const [pendingOrderNumber, setPendingOrderNumber] = useState('');
 
   const [orderTypeOptions, setOrderTypeOptions] = useState<string[]>([]);
   const [orderSizeFees, setOrderSizeFees] = useState<Record<string, number>>({});
@@ -326,6 +327,7 @@ export default function CustomerHome() {
       return;
     }
 
+    setPendingOrderNumber(`ORD-${Date.now()}`);
     setCheckoutModalVisible(true);
   };
 
@@ -559,7 +561,7 @@ export default function CustomerHome() {
     }
 
     try {
-      const orderNumber = `ORD-${Date.now()}`;
+      const orderNumber = pendingOrderNumber || `ORD-${Date.now()}`;
       const deliveryAddress = buildDeliveryAddress();
       const notes = buildNotesFromForm();
 
@@ -1539,7 +1541,7 @@ export default function CustomerHome() {
             customer_id: profile.id,
             customer_email: profile.email,
             customer_name: profile.full_name || 'Customer',
-            order_number: `ORD-${Date.now()}`,
+            order_number: pendingOrderNumber,
             pickup_address: newOrder.pickupAddress,
             pickup_instructions: newOrder.pickupInstructions,
             delivery_address: newOrder.deliveryAddress,
