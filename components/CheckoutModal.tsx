@@ -527,6 +527,19 @@ export function CheckoutModal({ visible, onClose, onConfirm, pricing, userId, us
                     </View>
                   ))}
 
+                  {(orderId || pendingOrderSnapshot?.order_number) && (
+                    <View style={styles.transferNarrationBox}>
+                      <View style={styles.transferNarrationHeader}>
+                        <Info size={15} color="#b45309" />
+                        <Text style={styles.transferNarrationTitle}>Use as Transfer Narration</Text>
+                      </View>
+                      <Text style={styles.transferNarrationId}>{orderId ?? pendingOrderSnapshot?.order_number}</Text>
+                      <Text style={styles.transferNarrationHint}>
+                        Include this Order ID in the narration/description of your bank transfer so we can match your payment.
+                      </Text>
+                    </View>
+                  )}
+
                   <View style={styles.transferNotice}>
                     <Text style={styles.transferNoticeText}>
                       After making the transfer, your order will be processed once payment is verified by our team (usually within 1-2 business days).
@@ -927,6 +940,46 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.poppinsRegular,
     color: '#92400e',
     lineHeight: 16,
+  },
+  transferNarrationBox: {
+    backgroundColor: '#fffbeb',
+    borderWidth: 1.5,
+    borderColor: '#fcd34d',
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 4,
+    marginBottom: 8,
+    gap: 6,
+  },
+  transferNarrationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  transferNarrationTitle: {
+    fontSize: 12,
+    fontFamily: Fonts.poppinsSemiBold,
+    color: '#b45309',
+    letterSpacing: 0.3,
+  },
+  transferNarrationId: {
+    fontSize: 18,
+    fontFamily: Fonts.poppinsBold,
+    color: '#92400e',
+    letterSpacing: 1,
+    textAlign: 'center',
+    backgroundColor: '#fef3c7',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  transferNarrationHint: {
+    fontSize: 11,
+    fontFamily: Fonts.poppinsRegular,
+    color: '#b45309',
+    lineHeight: 16,
+    textAlign: 'center',
   },
   transferNotice: {
     backgroundColor: '#dbeafe',
