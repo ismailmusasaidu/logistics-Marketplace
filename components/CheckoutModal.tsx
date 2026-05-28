@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ActivityIndicator, ScrollView, Alert, Linking, TextInput, Platform } from 'react-native';
-import { X, Wallet, CreditCard, Banknote, CircleCheck as CheckCircle2, Building2, Info, Calendar, Clock, ChevronLeft, ChevronRight as ChevronRightIcon } from 'lucide-react-native';
+import { X, Wallet, CreditCard, Banknote, CircleCheck as CheckCircle2, Building2, Info, Calendar, Clock, ChevronLeft, ChevronRight as ChevronRightIcon, Copy, Check } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Fonts } from '@/constants/fonts';
 import { PricingBreakdown as PricingBreakdownType } from '@/lib/pricingCalculator';
@@ -99,6 +99,7 @@ export function CheckoutModal({ visible, onClose, onConfirm, pricing, userId, us
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const [verificationPaymentMethod, setVerificationPaymentMethod] = useState<'online' | 'transfer'>('online');
   const [paystackRef, setPaystackRef] = useState<string | undefined>();
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [isScheduled, setIsScheduled] = useState(false);
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
@@ -146,6 +147,14 @@ export function CheckoutModal({ visible, onClose, onConfirm, pricing, userId, us
     } catch (err: any) {
       console.error('Error loading bank accounts:', err);
     }
+  };
+
+  const copyToClipboard = (text: string, key: string) => {
+    if (Platform.OS === 'web') {
+      navigator.clipboard?.writeText(text).catch(() => {});
+    }
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2000);
   };
 
   const initializePaystackPayment = async () => {
@@ -495,11 +504,25 @@ export function CheckoutModal({ visible, onClose, onConfirm, pricing, userId, us
                       <View style={styles.accountDetails}>
                         <View style={styles.accountRow}>
                           <Text style={styles.accountLabel}>Account Name:</Text>
-                          <Text style={styles.accountValue}>{account.account_name}</Text>
+                          <View style={styles.accountValueRow}>
+                            <Text style={styles.accountValue}>{account.account_name}</Text>
+                            <TouchableOpacity onPress={() => copyToClipboard(account.account_name, `name-${account.id}`)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                              {copiedKey === `name-${account.id}`
+                                ? <Check size={15} color="#16a34a" />
+                                : <Copy size={15} color="#9ca3af" />}
+                            </TouchableOpacity>
+                          </View>
                         </View>
                         <View style={styles.accountRow}>
                           <Text style={styles.accountLabel}>Account Number:</Text>
-                          <Text style={styles.accountValue}>{account.account_number}</Text>
+                          <View style={styles.accountValueRow}>
+                            <Text style={styles.accountValue}>{account.account_number}</Text>
+                            <TouchableOpacity onPress={() => copyToClipboard(account.account_number, `num-${account.id}`)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                              {copiedKey === `num-${account.id}`
+                                ? <Check size={15} color="#16a34a" />
+                                : <Copy size={15} color="#9ca3af" />}
+                            </TouchableOpacity>
+                          </View>
                         </View>
                         <View style={styles.accountRow}>
                           <Text style={styles.accountLabel}>Account Type:</Text>
@@ -533,7 +556,17 @@ export function CheckoutModal({ visible, onClose, onConfirm, pricing, userId, us
                         <Info size={15} color="#b45309" />
                         <Text style={styles.transferNarrationTitle}>Use as Transfer Narration</Text>
                       </View>
-                      <Text style={styles.transferNarrationId}>{orderId ?? pendingOrderSnapshot?.order_number}</Text>
+                      <TouchableOpacity
+                        style={styles.transferNarrationIdRow}
+                        onPress={() => copyToClipboard(orderId ?? pendingOrderSnapshot?.order_number ?? '', 'order-id')}
+                        activeOpacity={0.7}>
+                        <Text style={styles.transferNarrationId}>{orderId ?? pendingOrderSnapshot?.order_number}</Text>
+                        <View style={styles.transferNarrationCopyIcon}>
+                          {copiedKey === 'order-id'
+                            ? <Check size={16} color="#16a34a" />
+                            : <Copy size={16} color="#b45309" />}
+                        </View>
+                      </TouchableOpacity>
                       <Text style={styles.transferNarrationHint}>
                         Include this Order ID in the narration/description of your bank transfer so we can match your payment.
                       </Text>
@@ -929,6 +962,11 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.poppinsSemiBold,
     color: '#111827',
   },
+  accountValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   accountGuidelines: {
     backgroundColor: '#fef3c7',
     padding: 8,
@@ -963,16 +1001,30 @@ const styles = StyleSheet.create({
     color: '#b45309',
     letterSpacing: 0.3,
   },
-  transferNarrationId: {
-    fontSize: 18,
-    fontFamily: Fonts.poppinsBold,
-    color: '#92400e',
-    letterSpacing: 1,
-    textAlign: 'center',
+  transferNarrationIdRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#fef3c7',
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 12,
+    gap: 8,
+  },
+  transferNarrationId: {
+    flex: 1,
+    fontSize: 17,
+    fontFamily: Fonts.poppinsBold,
+    color: '#92400e',
+    letterSpacing: 1,
+    textAlign: 'center',
+  },
+  transferNarrationCopyIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#fde68a',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   transferNarrationHint: {
     fontSize: 11,
