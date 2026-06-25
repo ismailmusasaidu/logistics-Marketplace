@@ -168,7 +168,7 @@ async function createLogisticsOrder(
 
   // Send order confirmation email
   if (orderData.customer_email) {
-    sendEmailNotification("logistics_order_placed", orderData.customer_email, {
+    await sendEmailNotification("logistics_order_placed", orderData.customer_email, {
       orderNumber: orderResult.order_number,
       customerName: orderData.customer_name || "Customer",
       totalAmount: orderData.delivery_fee,
@@ -292,7 +292,7 @@ async function createMarketplaceOrders(
 
   // Send confirmation email
   if (customer_email && createdOrderNumbers.length > 0) {
-    sendEmailNotification("marketplace_order_placed", customer_email, {
+    await sendEmailNotification("marketplace_order_placed", customer_email, {
       orderNumber: createdOrderNumbers[0],
       customerName: customer_name || "Customer",
       totalAmount: orderData.total,
@@ -446,7 +446,7 @@ Deno.serve(async (req: Request) => {
         .maybeSingle();
 
       if (userProfile?.email) {
-        sendEmailNotification("wallet_funded_transfer", userProfile.email, {
+        await sendEmailNotification("wallet_funded_transfer", userProfile.email, {
           customerName: userProfile.full_name,
           amount: amountInNaira,
           reference,
