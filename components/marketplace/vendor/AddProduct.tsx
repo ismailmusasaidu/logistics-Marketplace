@@ -1498,6 +1498,16 @@ const styles = StyleSheet.create({
   pricingOptionsList: {
     gap: 8,
   },
+  addTagBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: '#fff7ed',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+  },
   pricingOptionItem: {
     flexDirection: 'row',
     alignItems: 'center',

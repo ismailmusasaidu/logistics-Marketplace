@@ -751,6 +751,7 @@ export default function CheckoutScreen() {
       Alert.alert('Error', 'Payment reference is missing');
       return;
     }
+    if (!profile) return;
 
     try {
       setSubmitting(true);
