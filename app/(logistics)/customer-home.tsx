@@ -534,7 +534,7 @@ export default function CustomerHome() {
           pickupAddress: orderData.pickup_address || undefined,
           deliveryAddress: orderData.delivery_address || undefined,
           recipientName: orderData.recipient_name || undefined,
-        });
+        }).catch((err) => console.error('Logistics order email failed:', err));
       }
 
       return true;
@@ -667,7 +667,7 @@ export default function CustomerHome() {
           pickupAddress: orderData.pickup_address || undefined,
           deliveryAddress: orderData.delivery_address || undefined,
           recipientName: orderData.recipient_name || undefined,
-        });
+        }).catch((err) => console.error('Logistics order email failed:', err));
       }
 
       setModalVisible(false);

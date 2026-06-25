@@ -998,7 +998,8 @@ export default function CheckoutScreen() {
         totalAmount: total,
         itemCount: cartItems.length,
         deliveryAddress: deliveryType === 'delivery' ? deliveryAddress : 'Pickup',
-      });
+      }).catch((err) => console.error('Order placed email failed:', err));
+
     } catch (error) {
       orderSubmittedRef.current = false;
       if (__DEV__) console.error('Error placing order:', error);
