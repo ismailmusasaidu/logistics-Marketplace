@@ -17,14 +17,18 @@ export default function Hub() {
   const [logisticsEnabled, setLogisticsEnabled] = useState(true);
 
   useEffect(() => {
-    coreBackend
-      .from('app_settings')
-      .select('logistics_enabled')
-      .eq('id', 1)
-      .single()
-      .then(({ data }) => {
+    (async () => {
+      try {
+        const { data } = await coreBackend
+          .from('app_settings')
+          .select('logistics_enabled')
+          .eq('id', 1)
+          .single();
         if (data) setLogisticsEnabled(data.logistics_enabled);
-      });
+      } catch {
+        // Keep default (enabled) on failure
+      }
+    })();
   }, []);
 
   const isSmall = width < 380;

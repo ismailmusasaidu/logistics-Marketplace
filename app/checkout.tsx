@@ -288,8 +288,8 @@ export default function CheckoutScreen() {
           setOrderPlaced(true);
           setShowPaymentOptions(false);
         }
-      } catch {
-        // Non-fatal polling error
+      } catch (err) {
+        console.error('Payment polling error:', err);
       }
     }, 3000);
 
