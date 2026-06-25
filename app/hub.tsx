@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,12 +7,25 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { Truck, ShoppingBag, ArrowRight, LogOut, Shield, ChevronRight } from 'lucide-react-native';
 import { Fonts } from '@/constants/fonts';
 import { LinearGradient } from 'expo-linear-gradient';
+import { coreBackend } from '@/lib/coreBackend';
 
 export default function Hub() {
   const router = useRouter();
   const { profile, signOut } = useAuth();
   const { colors, isDark } = useTheme();
   const { width } = useWindowDimensions();
+  const [logisticsEnabled, setLogisticsEnabled] = useState(true);
+
+  useEffect(() => {
+    coreBackend
+      .from('app_settings')
+      .select('logistics_enabled')
+      .eq('id', 1)
+      .single()
+      .then(({ data }) => {
+        if (data) setLogisticsEnabled(data.logistics_enabled);
+      });
+  }, []);
 
   const isSmall = width < 380;
   const isTablet = width >= 768;
@@ -62,7 +75,7 @@ export default function Hub() {
     router.replace('/auth/login');
   };
 
-  const showLogistics = profile?.role === 'customer' || profile?.role === 'admin' || profile?.role === 'rider';
+  const showLogistics = logisticsEnabled && (profile?.role === 'customer' || profile?.role === 'admin' || profile?.role === 'rider');
   const showMarketplace = profile?.role === 'customer' || profile?.role === 'admin' || profile?.role === 'vendor';
   const isSingleOption = (showLogistics ? 1 : 0) + (showMarketplace ? 1 : 0) === 1;
 
