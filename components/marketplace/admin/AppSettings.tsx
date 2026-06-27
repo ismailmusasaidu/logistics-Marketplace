@@ -6,10 +6,9 @@ import {
   ScrollView,
   Switch,
   ActivityIndicator,
-  TouchableOpacity,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Truck, Settings2 } from 'lucide-react-native';
+import { Truck, ShoppingBag, Settings2 } from 'lucide-react-native';
 import { supabase } from '@/lib/marketplace/supabase';
 import { Fonts } from '@/constants/fonts';
 
@@ -20,8 +19,10 @@ interface Props {
 export default function AppSettings({ onBack }: Props) {
   const insets = useSafeAreaInsets();
   const [logisticsEnabled, setLogisticsEnabled] = useState(true);
+  const [marketplaceEnabled, setMarketplaceEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [savingLogistics, setSavingLogistics] = useState(false);
+  const [savingMarketplace, setSavingMarketplace] = useState(false);
 
   useEffect(() => {
     fetchSettings();
@@ -31,11 +32,12 @@ export default function AppSettings({ onBack }: Props) {
     try {
       const { data, error } = await supabase
         .from('app_settings')
-        .select('logistics_enabled')
+        .select('logistics_enabled, marketplace_enabled')
         .eq('id', 1)
         .single();
       if (error) throw error;
       setLogisticsEnabled(data.logistics_enabled);
+      setMarketplaceEnabled(data.marketplace_enabled);
     } catch (err) {
       console.error('Failed to fetch app settings:', err);
     } finally {
@@ -43,8 +45,8 @@ export default function AppSettings({ onBack }: Props) {
     }
   };
 
-  const handleToggle = async (value: boolean) => {
-    setSaving(true);
+  const handleLogisticsToggle = async (value: boolean) => {
+    setSavingLogistics(true);
     const previous = logisticsEnabled;
     setLogisticsEnabled(value);
     try {
@@ -54,10 +56,28 @@ export default function AppSettings({ onBack }: Props) {
         .eq('id', 1);
       if (error) throw error;
     } catch (err) {
-      console.error('Failed to update app settings:', err);
+      console.error('Failed to update logistics setting:', err);
       setLogisticsEnabled(previous);
     } finally {
-      setSaving(false);
+      setSavingLogistics(false);
+    }
+  };
+
+  const handleMarketplaceToggle = async (value: boolean) => {
+    setSavingMarketplace(true);
+    const previous = marketplaceEnabled;
+    setMarketplaceEnabled(value);
+    try {
+      const { error } = await supabase
+        .from('app_settings')
+        .update({ marketplace_enabled: value, updated_at: new Date().toISOString() })
+        .eq('id', 1);
+      if (error) throw error;
+    } catch (err) {
+      console.error('Failed to update marketplace setting:', err);
+      setMarketplaceEnabled(previous);
+    } finally {
+      setSavingMarketplace(false);
     }
   };
 
@@ -84,6 +104,7 @@ export default function AppSettings({ onBack }: Props) {
         <Text style={styles.sectionLabel}>MODULES</Text>
 
         <View style={styles.card}>
+          {/* Logistics row */}
           <View style={styles.row}>
             <View style={[styles.iconWrap, { backgroundColor: '#eff6ff' }]}>
               <Truck size={22} color="#2563eb" />
@@ -91,18 +112,16 @@ export default function AppSettings({ onBack }: Props) {
             <View style={styles.rowText}>
               <Text style={styles.rowTitle}>Logistics Module</Text>
               <Text style={styles.rowDesc}>
-                {logisticsEnabled
-                  ? 'Visible in Hub for all users'
-                  : 'Hidden from Hub for all users'}
+                {logisticsEnabled ? 'Visible in Hub for all users' : 'Hidden from Hub for all users'}
               </Text>
             </View>
             <View style={styles.switchWrap}>
-              {saving ? (
+              {savingLogistics ? (
                 <ActivityIndicator size="small" color="#ff8c00" />
               ) : (
                 <Switch
                   value={logisticsEnabled}
-                  onValueChange={handleToggle}
+                  onValueChange={handleLogisticsToggle}
                   trackColor={{ false: '#e5e7eb', true: '#bfdbfe' }}
                   thumbColor={logisticsEnabled ? '#2563eb' : '#9ca3af'}
                 />
@@ -114,6 +133,40 @@ export default function AppSettings({ onBack }: Props) {
             <Text style={styles.hintText}>
               When disabled, the Logistics card is hidden on the Hub screen for customers, riders, and admins.
               You can re-enable it here at any time.
+            </Text>
+          </View>
+
+          <View style={styles.divider} />
+
+          {/* Marketplace row */}
+          <View style={styles.row}>
+            <View style={[styles.iconWrap, { backgroundColor: '#fff7ed' }]}>
+              <ShoppingBag size={22} color="#ea580c" />
+            </View>
+            <View style={styles.rowText}>
+              <Text style={styles.rowTitle}>Marketplace Module</Text>
+              <Text style={styles.rowDesc}>
+                {marketplaceEnabled ? 'Visible in Hub for all users' : 'Hidden from Hub for customers & vendors'}
+              </Text>
+            </View>
+            <View style={styles.switchWrap}>
+              {savingMarketplace ? (
+                <ActivityIndicator size="small" color="#ff8c00" />
+              ) : (
+                <Switch
+                  value={marketplaceEnabled}
+                  onValueChange={handleMarketplaceToggle}
+                  trackColor={{ false: '#e5e7eb', true: '#fed7aa' }}
+                  thumbColor={marketplaceEnabled ? '#ea580c' : '#9ca3af'}
+                />
+              )}
+            </View>
+          </View>
+
+          <View style={styles.hint}>
+            <Text style={styles.hintText}>
+              When disabled, the Marketplace card is hidden on the Hub screen for customers and vendors.
+              Admins always see it to re-enable access at any time.
             </Text>
           </View>
         </View>
@@ -233,5 +286,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#9ca3af',
     lineHeight: 18,
+  },
+  divider: {
+    height: 8,
+    backgroundColor: '#f8f9fb',
   },
 });

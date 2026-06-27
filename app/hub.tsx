@@ -15,18 +15,22 @@ export default function Hub() {
   const { colors, isDark } = useTheme();
   const { width } = useWindowDimensions();
   const [logisticsEnabled, setLogisticsEnabled] = useState(true);
+  const [marketplaceEnabled, setMarketplaceEnabled] = useState(true);
 
   useEffect(() => {
     (async () => {
       try {
         const { data } = await coreBackend
           .from('app_settings')
-          .select('logistics_enabled')
+          .select('logistics_enabled, marketplace_enabled')
           .eq('id', 1)
           .single();
-        if (data) setLogisticsEnabled(data.logistics_enabled);
+        if (data) {
+          setLogisticsEnabled(data.logistics_enabled);
+          setMarketplaceEnabled(data.marketplace_enabled);
+        }
       } catch {
-        // Keep default (enabled) on failure
+        // Keep defaults (enabled) on failure
       }
     })();
   }, []);
@@ -80,7 +84,7 @@ export default function Hub() {
   };
 
   const showLogistics = logisticsEnabled && (profile?.role === 'customer' || profile?.role === 'admin' || profile?.role === 'rider');
-  const showMarketplace = profile?.role === 'customer' || profile?.role === 'admin' || profile?.role === 'vendor';
+  const showMarketplace = (marketplaceEnabled || profile?.role === 'admin') && (profile?.role === 'customer' || profile?.role === 'admin' || profile?.role === 'vendor');
   const isSingleOption = (showLogistics ? 1 : 0) + (showMarketplace ? 1 : 0) === 1;
 
   const getRoleLabel = () => {
