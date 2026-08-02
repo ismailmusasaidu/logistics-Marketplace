@@ -283,6 +283,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     padding: 0,
+    ...Platform.select({ web: { outlineStyle: 'none' } as any }),
   },
   dropdown: {
     position: 'absolute',
