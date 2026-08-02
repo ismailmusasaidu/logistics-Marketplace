@@ -3,7 +3,7 @@
     "name": "Danhausa",
     "slug": "danhausa",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/danhausa-icon.png",
     "scheme": "danhausa",
     "userInterfaceStyle": "automatic",
@@ -21,6 +21,7 @@
     "android": {
       "package": "com.danhausa.app",
       "versionCode": 1,
+      "resizeableActivity": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/danhausa-icon.png",
         "backgroundColor": "#ffffff"
