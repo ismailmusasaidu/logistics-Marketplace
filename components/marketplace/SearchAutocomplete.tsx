@@ -8,6 +8,7 @@ import {
   FlatList,
   Animated,
   Platform,
+  TextStyle,
 } from 'react-native';
 import { Search, Clock, X, TrendingUp, ArrowUpLeft } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -171,11 +172,25 @@ export default function SearchAutocomplete({
 
   return (
     <View style={styles.wrapper}>
-      <View style={[styles.inputRow, { backgroundColor: colors.inputBackground, borderColor: focused ? colors.primary : colors.inputBorder }]}>
+      <View
+        style={[
+          styles.inputRow,
+          {
+            backgroundColor: colors.inputBackground,
+            borderColor: focused ? colors.primary : colors.inputBorder,
+            borderWidth: focused ? 2 : 1.5,
+          },
+          focused && Platform.select({
+            ios: { shadowColor: colors.primary, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.25, shadowRadius: 6 },
+            android: { elevation: 3 },
+            web: { boxShadow: `0 0 0 3px ${colors.primary}22` },
+          }),
+        ]}
+      >
         <Search size={18} color={focused ? colors.primary : colors.textMuted} style={styles.searchIcon} />
         <TextInput
           ref={inputRef}
-          style={[styles.input, { color: colors.text, fontFamily: Fonts.spaceRegular }]}
+          style={[styles.input, { color: colors.text, fontFamily: Fonts.spaceRegular }, Platform.select({ web: { outlineWidth: 0 } as TextStyle, default: {} })]}
           value={value}
           onChangeText={onChangeText}
           onFocus={() => { setFocused(true); buildDefaultSuggestions(); }}
