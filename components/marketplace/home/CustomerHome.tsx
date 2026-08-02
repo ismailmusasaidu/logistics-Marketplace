@@ -44,8 +44,6 @@ export default function CustomerHome() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const handleSearchChange = useCallback((text: string) => setSearchQuery(text), []);
-  const handleSearchSubmit = useCallback((q: string) => setSearchQuery(q), []);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -385,8 +383,8 @@ export default function CustomerHome() {
           <View style={styles.searchBarWrap}>
             <SearchAutocomplete
               value={searchQuery}
-              onChangeText={handleSearchChange}
-              onSubmit={handleSearchSubmit}
+              onChangeText={setSearchQuery}
+              onSubmit={(q) => setSearchQuery(q)}
               placeholder="Search products, vendors..."
             />
           </View>
@@ -460,6 +458,7 @@ export default function CustomerHome() {
           ListHeaderComponent={listHeader}
           ListFooterComponent={listFooter}
           renderItem={renderItem}
+          removeClippedSubviews
           maxToRenderPerBatch={8}
           windowSize={10}
           initialNumToRender={8}

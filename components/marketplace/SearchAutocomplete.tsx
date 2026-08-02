@@ -32,7 +32,7 @@ interface Suggestion {
   id?: string;
 }
 
-function SearchAutocompleteInner({
+export default function SearchAutocomplete({
   value,
   onChangeText,
   onSubmit,
@@ -267,10 +267,6 @@ function SearchAutocompleteInner({
     </View>
   );
 }
-
-const SearchAutocomplete = React.memo(SearchAutocompleteInner);
-
-export default SearchAutocomplete;
 
 const styles = StyleSheet.create({
   wrapper: {
