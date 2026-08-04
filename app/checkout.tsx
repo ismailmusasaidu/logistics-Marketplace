@@ -2062,6 +2062,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#f0ebe4',
     marginBottom: 16,
+    ...Platform.select({ web: { outlineStyle: 'none' } as any }),
   },
   textArea: {
     minHeight: 88,
@@ -2087,6 +2088,7 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
     minHeight: 80,
     textAlignVertical: 'top',
+    ...Platform.select({ web: { outlineStyle: 'none' } as any }),
   },
   geocodingStatus: {
     flexDirection: 'row',

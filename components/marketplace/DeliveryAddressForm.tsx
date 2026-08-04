@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Alert, Platform } from 'react-native';
 import { supabase } from '@/lib/marketplace/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -148,6 +148,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#f0ebe4',
     color: '#1a1a1a',
+    ...Platform.select({ web: { outlineStyle: 'none' } as any }),
   },
   row: {
     flexDirection: 'row',

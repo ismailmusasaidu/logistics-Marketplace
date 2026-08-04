@@ -1112,6 +1112,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Fonts.poppinsRegular,
     color: '#111827',
+    ...Platform.select({ web: { outlineStyle: 'none' } as any }),
   },
   calendarOverlay: {
     flex: 1,
