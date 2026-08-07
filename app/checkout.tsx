@@ -13,7 +13,7 @@ import {
   Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Package, Truck, MapPin, CreditCard, ChevronLeft, CircleCheck as CheckCircle, Clock, Wallet, Building2, Banknote, Copy } from 'lucide-react-native';
+import { Package, Truck, MapPin, CreditCard, ChevronLeft, CircleCheck as CheckCircle, Clock, Wallet, Building2, Banknote, Copy, CalendarClock } from 'lucide-react-native';
 import { supabase } from '@/lib/marketplace/supabase';
 import { CORE_URL } from '@/lib/coreBackend';
 import { useAuth } from '@/contexts/AuthContext';
@@ -109,6 +109,8 @@ export default function CheckoutScreen() {
   const [deliveryName, setDeliveryName] = useState('');
   const [deliveryPhone, setDeliveryPhone] = useState('');
   const [deliveryAddressDescription, setDeliveryAddressDescription] = useState('');
+  const [preparedDate, setPreparedDate] = useState('');
+  const [preparedTime, setPreparedTime] = useState('');
   const [distanceKm, setDistanceKm] = useState<number | null>(null);
   const [calculatedDeliveryFee, setCalculatedDeliveryFee] = useState<number>(0);
   const [zones, setZones] = useState<DeliveryZone[]>([]);
@@ -623,6 +625,10 @@ export default function CheckoutScreen() {
       vendorGroups[vid].total = Math.max(0, vendorGroups[vid].subtotal + sharedDeliveryFee + sharedWeightSurcharge - sharedDiscount);
     }
 
+    const preparedAtValue = deliveryType === 'delivery' && preparedDate.trim()
+      ? new Date(`${preparedDate}T${preparedTime.trim() || '00:00'}`).toISOString()
+      : null;
+
     return {
       customer_id: profile!.id,
       customer_email: profile!.email,
@@ -632,6 +638,7 @@ export default function CheckoutScreen() {
       delivery_type: deliveryType,
       delivery_address: deliveryType === 'delivery' ? `${deliveryName}\n${deliveryPhone}\n${deliveryAddress}` : 'N/A',
       delivery_instructions: deliveryType === 'delivery' && deliveryAddressDescription.trim() ? deliveryAddressDescription.trim() : null,
+      prepared_at: preparedAtValue,
       delivery_speed: deliveryType === 'delivery' ? (selectedSpeed?.name || null) : null,
       delivery_speed_cost: speedCost,
       weight_surcharge_amount: weightSurchargeAmount,
@@ -931,6 +938,7 @@ export default function CheckoutScreen() {
             delivery_type: deliveryType,
             delivery_address: deliveryType === 'delivery' ? `${deliveryName}\n${deliveryPhone}\n${deliveryAddress}` : 'N/A',
             delivery_instructions: deliveryType === 'delivery' && deliveryAddressDescription.trim() ? deliveryAddressDescription.trim() : null,
+            prepared_at: deliveryType === 'delivery' && preparedDate.trim() ? new Date(`${preparedDate}T${preparedTime.trim() || '00:00'}`).toISOString() : null,
             delivery_speed: deliveryType === 'delivery' ? (selectedSpeed?.name || null) : null,
             delivery_speed_cost: deliveryType === 'delivery' ? (getSpeedCost() / vendorCount) : 0,
             weight_surcharge_amount: sharedWeightSurcharge,
@@ -1056,6 +1064,15 @@ export default function CheckoutScreen() {
                 <Text style={styles.orderDetailLabel}>Delivery Address</Text>
                 <Text style={[styles.orderDetailValue, styles.addressText]}>
                   {deliveryAddress}
+                </Text>
+              </View>
+            )}
+
+            {deliveryType === 'delivery' && preparedDate.trim() && (
+              <View style={styles.orderDetailRow}>
+                <Text style={styles.orderDetailLabel}>Prepared By</Text>
+                <Text style={[styles.orderDetailValue, { color: '#ff8c00' }]}>
+                  {new Date(`${preparedDate}T${preparedTime.trim() || '00:00'}`).toLocaleString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                 </Text>
               </View>
             )}
@@ -1254,6 +1271,42 @@ export default function CheckoutScreen() {
               numberOfLines={3}
               textAlignVertical="top"
             />
+
+            <View style={styles.preparedTimeContainer}>
+              <View style={styles.preparedTimeHeader}>
+                <CalendarClock size={18} color="#ff8c00" />
+                <Text style={styles.preparedTimeTitle}>Prepared Time & Date</Text>
+                <View style={styles.optionalBadge}>
+                  <Text style={styles.optionalBadgeText}>Optional</Text>
+                </View>
+              </View>
+              <Text style={styles.preparedTimeHint}>
+                Let the vendor know when you'd like your order ready
+              </Text>
+              <View style={styles.preparedTimeInputs}>
+                <View style={styles.preparedTimeField}>
+                  <Text style={styles.preparedTimeLabel}>Date</Text>
+                  <TextInput
+                    style={styles.preparedTimeInput}
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor="#9ca3af"
+                    value={preparedDate}
+                    onChangeText={setPreparedDate}
+                  />
+                </View>
+                <View style={styles.preparedTimeField}>
+                  <Text style={styles.preparedTimeLabel}>Time</Text>
+                  <TextInput
+                    style={styles.preparedTimeInput}
+                    placeholder="HH:MM"
+                    placeholderTextColor="#9ca3af"
+                    value={preparedTime}
+                    onChangeText={setPreparedTime}
+                    keyboardType="default"
+                  />
+                </View>
+              </View>
+            </View>
 
             {geocoding && (
               <View style={styles.geocodingStatus}>
@@ -2068,6 +2121,71 @@ const styles = StyleSheet.create({
     minHeight: 88,
     textAlignVertical: 'top',
     paddingTop: 14,
+  },
+  preparedTimeContainer: {
+    backgroundColor: '#fffbeb',
+    borderRadius: 14,
+    padding: 18,
+    marginTop: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#fde68a',
+  },
+  preparedTimeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  preparedTimeTitle: {
+    fontSize: 16,
+    fontFamily: Fonts.semiBold,
+    color: '#92400e',
+    flex: 1,
+  },
+  optionalBadge: {
+    backgroundColor: '#fef3c7',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#fcd34d',
+  },
+  optionalBadgeText: {
+    fontSize: 11,
+    fontFamily: Fonts.bold,
+    color: '#92400e',
+    letterSpacing: 0.3,
+  },
+  preparedTimeHint: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: '#b45309',
+    marginBottom: 14,
+  },
+  preparedTimeInputs: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  preparedTimeField: {
+    flex: 1,
+  },
+  preparedTimeLabel: {
+    fontSize: 13,
+    fontFamily: Fonts.medium,
+    color: '#92400e',
+    marginBottom: 6,
+  },
+  preparedTimeInput: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 15,
+    fontFamily: Fonts.medium,
+    color: '#1a1a1a',
+    borderWidth: 1,
+    borderColor: '#fde68a',
+    ...Platform.select({ web: { outlineStyle: 'none' } as any }),
   },
   addressInputContainer: {
     flexDirection: 'row',

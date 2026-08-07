@@ -135,6 +135,7 @@ export interface Order {
   delivery_address: string;
   delivery_type: 'pickup' | 'delivery';
   delivery_instructions?: string | null;
+  prepared_at?: string | null;
   payment_method: PaymentMethod;
   payment_status: PaymentStatus;
   discount_amount?: number;

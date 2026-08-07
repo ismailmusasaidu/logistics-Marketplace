@@ -305,6 +305,7 @@ export default function OrderReceipt({
         ${order.delivery_type ? `<div class="delivery-type">${(order as any).delivery_type === 'home_delivery' || order.delivery_type === 'delivery' ? 'Home Delivery' : 'Self Pickup'}</div>` : ''}
         ${(order as any).delivery_speed ? `<div class="row" style="margin-top:8px"><span class="label">Delivery Speed:</span><span class="value">${(order as any).delivery_speed.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}</span></div>` : ''}
         <div class="address">${order.delivery_address}</div>
+        ${(order as any).prepared_at ? `<div class="row" style="margin-top:8px"><span class="label">Prepared By:</span><span class="value">${new Date((order as any).prepared_at).toLocaleString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span></div>` : ''}
       </div>
 
       <div class="divider"></div>
@@ -611,6 +612,14 @@ export default function OrderReceipt({
                   </View>
                 )}
                 <Text style={styles.addressText}>{order.delivery_address}</Text>
+                {(order as any).prepared_at && (
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>Prepared By</Text>
+                    <Text style={[styles.infoValue, { color: '#ff8c00' }]}>
+                      {new Date((order as any).prepared_at).toLocaleString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </Text>
+                  </View>
+                )}
               </View>
 
               <View style={styles.divider} />

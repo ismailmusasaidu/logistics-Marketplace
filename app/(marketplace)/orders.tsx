@@ -344,6 +344,14 @@ export default function OrdersScreen() {
                 <Text style={[styles.addressText, { color: colors.text }]}>{item.delivery_instructions}</Text>
               </View>
             ) : null}
+            {(item as any).prepared_at && (
+              <View style={[styles.deliveryInstructionsBox, { borderTopColor: colors.borderLight }]}>
+                <Text style={[styles.addressLabel, { color: colors.textMuted }]}>Prepared By</Text>
+                <Text style={[styles.addressText, { color: colors.statusPreparing }]}>
+                  {new Date((item as any).prepared_at).toLocaleString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                </Text>
+              </View>
+            )}
           </View>
         </TouchableOpacity>
 
