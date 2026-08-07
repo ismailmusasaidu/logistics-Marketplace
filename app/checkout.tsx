@@ -13,7 +13,7 @@ import {
   Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Package, Truck, MapPin, CreditCard, ChevronLeft, CircleCheck as CheckCircle, Clock, Wallet, Building2, Banknote, Copy, CalendarClock } from 'lucide-react-native';
+import { Package, Truck, MapPin, CreditCard, ChevronLeft, CircleCheck as CheckCircle, Clock, Wallet, Building2, Banknote, Copy, CalendarClock, User, Phone, Navigation, FileText } from 'lucide-react-native';
 import { supabase } from '@/lib/marketplace/supabase';
 import { CORE_URL } from '@/lib/coreBackend';
 import { useAuth } from '@/contexts/AuthContext';
@@ -1229,163 +1229,197 @@ export default function CheckoutScreen() {
 
         {deliveryType === 'delivery' && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Delivery Information</Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Full Name"
-              placeholderTextColor="#9ca3af"
-              value={deliveryName}
-              onChangeText={setDeliveryName}
-            />
-
-            <TextInput
-              style={styles.input}
-              placeholder="Phone Number"
-              placeholderTextColor="#9ca3af"
-              value={deliveryPhone}
-              onChangeText={setDeliveryPhone}
-              keyboardType="phone-pad"
-            />
-
-            <View style={styles.addressInputContainer}>
-              <MapPin size={20} color="#6b7280" style={styles.addressIcon} />
-              <TextInput
-                style={styles.addressInput}
-                placeholder="Enter your delivery address (e.g., 123 Main St, Lagos, Nigeria)"
-                placeholderTextColor="#9ca3af"
-                value={deliveryAddress}
-                onChangeText={setDeliveryAddress}
-                multiline
-                numberOfLines={3}
-              />
+            <View style={styles.sectionHeaderRow}>
+              <View style={styles.sectionIconBadge}>
+                <Truck size={20} color="#ff8c00" />
+              </View>
+              <Text style={styles.sectionTitle}>Delivery Information</Text>
             </View>
 
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Describe exact location (e.g. 2nd floor, beside blue gate, landmark near market)"
-              placeholderTextColor="#9ca3af"
-              value={deliveryAddressDescription}
-              onChangeText={setDeliveryAddressDescription}
-              multiline
-              numberOfLines={3}
-              textAlignVertical="top"
-            />
-
-            <View style={styles.preparedTimeContainer}>
-              <View style={styles.preparedTimeHeader}>
-                <CalendarClock size={18} color="#ff8c00" />
-                <Text style={styles.preparedTimeTitle}>Prepared Time & Date</Text>
-                <View style={styles.optionalBadge}>
-                  <Text style={styles.optionalBadgeText}>Optional</Text>
-                </View>
-              </View>
-              <Text style={styles.preparedTimeHint}>
-                Let the vendor know when you'd like your order ready
-              </Text>
-              <View style={styles.preparedTimeInputs}>
-                <View style={styles.preparedTimeField}>
-                  <Text style={styles.preparedTimeLabel}>Date</Text>
+            <View style={styles.deliveryInfoCard}>
+              <Text style={styles.fieldGroupLabel}>Recipient Details</Text>
+              <View style={styles.fieldRow}>
+                <View style={styles.fieldHalf}>
+                  <View style={styles.fieldIconBox}>
+                    <User size={18} color="#ff8c00" />
+                  </View>
                   <TextInput
-                    style={styles.preparedTimeInput}
-                    placeholder="YYYY-MM-DD"
+                    style={styles.fieldInputWithIcon}
+                    placeholder="Full Name"
                     placeholderTextColor="#9ca3af"
-                    value={preparedDate}
-                    onChangeText={setPreparedDate}
+                    value={deliveryName}
+                    onChangeText={setDeliveryName}
                   />
                 </View>
-                <View style={styles.preparedTimeField}>
-                  <Text style={styles.preparedTimeLabel}>Time</Text>
+                <View style={styles.fieldHalf}>
+                  <View style={styles.fieldIconBox}>
+                    <Phone size={18} color="#ff8c00" />
+                  </View>
                   <TextInput
-                    style={styles.preparedTimeInput}
-                    placeholder="HH:MM"
+                    style={styles.fieldInputWithIcon}
+                    placeholder="Phone Number"
                     placeholderTextColor="#9ca3af"
-                    value={preparedTime}
-                    onChangeText={setPreparedTime}
-                    keyboardType="default"
+                    value={deliveryPhone}
+                    onChangeText={setDeliveryPhone}
+                    keyboardType="phone-pad"
                   />
                 </View>
               </View>
-            </View>
 
-            {geocoding && (
-              <View style={styles.geocodingStatus}>
-                <ActivityIndicator size="small" color="#ff8c00" />
-                <Text style={styles.geocodingText}>Calculating distance...</Text>
+              <View style={styles.fieldDivider} />
+
+              <Text style={styles.fieldGroupLabel}>Delivery Address</Text>
+              <View style={styles.addressInputContainer}>
+                <View style={styles.addressIconBox}>
+                  <Navigation size={18} color="#ff8c00" />
+                </View>
+                <TextInput
+                  style={styles.addressInput}
+                  placeholder="Enter your delivery address (e.g., 123 Main St, Lagos, Nigeria)"
+                  placeholderTextColor="#9ca3af"
+                  value={deliveryAddress}
+                  onChangeText={setDeliveryAddress}
+                  multiline
+                  numberOfLines={3}
+                />
               </View>
-            )}
 
-            {geocodeError && (
-              <View style={styles.errorCard}>
-                <Text style={styles.errorText}>{geocodeError}</Text>
+              <View style={styles.addressDescContainer}>
+                <View style={styles.addressDescIconBox}>
+                  <FileText size={18} color="#94a3b8" />
+                </View>
+                <TextInput
+                  style={styles.addressDescInput}
+                  placeholder="Describe exact location (e.g. 2nd floor, beside blue gate, landmark near market)"
+                  placeholderTextColor="#9ca3af"
+                  value={deliveryAddressDescription}
+                  onChangeText={setDeliveryAddressDescription}
+                  multiline
+                  numberOfLines={3}
+                  textAlignVertical="top"
+                />
               </View>
-            )}
 
-            {distanceKm !== null && !geocoding && (
-              <View style={styles.successCard}>
-                <CheckCircle size={20} color="#10b981" />
-                <Text style={styles.successText}>
-                  Distance: {distanceKm.toFixed(1)} km from store
+              <View style={styles.preparedTimeContainer}>
+                <View style={styles.preparedTimeHeader}>
+                  <View style={styles.preparedTimeIconBox}>
+                    <CalendarClock size={18} color="#ff8c00" />
+                  </View>
+                  <Text style={styles.preparedTimeTitle}>Prepared Time & Date</Text>
+                  <View style={styles.optionalBadge}>
+                    <Text style={styles.optionalBadgeText}>Optional</Text>
+                  </View>
+                </View>
+                <Text style={styles.preparedTimeHint}>
+                  Let the vendor know when you'd like your order ready
                 </Text>
+                <View style={styles.preparedTimeInputs}>
+                  <View style={styles.preparedTimeField}>
+                    <Text style={styles.preparedTimeLabel}>Date</Text>
+                    <TextInput
+                      style={styles.preparedTimeInput}
+                      placeholder="YYYY-MM-DD"
+                      placeholderTextColor="#9ca3af"
+                      value={preparedDate}
+                      onChangeText={setPreparedDate}
+                    />
+                  </View>
+                  <View style={styles.preparedTimeField}>
+                    <Text style={styles.preparedTimeLabel}>Time</Text>
+                    <TextInput
+                      style={styles.preparedTimeInput}
+                      placeholder="HH:MM"
+                      placeholderTextColor="#9ca3af"
+                      value={preparedTime}
+                      onChangeText={setPreparedTime}
+                      keyboardType="default"
+                    />
+                  </View>
+                </View>
               </View>
-            )}
 
-            {calculatedDeliveryFee > 0 && (
-              <View style={styles.deliveryFeeCard}>
-                <Text style={styles.deliveryFeeLabel}>Delivery Fee:</Text>
-                <Text style={styles.deliveryFeeValue}>₦{calculatedDeliveryFee.toFixed(2)}</Text>
-              </View>
-            )}
+              {geocoding && (
+                <View style={styles.geocodingStatus}>
+                  <ActivityIndicator size="small" color="#ff8c00" />
+                  <Text style={styles.geocodingText}>Calculating distance...</Text>
+                </View>
+              )}
 
-            {distanceKm !== null && calculatedDeliveryFee === 0 && (
-              <View style={styles.warningCard}>
-                <Text style={styles.warningText}>Your location is outside our delivery zones. Please try a different address.</Text>
-              </View>
-            )}
+              {geocodeError && (
+                <View style={styles.errorCard}>
+                  <Text style={styles.errorText}>{geocodeError}</Text>
+                </View>
+              )}
 
-            {speedOptions.length > 0 && distanceKm !== null && calculatedDeliveryFee > 0 && (
-              <View style={styles.speedSection}>
-                <Text style={styles.speedSectionTitle}>Delivery Speed</Text>
-                {speedOptions.map((opt) => {
-                  const active = selectedSpeed?.id === opt.id;
-                  return (
-                    <TouchableOpacity
-                      key={opt.id}
-                      style={[styles.speedCard, active && styles.speedCardActive]}
-                      onPress={() => setSelectedSpeed(opt)}
-                      activeOpacity={0.8}
-                    >
-                      <View style={styles.speedCardLeft}>
-                        <View style={[styles.speedRadio, active && styles.speedRadioActive]}>
-                          {active && <View style={styles.speedRadioDot} />}
-                        </View>
-                        <View style={styles.speedCardInfo}>
-                          <View style={styles.speedCardTitleRow}>
-                            <Text style={[styles.speedCardName, active && styles.speedCardNameActive]}>
-                              {opt.label || opt.name}
-                            </Text>
-                            {opt.name === 'Express' && (
-                              <View style={styles.speedExpressBadge}>
-                                <Text style={styles.speedExpressBadgeText}>Fastest</Text>
-                              </View>
-                            )}
+              {distanceKm !== null && !geocoding && (
+                <View style={styles.successCard}>
+                  <CheckCircle size={20} color="#10b981" />
+                  <Text style={styles.successText}>
+                    Distance: {distanceKm.toFixed(1)} km from store
+                  </Text>
+                </View>
+              )}
+
+              {calculatedDeliveryFee > 0 && (
+                <View style={styles.deliveryFeeCard}>
+                  <View style={styles.deliveryFeeLeft}>
+                    <Truck size={20} color="#1e40af" />
+                    <Text style={styles.deliveryFeeLabel}>Delivery Fee</Text>
+                  </View>
+                  <Text style={styles.deliveryFeeValue}>₦{calculatedDeliveryFee.toFixed(2)}</Text>
+                </View>
+              )}
+
+              {distanceKm !== null && calculatedDeliveryFee === 0 && (
+                <View style={styles.warningCard}>
+                  <Text style={styles.warningText}>Your location is outside our delivery zones. Please try a different address.</Text>
+                </View>
+              )}
+
+              {speedOptions.length > 0 && distanceKm !== null && calculatedDeliveryFee > 0 && (
+                <View style={styles.speedSection}>
+                  <Text style={styles.speedSectionTitle}>Delivery Speed</Text>
+                  {speedOptions.map((opt) => {
+                    const active = selectedSpeed?.id === opt.id;
+                    return (
+                      <TouchableOpacity
+                        key={opt.id}
+                        style={[styles.speedCard, active && styles.speedCardActive]}
+                        onPress={() => setSelectedSpeed(opt)}
+                        activeOpacity={0.8}
+                      >
+                        <View style={styles.speedCardLeft}>
+                          <View style={[styles.speedRadio, active && styles.speedRadioActive]}>
+                            {active && <View style={styles.speedRadioDot} />}
                           </View>
-                          <Text style={styles.speedCardTime}>{opt.estimated_time}</Text>
-                          {opt.description ? (
-                            <Text style={styles.speedCardDesc}>{opt.description}</Text>
-                          ) : null}
+                          <View style={styles.speedCardInfo}>
+                            <View style={styles.speedCardTitleRow}>
+                              <Text style={[styles.speedCardName, active && styles.speedCardNameActive]}>
+                                {opt.label || opt.name}
+                              </Text>
+                              {opt.name === 'Express' && (
+                                <View style={styles.speedExpressBadge}>
+                                  <Text style={styles.speedExpressBadgeText}>Fastest</Text>
+                                </View>
+                              )}
+                            </View>
+                            <Text style={styles.speedCardTime}>{opt.estimated_time}</Text>
+                            {opt.description ? (
+                              <Text style={styles.speedCardDesc}>{opt.description}</Text>
+                            ) : null}
+                          </View>
                         </View>
-                      </View>
-                      <Text style={[styles.speedCardCost, active && styles.speedCardCostActive]}>
-                        {opt.additional_cost > 0
-                          ? `+₦${opt.additional_cost.toLocaleString('en-NG')}`
-                          : 'Free'}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            )}
+                        <Text style={[styles.speedCardCost, active && styles.speedCardCostActive]}>
+                          {opt.additional_cost > 0
+                            ? `+₦${opt.additional_cost.toLocaleString('en-NG')}`
+                            : 'Free'}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
+            </View>
           </View>
         )}
 
@@ -2047,6 +2081,22 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     letterSpacing: 0.3,
   },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+  },
+  sectionIconBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 13,
+    backgroundColor: '#fff4e6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#ffe8cc',
+  },
   optionCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2122,20 +2172,141 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
     paddingTop: 14,
   },
+  deliveryInfoCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 18,
+    padding: 22,
+    borderWidth: 1,
+    borderColor: '#f0ebe4',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  fieldGroupLabel: {
+    fontSize: 11,
+    fontFamily: Fonts.bold,
+    color: '#94a3b8',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginBottom: 12,
+  },
+  fieldRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  fieldHalf: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fafaf9',
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#e5e7eb',
+    paddingHorizontal: 14,
+    ...Platform.select({ web: { transition: 'border-color 0.2s, box-shadow 0.2s' } as any }),
+  },
+  fieldIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#fff4e6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  fieldInputWithIcon: {
+    flex: 1,
+    paddingVertical: 16,
+    fontSize: 15,
+    fontFamily: Fonts.medium,
+    color: '#1a1a1a',
+    ...Platform.select({ web: { outlineStyle: 'none' } as any }),
+  },
+  fieldDivider: {
+    height: 1,
+    backgroundColor: '#f0ebe4',
+    marginVertical: 20,
+  },
+  addressInputContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#fafaf9',
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1.5,
+    borderColor: '#e5e7eb',
+    ...Platform.select({ web: { transition: 'border-color 0.2s' } as any }),
+  },
+  addressIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#fff4e6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  addressInput: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: Fonts.medium,
+    color: '#1a1a1a',
+    minHeight: 70,
+    textAlignVertical: 'top',
+    paddingTop: 10,
+    ...Platform.select({ web: { outlineStyle: 'none' } as any }),
+  },
+  addressDescContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#fafaf9',
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1.5,
+    borderColor: '#e5e7eb',
+    marginTop: 12,
+    ...Platform.select({ web: { transition: 'border-color 0.2s' } as any }),
+  },
+  addressDescIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#f1f5f9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  addressDescInput: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: Fonts.regular,
+    color: '#1a1a1a',
+    minHeight: 70,
+    textAlignVertical: 'top',
+    paddingTop: 10,
+    ...Platform.select({ web: { outlineStyle: 'none' } as any }),
+  },
   preparedTimeContainer: {
     backgroundColor: '#fffbeb',
-    borderRadius: 14,
-    padding: 18,
-    marginTop: 16,
-    marginBottom: 16,
-    borderWidth: 1,
+    borderRadius: 16,
+    padding: 20,
+    marginTop: 20,
+    borderWidth: 1.5,
     borderColor: '#fde68a',
   },
   preparedTimeHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
+    gap: 10,
+    marginBottom: 6,
+  },
+  preparedTimeIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#fef3c7',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   preparedTimeTitle: {
     fontSize: 16,
@@ -2144,24 +2315,25 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   optionalBadge: {
-    backgroundColor: '#fef3c7',
+    backgroundColor: '#ffffff',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#fcd34d',
   },
   optionalBadgeText: {
-    fontSize: 11,
+    fontSize: 10,
     fontFamily: Fonts.bold,
-    color: '#92400e',
-    letterSpacing: 0.3,
+    color: '#b45309',
+    letterSpacing: 0.5,
   },
   preparedTimeHint: {
     fontSize: 13,
     fontFamily: Fonts.regular,
-    color: '#b45309',
+    color: '#a16207',
     marginBottom: 14,
+    marginLeft: 46,
   },
   preparedTimeInputs: {
     flexDirection: 'row',
@@ -2171,10 +2343,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   preparedTimeLabel: {
-    fontSize: 13,
-    fontFamily: Fonts.medium,
+    fontSize: 12,
+    fontFamily: Fonts.semiBold,
     color: '#92400e',
     marginBottom: 6,
+    letterSpacing: 0.3,
   },
   preparedTimeInput: {
     backgroundColor: '#ffffff',
@@ -2183,39 +2356,20 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: Fonts.medium,
     color: '#1a1a1a',
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#fde68a',
-    ...Platform.select({ web: { outlineStyle: 'none' } as any }),
-  },
-  addressInputContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#ffffff',
-    borderRadius: 14,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: '#f0ebe4',
-  },
-  addressIcon: {
-    marginRight: 12,
-    marginTop: 2,
-  },
-  addressInput: {
-    flex: 1,
-    fontSize: 16,
-    fontFamily: Fonts.medium,
-    color: '#1a1a1a',
-    minHeight: 80,
-    textAlignVertical: 'top',
-    ...Platform.select({ web: { outlineStyle: 'none' } as any }),
+    ...Platform.select({ web: { outlineStyle: 'none', transition: 'border-color 0.2s' } as any }),
   },
   geocodingStatus: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fef3c7',
-    padding: 12,
+    backgroundColor: '#fffbeb',
+    padding: 14,
     borderRadius: 12,
-    marginTop: 12,
-    gap: 8,
+    marginTop: 16,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: '#fde68a',
   },
   geocodingText: {
     fontSize: 14,
@@ -2223,11 +2377,11 @@ const styles = StyleSheet.create({
     color: '#92400e',
   },
   errorCard: {
-    backgroundColor: '#fee2e2',
-    padding: 12,
+    backgroundColor: '#fef2f2',
+    padding: 14,
     borderRadius: 12,
     marginTop: 12,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#fca5a5',
   },
   errorText: {
@@ -2238,11 +2392,13 @@ const styles = StyleSheet.create({
   successCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#d1fae5',
-    padding: 12,
+    backgroundColor: '#f0fdf4',
+    padding: 14,
     borderRadius: 12,
     marginTop: 12,
-    gap: 8,
+    gap: 10,
+    borderWidth: 1.5,
+    borderColor: '#bbf7d0',
   },
   successText: {
     fontSize: 14,
@@ -2250,36 +2406,42 @@ const styles = StyleSheet.create({
     color: '#065f46',
   },
   warningCard: {
-    backgroundColor: '#fed7aa',
-    padding: 12,
+    backgroundColor: '#fff7ed',
+    padding: 14,
     borderRadius: 12,
     marginTop: 12,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#fb923c',
   },
   warningText: {
     fontSize: 14,
     fontFamily: Fonts.semiBold,
     color: '#9a3412',
+    lineHeight: 20,
   },
   deliveryFeeCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#dbeafe',
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: '#eff6ff',
+    padding: 18,
+    borderRadius: 14,
     marginTop: 16,
     borderWidth: 2,
-    borderColor: '#3b82f6',
+    borderColor: '#93c5fd',
+  },
+  deliveryFeeLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   deliveryFeeLabel: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: Fonts.semiBold,
     color: '#1e40af',
   },
   deliveryFeeValue: {
-    fontSize: 20,
+    fontSize: 22,
     fontFamily: Fonts.poppinsBold,
     color: '#1e40af',
   },
@@ -3055,28 +3217,36 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.bold,
   },
   speedSection: {
-    marginTop: 16,
-    gap: 8,
+    marginTop: 20,
+    gap: 10,
   },
   speedSectionTitle: {
-    fontSize: 14,
-    fontFamily: Fonts.semiBold,
-    color: '#374151',
+    fontSize: 11,
+    fontFamily: Fonts.bold,
+    color: '#94a3b8',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
     marginBottom: 4,
   },
   speedCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 14,
+    backgroundColor: '#fafaf9',
+    borderRadius: 14,
+    padding: 16,
     borderWidth: 1.5,
     borderColor: '#e5e7eb',
+    ...Platform.select({ web: { transition: 'border-color 0.2s, background-color 0.2s' } as any }),
   },
   speedCardActive: {
     borderColor: '#f97316',
     backgroundColor: '#fff8f3',
+    shadowColor: '#f97316',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 2,
   },
   speedCardLeft: {
     flexDirection: 'row',
@@ -3085,9 +3255,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   speedRadio: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     borderWidth: 2,
     borderColor: '#d1d5db',
     justifyContent: 'center',
@@ -3098,9 +3268,9 @@ const styles = StyleSheet.create({
     borderColor: '#f97316',
   },
   speedRadioDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 11,
+    height: 11,
+    borderRadius: 5.5,
     backgroundColor: '#f97316',
   },
   speedCardInfo: {
