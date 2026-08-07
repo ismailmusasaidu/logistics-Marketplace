@@ -2193,7 +2193,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   fieldRow: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     gap: 12,
   },
   fieldHalf: {
