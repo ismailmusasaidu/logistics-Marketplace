@@ -4,12 +4,12 @@
     "slug": "danhausa",
     "version": "1.0.0",
     "orientation": "default",
-    "icon": "./assets/images/danhausa-icon.png",
+    "icon": "./assets/images/danhausa-splash.png",
     "scheme": "danhausa",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/danhausa-icon.png",
+      "image": "./assets/images/danhausa-splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -43,7 +43,20 @@
       "output": "single",
       "favicon": "./assets/images/danhausa-icon.png"
     },
-    "plugins": ["expo-router", "expo-font", "expo-web-browser"],
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-web-browser",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/danhausa-splash.png",
+          "imageWidth": 220,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+        }
+      ]
+    ],
     "experiments": {
       "typedRoutes": true
     }
