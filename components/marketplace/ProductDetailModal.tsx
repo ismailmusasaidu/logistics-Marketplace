@@ -15,7 +15,7 @@ import {
   Platform,
   Share,
 } from 'react-native';
-import { X, Star, ShoppingCart, Plus, Minus, MapPin, ZoomIn, ChevronLeft, ChevronRight, Percent, Ruler, Palette, RotateCcw, Truck, Package, Award, ShieldCheck, CircleAlert as AlertCircle, Clock, Share2, DollarSign } from 'lucide-react-native';
+import { X, Star, ShoppingCart, Plus, Minus, MapPin, ZoomIn, ChevronLeft, ChevronRight, Percent, Ruler, Palette, RotateCcw, Truck, Package, Award, ShieldCheck, CircleAlert as AlertCircle, Clock, Share2, DollarSign, BadgeCheck, ChevronDown as ChevronDownIcon } from 'lucide-react-native';
 import * as ExpoSharing from 'expo-sharing';
 import { Product, Review } from '@/types/database';
 import { supabase } from '@/lib/marketplace/supabase';
@@ -71,6 +71,7 @@ export default function ProductDetailModal({
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [selectedPricingOption, setSelectedPricingOption] = useState<{ label: string; price: number } | null>(null);
   const [showReturnPolicy, setShowReturnPolicy] = useState(false);
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const fullScreenFlatListRef = useRef<FlatList>(null);
   const autoPlayTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -323,6 +324,7 @@ export default function ProductDetailModal({
       setSelectedSize(null);
       setSelectedColor(null);
       setSelectedPricingOption(null);
+      setDescriptionExpanded(false);
     }
   }, [visible, product]);
 
@@ -444,6 +446,13 @@ export default function ProductDetailModal({
                     ))}
                   </View>
                 )}
+
+                {/* Image counter */}
+                {images.length > 1 && (
+                  <View style={styles.imageCounter}>
+                    <Text style={styles.imageCounterText}>{currentImageIndex + 1} / {images.length}</Text>
+                  </View>
+                )}
               </View>
 
               {/* Content panel — floats up over image */}
@@ -504,6 +513,7 @@ export default function ProductDetailModal({
                   </View>
 
                   {/* Quantity selector embedded in price card */}
+                  <View style={styles.qtyDivider} />
                   <View style={styles.qtyBlock}>
                     <Text style={styles.qtyLabel}>Qty</Text>
                     <View style={styles.qtyControls}>
@@ -538,7 +548,29 @@ export default function ProductDetailModal({
                 {currentProduct.description && (
                   <View style={styles.section}>
                     <Text style={styles.sectionTitle}>About this product</Text>
-                    <Text style={styles.description}>{currentProduct.description}</Text>
+                    <Text
+                      style={styles.description}
+                      numberOfLines={descriptionExpanded ? undefined : 3}
+                    >
+                      {currentProduct.description}
+                    </Text>
+                    {currentProduct.description.length > 120 && (
+                      <TouchableOpacity
+                        style={styles.readMoreBtn}
+                        onPress={() => setDescriptionExpanded(!descriptionExpanded)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.readMoreText}>
+                          {descriptionExpanded ? 'Show less' : 'Read more'}
+                        </Text>
+                        <ChevronDownIcon
+                          size={14}
+                          color="#ff8c00"
+                          strokeWidth={2.5}
+                          style={descriptionExpanded ? { transform: [{ rotate: '180deg' }] } : undefined}
+                        />
+                      </TouchableOpacity>
+                    )}
                   </View>
                 )}
 
@@ -594,26 +626,36 @@ export default function ProductDetailModal({
                   <View style={styles.section}>
                     <View style={styles.sectionTitleRow}>
                       <DollarSign size={15} color="#ff8c00" strokeWidth={2.2} />
-                      <Text style={styles.sectionTitle}>Pricing Options</Text>
-                      {selectedPricingOption && (
-                        <View style={styles.selectedPill}>
-                          <Text style={styles.selectedPillText}>{selectedPricingOption.label}</Text>
-                        </View>
-                      )}
+                      <Text style={styles.sectionTitle}>Choose Package</Text>
                     </View>
-                    <View style={styles.chipGrid}>
-                      {currentProduct.pricing_options.map((opt) => (
-                        <TouchableOpacity
-                          key={opt.label}
-                          style={[styles.chip, selectedPricingOption?.label === opt.label && styles.chipActive]}
-                          onPress={() => setSelectedPricingOption(selectedPricingOption?.label === opt.label ? null : opt)}
-                          activeOpacity={0.7}
-                        >
-                          <Text style={[styles.chipText, selectedPricingOption?.label === opt.label && styles.chipTextActive]}>
-                            {opt.label} · ₦{opt.price.toLocaleString()}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
+                    <Text style={styles.pricingHint}>Select the option that fits your needs</Text>
+                    <View style={styles.pricingOptionsList}>
+                      {currentProduct.pricing_options.map((opt) => {
+                        const isSelected = selectedPricingOption?.label === opt.label;
+                        return (
+                          <TouchableOpacity
+                            key={opt.label}
+                            style={[styles.pricingOptionCard, isSelected && styles.pricingOptionCardActive]}
+                            onPress={() => setSelectedPricingOption(isSelected ? null : opt)}
+                            activeOpacity={0.7}
+                          >
+                            <View style={[styles.pricingRadio, isSelected && styles.pricingRadioActive]}>
+                              {isSelected && <View style={styles.pricingRadioDot} />}
+                            </View>
+                            <View style={styles.pricingOptionInfo}>
+                              <Text style={[styles.pricingOptionLabel, isSelected && styles.pricingOptionLabelActive]}>
+                                {opt.label}
+                              </Text>
+                              <Text style={styles.pricingOptionSub}>
+                                Per {currentProduct.unit} unit
+                              </Text>
+                            </View>
+                            <Text style={[styles.pricingOptionPrice, isSelected && styles.pricingOptionPriceActive]}>
+                              ₦{opt.price.toLocaleString()}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
                     </View>
                   </View>
                 )}
@@ -659,7 +701,10 @@ export default function ProductDetailModal({
                         </Text>
                       </View>
                       <View style={styles.vendorDetails}>
-                        <Text style={styles.vendorName}>{vendorInfo.business_name}</Text>
+                        <View style={styles.vendorNameRow}>
+                          <Text style={styles.vendorName}>{vendorInfo.business_name}</Text>
+                          <BadgeCheck size={15} color="#ff8c00" fill="#fff7ed" strokeWidth={2.2} />
+                        </View>
                         <View style={styles.locationRow}>
                           <MapPin size={11} color="#9ca3af" />
                           <Text style={styles.locationText}>{vendorInfo.city}, {vendorInfo.state}</Text>
@@ -1023,6 +1068,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 3,
   },
+  imageCounter: {
+    position: 'absolute',
+    bottom: 18,
+    right: 18,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  imageCounterText: {
+    fontSize: 11,
+    fontFamily: Fonts.bold,
+    color: '#ffffff',
+    letterSpacing: 0.3,
+  },
 
   /* ── Content panel ────────────────────────────────────────────── */
   contentContainer: {
@@ -1193,6 +1253,11 @@ const styles = StyleSheet.create({
     textDecorationLine: 'line-through',
     marginTop: 2,
   },
+  qtyDivider: {
+    width: 1,
+    height: 44,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+  },
 
   /* Quantity in price card */
   qtyBlock: {
@@ -1293,6 +1358,92 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     lineHeight: 24,
     marginTop: 10,
+  },
+  readMoreBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 8,
+    alignSelf: 'flex-start',
+  },
+  readMoreText: {
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
+    color: '#ff8c00',
+  },
+
+  /* ── Pricing option cards ────────────────────────────────────── */
+  pricingHint: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: '#9ca3af',
+    marginBottom: 12,
+    marginTop: -4,
+  },
+  pricingOptionsList: {
+    gap: 10,
+  },
+  pricingOptionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fafaf8',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1.5,
+    borderColor: '#e8e8e8',
+    gap: 14,
+  },
+  pricingOptionCardActive: {
+    backgroundColor: '#fff7ed',
+    borderColor: '#ff8c00',
+    shadowColor: '#ff8c00',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  pricingRadio: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: '#d1d5db',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pricingRadioActive: {
+    borderColor: '#ff8c00',
+  },
+  pricingRadioDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#ff8c00',
+  },
+  pricingOptionInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  pricingOptionLabel: {
+    fontSize: 15,
+    fontFamily: Fonts.semiBold,
+    color: '#374151',
+  },
+  pricingOptionLabelActive: {
+    color: '#c2410c',
+  },
+  pricingOptionSub: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: '#9ca3af',
+  },
+  pricingOptionPrice: {
+    fontSize: 18,
+    fontFamily: Fonts.displayBold,
+    color: '#6b7280',
+  },
+  pricingOptionPriceActive: {
+    color: '#c2410c',
   },
 
   /* ── Chips ───────────────────────────────────────────────────── */
@@ -1409,6 +1560,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: Fonts.display,
     color: '#1a1a1a',
+  },
+  vendorNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   locationRow: {
     flexDirection: 'row',
