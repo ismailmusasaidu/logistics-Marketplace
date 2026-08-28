@@ -1650,12 +1650,6 @@ export default function CheckoutScreen() {
                 </View>
               ) : (
                 <>
-                  {/* Amount to transfer */}
-                  <View style={styles.transferAmountCard}>
-                    <Text style={styles.transferAmountLabel}>Amount to Transfer</Text>
-                    <Text style={styles.transferAmountValue}>₦{calculateTotal().toFixed(2)}</Text>
-                  </View>
-
                   {/* Order ID box */}
                   <View style={styles.transferOrderIdCard}>
                     <Text style={styles.transferOrderIdLabel}>Your Order ID</Text>
@@ -2944,28 +2938,6 @@ const styles = StyleSheet.create({
     gap: 6,
     flex: 1,
     justifyContent: 'flex-end',
-  },
-  transferAmountCard: {
-    backgroundColor: '#fff7ed',
-    borderRadius: 14,
-    padding: 18,
-    marginBottom: 16,
-    borderWidth: 2,
-    borderColor: '#ff8c00',
-    alignItems: 'center',
-  },
-  transferAmountLabel: {
-    fontSize: 12,
-    fontFamily: Fonts.semiBold,
-    color: '#92400e',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 6,
-  },
-  transferAmountValue: {
-    fontSize: 28,
-    fontFamily: Fonts.poppinsBold,
-    color: '#c2410c',
   },
   transferOrderIdCard: {
     backgroundColor: '#fff7ed',
