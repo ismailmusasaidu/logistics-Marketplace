@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions, ScrollView, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,6 +16,7 @@ export default function Hub() {
   const { width } = useWindowDimensions();
   const [logisticsEnabled, setLogisticsEnabled] = useState(true);
   const [marketplaceEnabled, setMarketplaceEnabled] = useState(true);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -31,6 +32,8 @@ export default function Hub() {
         }
       } catch {
         // Keep defaults (enabled) on failure
+      } finally {
+        setSettingsLoaded(true);
       }
     })();
   }, []);
@@ -83,8 +86,8 @@ export default function Hub() {
     router.replace('/auth/login');
   };
 
-  const showLogistics = logisticsEnabled && (profile?.role === 'customer' || profile?.role === 'admin' || profile?.role === 'rider');
-  const showMarketplace = (marketplaceEnabled || profile?.role === 'admin') && (profile?.role === 'customer' || profile?.role === 'admin' || profile?.role === 'vendor');
+  const showLogistics = settingsLoaded && logisticsEnabled && (profile?.role === 'customer' || profile?.role === 'admin' || profile?.role === 'rider');
+  const showMarketplace = settingsLoaded && (marketplaceEnabled || profile?.role === 'admin') && (profile?.role === 'customer' || profile?.role === 'admin' || profile?.role === 'vendor');
   const isSingleOption = (showLogistics ? 1 : 0) + (showMarketplace ? 1 : 0) === 1;
 
   const getRoleLabel = () => {
@@ -163,6 +166,12 @@ export default function Hub() {
               isSingleOption && styles.cardsContainerSingle,
               isWide && !isSingleOption && styles.cardsContainerRow,
             ]}>
+              {!settingsLoaded ? (
+                <View style={styles.cardsLoading}>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                </View>
+              ) : (
+                <>
               {showLogistics && (
                 <TouchableOpacity
                   style={[styles.card, isSingleOption && styles.cardSingle, isWide && !isSingleOption && styles.cardHalf]}
@@ -254,6 +263,8 @@ export default function Hub() {
                   </LinearGradient>
                 </TouchableOpacity>
               )}
+                </>
+              )}
             </View>
 
             <TouchableOpacity
@@ -333,6 +344,11 @@ const styles = StyleSheet.create({
   cardsContainerRow: {
     flexDirection: 'row',
     alignItems: 'stretch',
+  },
+  cardsLoading: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
   },
   card: {
     borderRadius: 24,
