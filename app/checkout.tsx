@@ -13,6 +13,7 @@ import {
   Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { Package, Truck, MapPin, CreditCard, ChevronLeft, CircleCheck as CheckCircle, Clock, Wallet, Building2, Banknote, Copy, CalendarClock, User, Phone, Navigation, FileText } from 'lucide-react-native';
 import { supabase } from '@/lib/marketplace/supabase';
 import { CORE_URL } from '@/lib/coreBackend';
@@ -91,6 +92,7 @@ export default function CheckoutScreen() {
   const { profile } = useAuth();
   const { showToast } = useToast();
   const insets = useSafeAreaInsets();
+  const { maxContentWidth } = useResponsiveLayout();
   const orderSubmittedRef = useRef(false);
 
   const copyToClipboard = async (value: string, label: string) => {
@@ -1029,10 +1031,12 @@ export default function CheckoutScreen() {
     return (
       <View style={styles.container}>
         <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
-          <Text style={styles.title}>Order Placed!</Text>
+          <View style={[styles.headerInner, { maxWidth: maxContentWidth }]}>
+            <Text style={styles.title}>Order Placed!</Text>
+          </View>
         </View>
 
-        <ScrollView style={styles.content} contentContainerStyle={styles.successContent}>
+        <ScrollView style={styles.content} contentContainerStyle={[styles.successContent, { maxWidth: maxContentWidth, width: '100%', alignSelf: 'center' }]}>
           <View style={styles.successIconContainer}>
             <View style={styles.successIconCircle}>
               <CheckCircle size={64} color="#ff8c00" strokeWidth={2} />
@@ -1188,13 +1192,15 @@ export default function CheckoutScreen() {
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
-        <TouchableOpacity style={styles.backButtonHeader} onPress={() => router.back()}>
-          <ChevronLeft size={24} color="#ffffff" />
-        </TouchableOpacity>
-        <Text style={styles.title}>Checkout</Text>
+        <View style={[styles.headerInner, { maxWidth: maxContentWidth }]}>
+          <TouchableOpacity style={styles.backButtonHeader} onPress={() => router.back()}>
+            <ChevronLeft size={24} color="#ffffff" />
+          </TouchableOpacity>
+          <Text style={styles.title}>Checkout</Text>
+        </View>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={[styles.contentInner, { maxWidth: maxContentWidth }]}>
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Delivery Method</Text>
 
@@ -1537,14 +1543,16 @@ export default function CheckoutScreen() {
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
-        <TouchableOpacity
-          style={[styles.placeOrderButton, submitting && styles.buttonDisabled]}
-          onPress={handleContinueToPayment}
-          disabled={submitting}
-        >
-          <CreditCard size={20} color="#ffffff" style={styles.buttonIcon} />
-          <Text style={styles.placeOrderButtonText}>Continue to Payment</Text>
-        </TouchableOpacity>
+        <View style={[styles.footerInner, { maxWidth: maxContentWidth }]}>
+          <TouchableOpacity
+            style={[styles.placeOrderButton, submitting && styles.buttonDisabled]}
+            onPress={handleContinueToPayment}
+            disabled={submitting}
+          >
+            <CreditCard size={20} color="#ffffff" style={styles.buttonIcon} />
+            <Text style={styles.placeOrderButtonText}>Continue to Payment</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {showPaymentOptions && (
@@ -2037,6 +2045,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: Fonts.headingBold,
   },
+  headerInner: {
+    width: '100%',
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   header: {
     backgroundColor: '#ff8c00',
     paddingBottom: 24,
@@ -2070,6 +2084,10 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 20,
+  },
+  contentInner: {
+    width: '100%',
+    alignSelf: 'center',
   },
   section: {
     marginBottom: 24,
@@ -2499,6 +2517,10 @@ const styles = StyleSheet.create({
     padding: 20,
     borderTopWidth: 1,
     borderTopColor: '#f0ebe4',
+  },
+  footerInner: {
+    width: '100%',
+    alignSelf: 'center',
   },
   placeOrderButton: {
     flexDirection: 'row',
