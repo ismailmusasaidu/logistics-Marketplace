@@ -26,6 +26,7 @@ import ReviewForm from './ReviewForm';
 import ZoomableImage from './ZoomableImage';
 import { Fonts } from '@/constants/fonts';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -55,6 +56,7 @@ export default function ProductDetailModal({
   onClose,
 }: ProductDetailModalProps) {
   const insets = useSafeAreaInsets();
+  const { maxContentWidth } = useResponsiveLayout();
   const { profile } = useAuth();
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -127,7 +129,7 @@ export default function ProductDetailModal({
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const scrollPosition = event.nativeEvent.contentOffset.x;
-    const index = Math.round(scrollPosition / SCREEN_WIDTH);
+    const index = Math.round(scrollPosition / maxContentWidth);
     setCurrentImageIndex(index);
 
     if (autoPlayTimerRef.current) {
@@ -374,7 +376,7 @@ export default function ProductDetailModal({
         onRequestClose={onClose}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { width: '100%', maxWidth: maxContentWidth, alignSelf: 'center' }]}>
             <ScrollView
               showsVerticalScrollIndicator={false}
               bounces={false}
@@ -398,7 +400,7 @@ export default function ProductDetailModal({
                     >
                       <Image
                         source={{ uri: item.image_url }}
-                        style={styles.productImage}
+                        style={[styles.productImage, { width: maxContentWidth }]}
                         resizeMode="cover"
                         defaultSource={{ uri: currentProduct?.image_url || 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg' }}
                       />
