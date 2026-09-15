@@ -16,6 +16,7 @@ import { router, useFocusEffect } from 'expo-router';
 import VendorOrderManagement from '@/components/marketplace/vendor/VendorOrderManagement';
 import VendorAnalytics from '@/components/marketplace/vendor/VendorAnalytics';
 import { Fonts } from '@/constants/fonts';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 
 interface DashboardStats {
   totalProducts: number;
@@ -31,6 +32,7 @@ interface DashboardStats {
 export default function VendorHome() {
   const { profile, signOut } = useAuth();
   const insets = useSafeAreaInsets();
+  const { maxContentWidth } = useResponsiveLayout();
   const [vendorId, setVendorId] = useState<string | null>(null);
   const [stats, setStats] = useState<DashboardStats>({
     totalProducts: 0,
@@ -316,7 +318,7 @@ export default function VendorHome() {
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}>
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-        <View style={styles.headerContent}>
+        <View style={[styles.headerContent, { maxWidth: maxContentWidth, width: '100%', alignSelf: 'center' }]}>
           <View>
             <Text style={styles.greeting}>Hello, {firstName}</Text>
             <Text style={styles.subtitle}>Here's your store at a glance</Text>
@@ -328,7 +330,7 @@ export default function VendorHome() {
       </View>
 
       {bannerUrl && (
-        <View style={styles.bannerContainer}>
+        <View style={[styles.bannerContainer, { maxWidth: maxContentWidth, width: '100%', alignSelf: 'center' }]}>
           <Image
             source={{ uri: bannerUrl }}
             style={styles.bannerImage}
@@ -337,7 +339,7 @@ export default function VendorHome() {
         </View>
       )}
 
-      <View style={styles.content}>
+      <View style={[styles.content, { maxWidth: maxContentWidth, width: '100%', alignSelf: 'center' }]}>
         <View style={styles.revenueCard}>
           <View style={styles.revenueTop}>
             <View style={styles.revenueIconWrap}>

@@ -21,11 +21,13 @@ import AddProduct from '@/components/marketplace/vendor/AddProduct';
 import EditProduct from '@/components/marketplace/vendor/EditProduct';
 import { Fonts } from '@/constants/fonts';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 
 export default function VendorScreen() {
   const { colors } = useTheme();
   const { profile } = useAuth();
   const insets = useSafeAreaInsets();
+  const { maxContentWidth } = useResponsiveLayout();
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -314,7 +316,7 @@ export default function VendorScreen() {
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-        <View style={styles.headerRow}>
+        <View style={[styles.headerRow, { maxWidth: maxContentWidth, width: '100%', alignSelf: 'center' }]}>
           <View>
             <Text style={styles.title}>{vendor.business_name}</Text>
             <Text style={styles.subtitle}>{products.length} product{products.length !== 1 ? 's' : ''} in catalog</Text>
@@ -329,7 +331,7 @@ export default function VendorScreen() {
         </View>
       </View>
 
-      <View style={styles.searchWrap}>
+      <View style={[styles.searchWrap, { maxWidth: maxContentWidth, width: '100%', alignSelf: 'center' }]}>
         <View style={styles.searchContainer}>
           <Search size={18} color="#94a3b8" />
           <TextInput
@@ -357,7 +359,7 @@ export default function VendorScreen() {
       </View>
 
       {showFilters && (
-        <View style={styles.filtersPanel}>
+        <View style={[styles.filtersPanel, { maxWidth: maxContentWidth, width: '100%', alignSelf: 'center' }]}>
           <View style={styles.filterSection}>
             <Text style={styles.filterLabel}>Status</Text>
             <View style={styles.filterRow}>
@@ -403,7 +405,7 @@ export default function VendorScreen() {
       )}
 
       {(searchQuery.length > 0 || filterStatus !== 'all' || sortBy !== 'recent') && (
-        <View style={styles.resultsBar}>
+        <View style={[styles.resultsBar, { maxWidth: maxContentWidth, width: '100%', alignSelf: 'center' }]}>
           <Text style={styles.resultsText}>
             {filteredProducts.length} result{filteredProducts.length !== 1 ? 's' : ''}
             {searchQuery ? ` for "${searchQuery}"` : ''}
@@ -420,7 +422,7 @@ export default function VendorScreen() {
       <FlatList
         data={filteredProducts}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, { maxWidth: maxContentWidth, width: '100%', alignSelf: 'center' }]}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
