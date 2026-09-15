@@ -72,8 +72,10 @@ export default function LoginScreen() {
       router.replace('/(marketplace)');
     } else if (profile.role === 'rider') {
       router.replace('/(logistics)/rider-home');
-    } else {
+    } else if (profile.role === 'admin') {
       router.replace('/hub');
+    } else {
+      router.replace('/(marketplace)');
     }
   }, [session, profile, loading]);
 

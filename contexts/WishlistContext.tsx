@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { router } from 'expo-router';
 import { coreBackend as supabase } from '@/lib/coreBackend';
 import { useAuth } from './AuthContext';
 
@@ -58,7 +59,7 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
 
   const addToWishlist = async (productId: string) => {
     if (!user) {
-      alert('Please log in to add items to your wishlist');
+      router.push('/auth/login');
       return;
     }
 

@@ -13,11 +13,9 @@ export default function TabLayout() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
+  const isGuest = !session || !profile;
+
   useEffect(() => {
-    if (!loading && (!session || !profile)) {
-      router.replace('/auth/login');
-      return;
-    }
     if (!loading && profile) {
       const needsApproval =
         (profile.role === 'vendor' || profile.role === 'rider') &&
@@ -29,7 +27,7 @@ export default function TabLayout() {
     }
   }, [session, profile, loading]);
 
-  if (loading || !session || !profile) {
+  if (loading) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -37,9 +35,9 @@ export default function TabLayout() {
     );
   }
 
-  const isCustomer = profile.role === 'customer';
-  const isVendor = profile.role === 'vendor';
-  const isAdmin = profile.role === 'admin';
+  const isCustomer = isGuest || profile?.role === 'customer';
+  const isVendor = profile?.role === 'vendor';
+  const isAdmin = profile?.role === 'admin';
 
   return (
     <Tabs
@@ -67,19 +65,21 @@ export default function TabLayout() {
         },
       }}
     >
-      <Tabs.Screen
-        name="back-to-hub"
-        options={{
-          title: 'Hub',
-          tabBarIcon: ({ size }) => <ArrowLeft size={size} color="#94a3b8" />,
-          tabBarButton: (props) => (
-            <TouchableOpacity
-              {...(props as any)}
-              onPress={() => router.navigate('/hub')}
-            />
-          ),
-        }}
-      />
+      {!isGuest && (
+        <Tabs.Screen
+          name="back-to-hub"
+          options={{
+            title: 'Hub',
+            tabBarIcon: ({ size }) => <ArrowLeft size={size} color="#94a3b8" />,
+            tabBarButton: (props) => (
+              <TouchableOpacity
+                {...(props as any)}
+                onPress={() => router.navigate('/hub')}
+              />
+            ),
+          }}
+        />
+      )}
 
       <Tabs.Screen
         name="index"
@@ -146,7 +146,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
+          title: isGuest ? 'Sign In' : 'Profile',
           tabBarIcon: ({ size, color }) => <User size={size} color={color} />,
         }}
       />

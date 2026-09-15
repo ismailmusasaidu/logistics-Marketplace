@@ -5,10 +5,14 @@ import AdminHome from '@/components/marketplace/home/AdminHome';
 import { LoadingScreen } from '@/components/LoadingScreen';
 
 export default function HomeScreen() {
-  const { profile } = useAuth();
+  const { profile, loading } = useAuth();
+
+  if (loading) {
+    return <LoadingScreen />;
+  }
 
   if (!profile) {
-    return <LoadingScreen />;
+    return <CustomerHome />;
   }
 
   if (profile.role === 'vendor') {

@@ -14,6 +14,7 @@ import {
 import { X, Search, ShoppingBag, Store, MapPin, Package } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { supabase } from '@/lib/marketplace/supabase';
 import { Product } from '@/types/database';
 import { useAuth } from '@/contexts/AuthContext';
@@ -175,7 +176,10 @@ export default function VendorStorePage({ visible, vendorId, vendorName, onClose
 
   const addToCart = async (productId: string, e?: any) => {
     if (e) e.stopPropagation();
-    if (!profile) return;
+    if (!profile) {
+      router.push('/auth/login');
+      return;
+    }
     setAddingToCart(productId);
     try {
       const { data: existingItem } = await supabase

@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { Search, ShoppingBag, SlidersHorizontal } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -287,7 +288,10 @@ export default function CustomerHome() {
 
   const addToCart = useCallback(async (productId: string, e?: any) => {
     if (e) e.stopPropagation();
-    if (!profile) return;
+    if (!profile) {
+      router.push('/auth/login');
+      return;
+    }
     try {
       const { data: existingItem } = await supabase
         .from('carts').select('id, quantity')
@@ -323,7 +327,6 @@ export default function CustomerHome() {
   );
 
   const firstName = profile?.full_name?.split(' ')[0] || 'there';
-
   const renderItem = useCallback(({ item }: { item: Product }) => (
     <View style={[styles.cardWrap, { maxWidth: `${100 / columns}%` }]}>
       <ProductCard
@@ -375,7 +378,7 @@ export default function CustomerHome() {
           <View style={styles.topRow}>
             <View style={styles.greetingBlock}>
               <Text style={styles.greetingEyebrow}>Good to see you</Text>
-              <Text style={styles.greetingName}>Hi, {firstName} 👋</Text>
+              <Text style={styles.greetingName}>{profile ? `Hi, ${firstName} 👋` : 'Welcome 👋'}</Text>
             </View>
             <View style={styles.headerIconCircle}>
               <ShoppingBag size={20} color="#f97316" strokeWidth={2} />

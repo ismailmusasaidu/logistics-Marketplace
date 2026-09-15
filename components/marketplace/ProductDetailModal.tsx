@@ -27,6 +27,7 @@ import ZoomableImage from './ZoomableImage';
 import { Fonts } from '@/constants/fonts';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { router } from 'expo-router';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -215,7 +216,12 @@ export default function ProductDetailModal({
   };
 
   const addToCart = async () => {
-    if (!profile || !product) return;
+    if (!product) return;
+    if (!profile) {
+      onClose();
+      router.push('/auth/login');
+      return;
+    }
 
     try {
       setLoading(true);

@@ -39,7 +39,7 @@ export default function Index() {
       }
 
       if (!session) {
-        router.replace('/auth/login');
+        router.replace('/(marketplace)');
         return;
       }
 

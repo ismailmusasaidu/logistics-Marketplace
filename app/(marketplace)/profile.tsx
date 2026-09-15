@@ -17,6 +17,7 @@ export default function ProfileScreen() {
   const { toggleTheme, isDark, colors } = useTheme();
   const { showToast } = useToast();
   const insets = useSafeAreaInsets();
+
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showWallet, setShowWallet] = useState(false);
@@ -188,6 +189,46 @@ export default function ProfileScreen() {
       default: return role;
     }
   };
+
+  if (!profile) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <LinearGradient
+          colors={['#ff9a1f', '#ff8c00', '#e67a00']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.headerGradient, { paddingTop: insets.top + 24 }]}
+        >
+          <View style={styles.decorCircle1} />
+          <View style={styles.decorCircle2} />
+          <View style={styles.decorCircle3} />
+          <View style={styles.guestIconWrap}>
+            <User size={34} color="#ffffff" strokeWidth={2} />
+          </View>
+          <Text style={styles.guestTitle}>Sign in to continue</Text>
+          <Text style={styles.guestSubtitle}>
+            Create an account or sign in to shop, save your wishlist, and track your orders.
+          </Text>
+        </LinearGradient>
+        <View style={styles.guestActions}>
+          <TouchableOpacity
+            style={styles.guestPrimaryBtn}
+            onPress={() => router.push('/auth/login')}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.guestPrimaryText}>Sign In</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.guestSecondaryBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            onPress={() => router.push('/auth/register')}
+            activeOpacity={0.85}
+          >
+            <Text style={[styles.guestSecondaryText, { color: colors.text }]}>Create Account</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   if (showWallet) {
     return (
@@ -683,6 +724,65 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8f5f0',
+  },
+  guestIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  guestTitle: {
+    fontSize: 26,
+    fontFamily: Fonts.spaceBold,
+    color: '#ffffff',
+    letterSpacing: -0.4,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  guestSubtitle: {
+    fontSize: 14,
+    fontFamily: Fonts.spaceRegular,
+    color: 'rgba(255,255,255,0.85)',
+    textAlign: 'center',
+    lineHeight: 21,
+    maxWidth: 320,
+  },
+  guestActions: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    gap: 12,
+  },
+  guestPrimaryBtn: {
+    backgroundColor: '#ff8c00',
+    borderRadius: 14,
+    paddingVertical: 15,
+    alignItems: 'center',
+    shadowColor: '#ff8c00',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  guestPrimaryText: {
+    fontSize: 16,
+    fontFamily: Fonts.spaceBold,
+    color: '#ffffff',
+    letterSpacing: 0.3,
+  },
+  guestSecondaryBtn: {
+    borderRadius: 14,
+    paddingVertical: 15,
+    alignItems: 'center',
+    borderWidth: 1.5,
+  },
+  guestSecondaryText: {
+    fontSize: 16,
+    fontFamily: Fonts.spaceSemiBold,
   },
   headerGradient: {
     paddingHorizontal: 24,
