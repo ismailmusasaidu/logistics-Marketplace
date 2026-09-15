@@ -27,6 +27,7 @@ import ReturnManagement from '@/components/marketplace/admin/ReturnManagement';
 import AppSettings from '@/components/marketplace/admin/AppSettings';
 import { useLocalSearchParams } from 'expo-router';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 
 interface Stats {
   totalUsers: number;
@@ -57,6 +58,7 @@ export default function AdminScreen() {
   const { colors } = useTheme();
   const params = useLocalSearchParams();
   const insets = useSafeAreaInsets();
+  const { maxContentWidth } = useResponsiveLayout();
   const [stats, setStats] = useState<Stats>({
     totalUsers: 0,
     totalVendors: 0,
@@ -138,11 +140,13 @@ export default function AdminScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: '#f8f9fb' }}>
         <View style={[styles.subHeader, { paddingTop: insets.top + 16 }]}>
+          <View style={[styles.subHeaderInner, { maxWidth: maxContentWidth }]}>
           <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
             <Text style={styles.backBtnText}>Back</Text>
           </TouchableOpacity>
           <Text style={styles.subHeaderTitle}>{screen.title}</Text>
           <View style={{ width: 48 }} />
+          </View>
         </View>
         {screen.component}
       </View>
@@ -160,15 +164,17 @@ export default function AdminScreen() {
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={[styles.header, { paddingTop: insets.top + 24 }]}>
+        <View style={[styles.headerInner, { maxWidth: maxContentWidth }]}>
         <View style={styles.headerBadge}>
           <Shield size={14} color="#ff8c00" />
           <Text style={styles.headerBadgeText}>Admin Panel</Text>
         </View>
         <Text style={styles.title}>Dashboard</Text>
         <Text style={styles.subtitle}>Your platform at a glance</Text>
+        </View>
       </View>
 
-      <View style={styles.content}>
+      <View style={[styles.content, { maxWidth: maxContentWidth, width: '100%', alignSelf: 'center' }]}>
         <View style={styles.revenueCard}>
           <View style={styles.revenueTop}>
             <View style={styles.revenueIconWrap}>
@@ -266,6 +272,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#f8f9fb',
+  },
+  headerInner: {
+    width: '100%',
+    alignSelf: 'center',
   },
   header: {
     backgroundColor: '#1a1d23',
@@ -455,6 +465,13 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
     fontSize: 12,
     color: '#8b909a',
+  },
+  subHeaderInner: {
+    width: '100%',
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   subHeader: {
     backgroundColor: '#1a1d23',

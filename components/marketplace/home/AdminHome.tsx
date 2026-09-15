@@ -13,6 +13,7 @@ import { supabase } from '@/lib/marketplace/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFocusEffect, router } from 'expo-router';
 import { Fonts } from '@/constants/fonts';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 
 interface PlatformStats {
   totalUsers: number;
@@ -28,6 +29,7 @@ interface PlatformStats {
 export default function AdminHome() {
   const { profile } = useAuth();
   const insets = useSafeAreaInsets();
+  const { maxContentWidth } = useResponsiveLayout();
   const [stats, setStats] = useState<PlatformStats>({
     totalUsers: 0,
     totalCustomers: 0,
@@ -122,6 +124,7 @@ export default function AdminHome() {
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}>
       <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
+        <View style={[styles.headerInner, { maxWidth: maxContentWidth }]}>
         <View style={styles.headerBadge}>
           <Shield size={14} color="#ff8c00" />
           <Text style={styles.headerBadgeText}>Admin</Text>
@@ -130,9 +133,10 @@ export default function AdminHome() {
           Welcome back{profile?.full_name ? `, ${profile.full_name.split(' ')[0]}` : ''}
         </Text>
         <Text style={styles.subtitle}>Here is your platform overview</Text>
+        </View>
       </View>
 
-      <View style={styles.content}>
+      <View style={[styles.content, { maxWidth: maxContentWidth, width: '100%', alignSelf: 'center' }]}>
         <View style={styles.revenueCard}>
           <View style={styles.revenueTop}>
             <View style={styles.revenueIconWrap}>
@@ -296,6 +300,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#f8f9fb',
+  },
+  headerInner: {
+    width: '100%',
+    alignSelf: 'center',
   },
   header: {
     backgroundColor: '#1a1d23',
