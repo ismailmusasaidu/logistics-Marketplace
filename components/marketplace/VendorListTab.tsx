@@ -20,6 +20,7 @@ import { supabase } from '@/lib/marketplace/supabase';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Fonts } from '@/constants/fonts';
 import VendorStorePage from '@/components/marketplace/VendorStorePage';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 
 const PAGE_SIZE = 12;
 
@@ -132,6 +133,7 @@ const VendorCard = memo(({ item, colors, fadeAnim, onPress }: VendorCardProps) =
 export default function VendorListTab() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const { maxContentWidth } = useResponsiveLayout();
 
   const [vendors, setVendors] = useState<VendorItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -323,6 +325,7 @@ export default function VendorListTab() {
         <View style={styles.decorBlob1} />
         <View style={styles.decorBlob2} />
 
+        <View style={[styles.headerInner, { maxWidth: maxContentWidth }]}>
         <View style={styles.headerTop}>
           <View>
             <Text style={styles.headerEyebrow}>Marketplace</Text>
@@ -386,6 +389,7 @@ export default function VendorListTab() {
             {totalCount} {totalCount === 1 ? 'store' : 'stores'}{hasActiveFilters ? ' matched' : ' available'}
           </Text>
         )}
+        </View>
       </LinearGradient>
 
       {loading ? (
@@ -419,7 +423,7 @@ export default function VendorListTab() {
         <FlatList
           data={vendors}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 24 }]}
+          contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 24, maxWidth: maxContentWidth, width: '100%', alignSelf: 'center' }]}
           showsVerticalScrollIndicator={false}
           onEndReached={loadMore}
           onEndReachedThreshold={0.4}
@@ -539,6 +543,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(249,115,22,0.06)',
     bottom: -40,
     left: -30,
+  },
+  headerInner: {
+    width: '100%',
+    alignSelf: 'center',
+    gap: 14,
   },
   headerTop: {
     flexDirection: 'row',

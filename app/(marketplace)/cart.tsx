@@ -22,6 +22,7 @@ import { router, useFocusEffect } from 'expo-router';
 import ProductDetailModal from '@/components/marketplace/ProductDetailModal';
 import { Product } from '@/types/database';
 import { Fonts } from '@/constants/fonts';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 
 interface CartItemWithProduct {
   id: string;
@@ -55,6 +56,7 @@ export default function CartScreen() {
   const { profile } = useAuth();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const { maxContentWidth } = useResponsiveLayout();
   const [cartItems, setCartItems] = useState<CartItemWithProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -416,7 +418,7 @@ export default function CartScreen() {
       <FlatList
         data={cartItems}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, { maxWidth: maxContentWidth, width: '100%', alignSelf: 'center' }]}
         renderItem={renderCartItem}
         initialNumToRender={8}
         maxToRenderPerBatch={8}
@@ -426,6 +428,7 @@ export default function CartScreen() {
       />
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 20, backgroundColor: colors.surface, borderTopColor: colors.borderLight }]}>
+        <View style={[styles.footerInner, { maxWidth: maxContentWidth }]}>
         {hasAnyWeight && (
           <View style={[styles.weightContainer, { backgroundColor: colors.warningLight, borderColor: colors.warning + '40' }]}>
             <View style={[styles.weightIconWrap, { backgroundColor: colors.surface, borderColor: colors.warning + '40' }]}>
@@ -466,6 +469,7 @@ export default function CartScreen() {
         <TouchableOpacity style={[styles.checkoutButton, { backgroundColor: colors.primary, shadowColor: colors.primary }]} onPress={handleCheckout}>
           <Text style={styles.checkoutButtonText}>Proceed to Checkout</Text>
         </TouchableOpacity>
+        </View>
       </View>
 
       <ProductDetailModal
@@ -671,6 +675,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 14,
     borderTopWidth: 1,
+  },
+  footerInner: {
+    width: '100%',
+    alignSelf: 'center',
   },
   weightContainer: {
     flexDirection: 'row',

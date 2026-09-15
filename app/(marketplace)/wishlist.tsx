@@ -18,12 +18,14 @@ import { cartEvents } from '@/lib/marketplace/cartEvents';
 import { Fonts } from '@/constants/fonts';
 import EmptyState from '@/components/EmptyState';
 import { useRouter } from 'expo-router';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 
 export default function WishlistScreen() {
   const { wishlistItems, removeFromWishlist, loading: wishlistLoading } = useWishlist();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { maxContentWidth } = useResponsiveLayout();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -132,15 +134,17 @@ export default function WishlistScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { paddingTop: insets.top + 16, backgroundColor: colors.surface, borderBottomColor: colors.borderLight }]}>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>My Wishlist</Text>
-        <View style={[styles.countBadge, { backgroundColor: colors.surfaceSecondary }]}>
-          <Text style={[styles.itemCount, { color: colors.textSecondary }]}>{products.length} items</Text>
+        <View style={[styles.headerInner, { maxWidth: maxContentWidth }]}>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>My Wishlist</Text>
+          <View style={[styles.countBadge, { backgroundColor: colors.surfaceSecondary }]}>
+            <Text style={[styles.itemCount, { color: colors.textSecondary }]}>{products.length} items</Text>
+          </View>
         </View>
       </View>
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24, maxWidth: maxContentWidth, width: '100%', alignSelf: 'center' }]}
         showsVerticalScrollIndicator={false}
       >
         {products.map((product) => (
@@ -198,9 +202,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
+  },
+  headerInner: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    width: '100%',
+    alignSelf: 'center',
   },
   headerTitle: {
     fontSize: 28,
@@ -221,6 +229,9 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
+  scrollContent: {
+    paddingHorizontal: 16,
+  },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -228,7 +239,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   productCard: {
-    marginHorizontal: 16,
     marginTop: 16,
     borderRadius: 14,
     padding: 14,

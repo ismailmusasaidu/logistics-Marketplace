@@ -22,6 +22,7 @@ import OrderReceipt from '@/components/marketplace/OrderReceipt';
 import ReturnRequestModal from '@/components/marketplace/ReturnRequestModal';
 import EmptyState from '@/components/EmptyState';
 import { Fonts } from '@/constants/fonts';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 
 const statusIcons: Record<OrderStatus, any> = {
   pending: Clock,
@@ -49,6 +50,7 @@ export default function OrdersScreen() {
   const { profile } = useAuth();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const { maxContentWidth } = useResponsiveLayout();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -517,7 +519,7 @@ export default function OrdersScreen() {
         <FlatList
           data={filteredOrders}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 16 }]}
+          contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 16, maxWidth: maxContentWidth, width: '100%', alignSelf: 'center' }]}
           renderItem={renderOrderItem}
           initialNumToRender={6}
           maxToRenderPerBatch={6}

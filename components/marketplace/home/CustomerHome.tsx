@@ -23,6 +23,7 @@ import { cartEvents } from '@/lib/marketplace/cartEvents';
 import ProductDetailModal from '@/components/marketplace/ProductDetailModal';
 import ProductCard from '@/components/marketplace/ProductCard';
 import AdModal from '@/components/marketplace/AdModal';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import PromoBannerSlider from '@/components/marketplace/PromoBannerSlider';
 import FilterSortPanel, { FilterState, DEFAULT_FILTERS } from '@/components/marketplace/FilterSortPanel';
 import SearchAutocomplete from '@/components/marketplace/SearchAutocomplete';
@@ -40,6 +41,7 @@ export default function CustomerHome() {
   const { profile } = useAuth();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const { columns, maxContentWidth } = useResponsiveLayout();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -323,7 +325,7 @@ export default function CustomerHome() {
   const firstName = profile?.full_name?.split(' ')[0] || 'there';
 
   const renderItem = useCallback(({ item }: { item: Product }) => (
-    <View style={styles.cardWrap}>
+    <View style={[styles.cardWrap, { maxWidth: `${100 / columns}%` }]}>
       <ProductCard
         product={item}
         onPress={() => openProductDetail(item)}
@@ -331,7 +333,7 @@ export default function CustomerHome() {
         images={productImages[item.id] || []}
       />
     </View>
-  ), [openProductDetail, addToCart, productImages]);
+  ), [openProductDetail, addToCart, productImages, columns]);
 
   const listHeader = useMemo(() => (
     <View>
@@ -449,8 +451,12 @@ export default function CustomerHome() {
         <FlatList
           data={filteredProducts}
           keyExtractor={(item) => item.id}
-          numColumns={2}
-          contentContainerStyle={[styles.productGrid, { paddingBottom: insets.bottom + 24 }]}
+          key={`grid-${columns}`}
+          numColumns={columns}
+          contentContainerStyle={[
+            styles.productGrid,
+            { paddingBottom: insets.bottom + 24, maxWidth: maxContentWidth, width: '100%', alignSelf: 'center' },
+          ]}
           showsVerticalScrollIndicator={false}
           columnWrapperStyle={styles.gridRow}
           onEndReached={loadMoreProducts}
@@ -660,7 +666,6 @@ const styles = StyleSheet.create({
   },
   cardWrap: {
     flex: 1,
-    maxWidth: '50%',
   },
   footerLoader: {
     paddingVertical: 20,

@@ -13,6 +13,7 @@ import {
 import { SlidersHorizontal, ArrowUpDown, X, Check, ChevronDown } from 'lucide-react-native';
 import { Fonts } from '@/constants/fonts';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 
 export type SortOption =
   | 'newest'
@@ -57,6 +58,7 @@ interface Props {
 
 export default function FilterSortPanel({ filters, onApply, resultCount }: Props) {
   const { colors } = useTheme();
+  const { maxContentWidth } = useResponsiveLayout();
   const [visible, setVisible] = useState(false);
   const [draft, setDraft] = useState<FilterState>(filters);
   const slideAnim = useRef(new Animated.Value(600)).current;
@@ -100,39 +102,41 @@ export default function FilterSortPanel({ filters, onApply, resultCount }: Props
   return (
     <>
       <View style={[styles.barRow, { backgroundColor: colors.surface, borderBottomColor: colors.borderLight }]}>
-        <TouchableOpacity
-          style={[styles.barButton, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }, activeFilterCount > 0 && { backgroundColor: colors.primary, borderColor: colors.primary }]}
-          onPress={() => setVisible(true)}
-          activeOpacity={0.8}
-        >
-          <SlidersHorizontal size={16} color={activeFilterCount > 0 ? '#fff' : colors.textSecondary} strokeWidth={2} />
-          <Text style={[styles.barButtonText, { color: colors.textSecondary }, activeFilterCount > 0 && styles.barButtonTextActive]}>
-            Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
-          </Text>
-          {activeFilterCount > 0 && (
-            <View style={[styles.badge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-              <Text style={[styles.badgeText, { color: '#fff' }]}>{activeFilterCount}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.barButton, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }, filters.sort !== 'newest' && { backgroundColor: colors.primary, borderColor: colors.primary }]}
-          onPress={() => setVisible(true)}
-          activeOpacity={0.8}
-        >
-          <ArrowUpDown size={16} color={filters.sort !== 'newest' ? '#fff' : colors.textSecondary} strokeWidth={2} />
-          <Text
-            style={[styles.barButtonText, { color: colors.textSecondary }, filters.sort !== 'newest' && styles.barButtonTextActive]}
-            numberOfLines={1}
+        <View style={[styles.barInner, { maxWidth: maxContentWidth }]}>
+          <TouchableOpacity
+            style={[styles.barButton, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }, activeFilterCount > 0 && { backgroundColor: colors.primary, borderColor: colors.primary }]}
+            onPress={() => setVisible(true)}
+            activeOpacity={0.8}
           >
-            {filters.sort !== 'newest' ? currentSortLabel : 'Sort'}
-          </Text>
-          <ChevronDown size={14} color={filters.sort !== 'newest' ? '#fff' : colors.textMuted} />
-        </TouchableOpacity>
+            <SlidersHorizontal size={16} color={activeFilterCount > 0 ? '#fff' : colors.textSecondary} strokeWidth={2} />
+            <Text style={[styles.barButtonText, { color: colors.textSecondary }, activeFilterCount > 0 && styles.barButtonTextActive]}>
+              Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+            </Text>
+            {activeFilterCount > 0 && (
+              <View style={[styles.badge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                <Text style={[styles.badgeText, { color: '#fff' }]}>{activeFilterCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
 
-        <View style={[styles.resultBadge, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}>
-          <Text style={[styles.resultText, { color: colors.primary }]}>{resultCount} item{resultCount !== 1 ? 's' : ''}</Text>
+          <TouchableOpacity
+            style={[styles.barButton, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }, filters.sort !== 'newest' && { backgroundColor: colors.primary, borderColor: colors.primary }]}
+            onPress={() => setVisible(true)}
+            activeOpacity={0.8}
+          >
+            <ArrowUpDown size={16} color={filters.sort !== 'newest' ? '#fff' : colors.textSecondary} strokeWidth={2} />
+            <Text
+              style={[styles.barButtonText, { color: colors.textSecondary }, filters.sort !== 'newest' && styles.barButtonTextActive]}
+              numberOfLines={1}
+            >
+              {filters.sort !== 'newest' ? currentSortLabel : 'Sort'}
+            </Text>
+            <ChevronDown size={14} color={filters.sort !== 'newest' ? '#fff' : colors.textMuted} />
+          </TouchableOpacity>
+
+          <View style={[styles.resultBadge, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}>
+            <Text style={[styles.resultText, { color: colors.primary }]}>{resultCount} item{resultCount !== 1 ? 's' : ''}</Text>
+          </View>
         </View>
       </View>
 
@@ -317,10 +321,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 14,
     paddingVertical: 9,
-    gap: 8,
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
+  },
+  barInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    width: '100%',
+    alignSelf: 'center',
   },
   barButton: {
     flexDirection: 'row',
