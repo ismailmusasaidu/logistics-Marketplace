@@ -141,6 +141,7 @@ export default function CheckoutScreen() {
   const [speedOptions, setSpeedOptions] = useState<DeliverySpeedOption[]>([]);
   const [selectedSpeed, setSelectedSpeed] = useState<DeliverySpeedOption | null>(null);
   const [weightSurchargeTiers, setWeightSurchargeTiers] = useState<WeightSurchargeTier[]>([]);
+  const [manualZoneSelected, setManualZoneSelected] = useState<DeliveryZone | null>(null);
 
   useEffect(() => {
     fetchCartItems();
@@ -230,6 +231,7 @@ export default function CheckoutScreen() {
       setDistanceKm(null);
       setCalculatedDeliveryFee(0);
       setGeocodeError('');
+      setManualZoneSelected(null);
     }
   }, [deliveryAddress, deliveryType, storePickupAddress]);
 
@@ -339,6 +341,7 @@ export default function CheckoutScreen() {
       if (data.distance !== undefined) {
         setDistanceKm(data.distance);
         setGeocodeError('');
+        setManualZoneSelected(null);
       } else if (data.error) {
         setGeocodeError(data.error);
         setDistanceKm(null);
@@ -568,12 +571,12 @@ export default function CheckoutScreen() {
       return;
     }
 
-    if (deliveryType === 'delivery' && distanceKm === null) {
-      Alert.alert('Invalid Address', 'Please enter a valid delivery address. Wait for distance calculation to complete.');
+    if (deliveryType === 'delivery' && distanceKm === null && !manualZoneSelected) {
+      Alert.alert('Address Not Resolved', 'We could not calculate distance for your address. Please select your delivery zone manually below.');
       return;
     }
 
-    if (deliveryType === 'delivery' && calculatedDeliveryFee === 0) {
+    if (deliveryType === 'delivery' && calculatedDeliveryFee === 0 && !manualZoneSelected) {
       Alert.alert('Delivery Not Available', 'Your location is outside our delivery zones. Please try a different address or contact us.');
       return;
     }
@@ -1376,9 +1379,48 @@ export default function CheckoutScreen() {
                 </View>
               )}
 
-              {distanceKm !== null && calculatedDeliveryFee === 0 && (
+              {distanceKm !== null && calculatedDeliveryFee === 0 && !manualZoneSelected && (
                 <View style={styles.warningCard}>
                   <Text style={styles.warningText}>Your location is outside our delivery zones. Please try a different address.</Text>
+                </View>
+              )}
+
+              {geocodeError && distanceKm === null && zones.length > 0 && (
+                <View style={styles.manualZoneSection}>
+                  <Text style={styles.manualZoneTitle}>Select Your Delivery Zone</Text>
+                  <Text style={styles.manualZoneHint}>We couldn't resolve your address automatically. Pick the zone that best matches your area to get a delivery fee.</Text>
+                  {zones.map((zone) => {
+                    const active = manualZoneSelected?.id === zone.id;
+                    return (
+                      <TouchableOpacity
+                        key={zone.id}
+                        style={[styles.manualZoneCard, active && styles.manualZoneCardActive]}
+                        onPress={() => {
+                          setManualZoneSelected(zone);
+                          setCalculatedDeliveryFee(zone.price);
+                          setGeocodeError('');
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <View style={styles.manualZoneInfo}>
+                          <Text style={[styles.manualZoneName, active && styles.manualZoneNameActive]}>{zone.name}</Text>
+                          <Text style={styles.manualZoneRange}>{zone.min_distance_km}–{zone.max_distance_km} km</Text>
+                        </View>
+                        <Text style={[styles.manualZonePrice, active && styles.manualZonePriceActive]}>
+                          ₦{zone.price.toFixed(2)}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
+
+              {manualZoneSelected && (
+                <View style={styles.successCard}>
+                  <CheckCircle size={20} color="#10b981" />
+                  <Text style={styles.successText}>
+                    Zone: {manualZoneSelected.name} · ₦{manualZoneSelected.price.toFixed(2)}
+                  </Text>
                 </View>
               )}
 
@@ -2436,6 +2478,67 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.semiBold,
     color: '#9a3412',
     lineHeight: 20,
+  },
+  manualZoneSection: {
+    marginTop: 12,
+    padding: 16,
+    backgroundColor: '#f0f9ff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#bae6fd',
+  },
+  manualZoneTitle: {
+    fontSize: 15,
+    fontFamily: Fonts.semiBold,
+    color: '#0c4a6e',
+    marginBottom: 4,
+  },
+  manualZoneHint: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: '#0369a1',
+    marginBottom: 12,
+    lineHeight: 18,
+  },
+  manualZoneCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 14,
+    backgroundColor: '#ffffff',
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#e0f2fe',
+    marginBottom: 8,
+  },
+  manualZoneCardActive: {
+    borderColor: '#ff8c00',
+    backgroundColor: '#fff7ed',
+  },
+  manualZoneInfo: {
+    flex: 1,
+  },
+  manualZoneName: {
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
+    color: '#1e293b',
+  },
+  manualZoneNameActive: {
+    color: '#ff8c00',
+  },
+  manualZoneRange: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: '#64748b',
+    marginTop: 2,
+  },
+  manualZonePrice: {
+    fontSize: 15,
+    fontFamily: Fonts.semiBold,
+    color: '#1e293b',
+  },
+  manualZonePriceActive: {
+    color: '#ff8c00',
   },
   deliveryFeeCard: {
     flexDirection: 'row',
