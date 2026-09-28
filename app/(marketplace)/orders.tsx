@@ -245,13 +245,13 @@ export default function OrdersScreen() {
     try {
       const { data: items, error: itemsError } = await supabase
         .from('order_items')
-        .select('product_id, quantity, selected_size, selected_color, selected_option, option_price, products(id, is_active)')
+        .select('product_id, quantity, selected_size, selected_color, selected_option, option_price, products(id, is_available)')
         .eq('order_id', order.id);
 
       if (itemsError) throw itemsError;
 
       const validItems = (items || []).filter(
-        (item: any) => item.product_id && item.products && item.products.is_active !== false
+        (item: any) => item.product_id && item.products && item.products.is_available !== false
       );
       const skippedCount = (items || []).length - validItems.length;
 
