@@ -12,6 +12,8 @@ interface DistanceRequest {
   mode?: 'distance' | 'reverse-geocode';
   lat?: number;
   lng?: number;
+  deliveryLat?: number;
+  deliveryLng?: number;
 }
 
 interface DistanceMatrixResult {
@@ -23,7 +25,9 @@ interface DistanceMatrixResult {
 
 async function calculateDistanceWithMatrix(
   pickupAddress: string,
-  deliveryAddress: string
+  deliveryAddress: string,
+  deliveryLat?: number,
+  deliveryLng?: number
 ): Promise<DistanceMatrixResult | null> {
   const normalizeAddress = (addr: string): string => {
     const trimmed = addr.trim();
@@ -32,12 +36,41 @@ async function calculateDistanceWithMatrix(
   };
 
   const normalizedPickup = normalizeAddress(pickupAddress);
-  const normalizedDelivery = normalizeAddress(deliveryAddress);
-
+  const normalizedDelivery = deliveryAddress ? normalizeAddress(deliveryAddress) : '';
   const apiKey = Deno.env.get('GOOGLE_MAPS_API_KEY');
 
-  // Try Google Distance Matrix first if API key is available and billing enabled
-  if (apiKey) {
+  // If we have exact delivery coordinates, use them directly for Google Distance Matrix
+  if (apiKey && deliveryLat != null && deliveryLng != null) {
+    try {
+      const origins = encodeURIComponent(normalizedPickup);
+      const destinations = `${deliveryLat},${deliveryLng}`;
+      const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origins}&destinations=${destinations}&mode=driving&key=${apiKey}&region=ng`;
+
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data.status === 'OK' && data.rows?.[0]?.elements?.[0]?.status === 'OK') {
+        const element = data.rows[0].elements[0];
+        const distanceInMeters = element.distance.value;
+        const distanceInKm = Math.round((distanceInMeters / 1000) * 10) / 10;
+        const durationInSeconds = element.duration.value;
+        const durationInMinutes = Math.round(durationInSeconds / 60);
+
+        return {
+          distance: distanceInKm,
+          duration: durationInMinutes,
+          pickupAddress: data.origin_addresses[0] || normalizedPickup,
+          deliveryAddress: data.destination_addresses[0] || normalizedDelivery || `${deliveryLat.toFixed(5)}, ${deliveryLng.toFixed(5)}`,
+        };
+      }
+      console.error('Google Distance Matrix (coords) failed:', data.status, data.error_message);
+    } catch (e) {
+      console.error('Google Distance Matrix (coords) error:', e);
+    }
+  }
+
+  // Try Google Distance Matrix with address strings if API key is available
+  if (apiKey && normalizedDelivery) {
     try {
       const origins = encodeURIComponent(normalizedPickup);
       const destinations = encodeURIComponent(normalizedDelivery);
@@ -66,7 +99,7 @@ async function calculateDistanceWithMatrix(
     }
   }
 
-  // Fallback: geocode both addresses and compute straight-line distance
+  // Fallback: geocode pickup address, use delivery coords directly if available
   const geocode = async (address: string): Promise<{ lat: number; lng: number } | null> => {
     // Try Google Geocoding first
     if (apiKey) {
@@ -99,10 +132,11 @@ async function calculateDistanceWithMatrix(
     return null;
   };
 
-  const [pickupCoord, deliveryCoord] = await Promise.all([
-    geocode(normalizedPickup),
-    geocode(normalizedDelivery),
-  ]);
+  // Use exact delivery coordinates if provided; otherwise geocode the address
+  const pickupCoord = await geocode(normalizedPickup);
+  const deliveryCoord = (deliveryLat != null && deliveryLng != null)
+    ? { lat: deliveryLat, lng: deliveryLng }
+    : (normalizedDelivery ? await geocode(normalizedDelivery) : null);
 
   if (!pickupCoord || !deliveryCoord) {
     console.error('All geocode fallbacks failed for addresses');
@@ -195,11 +229,11 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { pickupAddress, deliveryAddress } = body;
+    const { pickupAddress, deliveryAddress, deliveryLat, deliveryLng } = body;
 
-    if (!pickupAddress || !deliveryAddress) {
+    if (!pickupAddress || (!deliveryAddress && (deliveryLat == null || deliveryLng == null))) {
       return new Response(
-        JSON.stringify({ error: 'Missing required fields: pickupAddress, deliveryAddress' }),
+        JSON.stringify({ error: 'Missing required fields: pickupAddress and (deliveryAddress OR deliveryLat+deliveryLng)' }),
         {
           status: 400,
           headers: {
@@ -210,7 +244,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const result = await calculateDistanceWithMatrix(pickupAddress, deliveryAddress);
+    const result = await calculateDistanceWithMatrix(pickupAddress, deliveryAddress || '', deliveryLat, deliveryLng);
 
     if (!result) {
       return new Response(

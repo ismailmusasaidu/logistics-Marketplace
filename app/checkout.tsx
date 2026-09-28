@@ -93,6 +93,7 @@ export default function CheckoutScreen() {
   const insets = useSafeAreaInsets();
   const { maxContentWidth } = useResponsiveLayout();
   const orderSubmittedRef = useRef(false);
+  const gpsCalculationRef = useRef(false);
 
   const copyToClipboard = async (value: string, label: string) => {
     try {
@@ -211,7 +212,10 @@ export default function CheckoutScreen() {
         address = await reverseGeocodeWeb(latitude, longitude);
       }
 
+      // Calculate distance directly from GPS coordinates — skip the address roundtrip
+      gpsCalculationRef.current = true;
       setDeliveryAddress(address);
+      calculateDistanceFromCoordinates(latitude, longitude);
     } catch (err: any) {
       if (err?.code === 1) {
         setLocationError('No problem! Location access was skipped. You can type your address manually above or pick your delivery zone from the list below.');
@@ -347,6 +351,11 @@ export default function CheckoutScreen() {
 
   useEffect(() => {
     if (deliveryType === 'delivery' && deliveryAddress.trim() && storePickupAddress) {
+      // Skip the address-based calculation when GPS coordinates were used directly
+      if (gpsCalculationRef.current) {
+        gpsCalculationRef.current = false;
+        return;
+      }
       const timeoutId = setTimeout(() => {
         calculateDistanceFromAddress(deliveryAddress);
       }, 1000);
@@ -434,6 +443,105 @@ export default function CheckoutScreen() {
     if (zonesResult.data) setZones(zonesResult.data);
     if (pricingResult.data?.store_pickup_address) {
       setStorePickupAddress(pricingResult.data.store_pickup_address);
+    }
+  };
+
+  const calculateDistanceFromCoordinates = async (deliveryLat: number, deliveryLng: number) => {
+    if (!storePickupAddress) {
+      setGeocodeError('Store pickup address is not configured. Please contact support.');
+      return;
+    }
+    try {
+      setGeocoding(true);
+      setGeocodeError('');
+
+      const normalizeAddress = (addr: string): string => {
+        const trimmed = addr.trim();
+        if (/\bNigeria\b/i.test(trimmed)) return trimmed;
+        return `${trimmed}, Nigeria`;
+      };
+
+      const normalizedPickup = normalizeAddress(storePickupAddress);
+
+      // Try edge function with coordinates
+      try {
+        const apiUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/calculate-distance`;
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            pickupAddress: normalizedPickup,
+            deliveryLat,
+            deliveryLng,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (data.distance !== undefined && data.distance > 0) {
+          setDistanceKm(data.distance);
+          setGeocodeError('');
+          setManualZoneSelected(null);
+          return;
+        }
+      } catch (e) {
+        console.error('Edge function distance (coords) failed, falling back to client-side:', e);
+      }
+
+      // Client-side fallback: geocode pickup address, use delivery coords directly
+      const geocode = async (address: string): Promise<{ lat: number; lng: number } | null> => {
+        try {
+          const nomUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1&countrycodes=ng`;
+          const res = await fetch(nomUrl, {
+            headers: { 'User-Agent': 'DanHausa-Delivery-App/1.0' },
+          });
+          const json = await res.json();
+          if (Array.isArray(json) && json.length > 0 && json[0].lat && json[0].lon) {
+            return { lat: parseFloat(json[0].lat), lng: parseFloat(json[0].lon) };
+          }
+        } catch (e) {
+          console.error('Client-side geocode failed for', address, e);
+        }
+        return null;
+      };
+
+      const pickupCoord = await geocode(normalizedPickup);
+
+      if (!pickupCoord) {
+        setGeocodeError('Unable to find the store location. Please contact support to check the store address configuration.');
+        setDistanceKm(null);
+        return;
+      }
+
+      // Haversine formula — delivery coords are exact from GPS
+      const R = 6371;
+      const dLat = (deliveryLat - pickupCoord.lat) * Math.PI / 180;
+      const dLng = (deliveryLng - pickupCoord.lng) * Math.PI / 180;
+      const a = Math.sin(dLat / 2) ** 2 +
+        Math.cos(pickupCoord.lat * Math.PI / 180) * Math.cos(deliveryLat * Math.PI / 180) *
+        Math.sin(dLng / 2) ** 2;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      const straightLineKm = Math.round(R * c * 10) / 10;
+      const estimatedKm = Math.round(straightLineKm * 1.3 * 10) / 10;
+
+      if (estimatedKm <= 0) {
+        setGeocodeError('Unable to calculate distance for this location. Please try again or type your address manually above.');
+        setDistanceKm(null);
+        return;
+      }
+
+      setDistanceKm(estimatedKm);
+      setGeocodeError('');
+      setManualZoneSelected(null);
+    } catch (error) {
+      console.error('Distance calculation error (coords):', error);
+      setGeocodeError('Failed to calculate distance. Please try again.');
+      setDistanceKm(null);
+    } finally {
+      setGeocoding(false);
     }
   };
 
