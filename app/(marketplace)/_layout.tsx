@@ -65,21 +65,20 @@ export default function TabLayout() {
         },
       }}
     >
-      {!isGuest && (
-        <Tabs.Screen
-          name="back-to-hub"
-          options={{
-            title: 'Hub',
-            tabBarIcon: ({ size }) => <ArrowLeft size={size} color="#94a3b8" />,
-            tabBarButton: (props) => (
-              <TouchableOpacity
-                {...(props as any)}
-                onPress={() => router.navigate('/hub')}
-              />
-            ),
-          }}
-        />
-      )}
+      <Tabs.Screen
+        name="back-to-hub"
+        options={{
+          title: 'Hub',
+          href: isGuest ? null : undefined,
+          tabBarIcon: ({ size }) => <ArrowLeft size={size} color="#94a3b8" />,
+          tabBarButton: (props) => (
+            <TouchableOpacity
+              {...(props as any)}
+              onPress={() => router.navigate('/hub')}
+            />
+          ),
+        }}
+      />
 
       <Tabs.Screen
         name="index"
