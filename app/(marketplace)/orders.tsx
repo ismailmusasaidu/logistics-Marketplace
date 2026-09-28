@@ -245,7 +245,7 @@ export default function OrdersScreen() {
     try {
       const { data: items, error: itemsError } = await supabase
         .from('order_items')
-        .select('product_id, quantity, selected_size, selected_color, selected_option, option_price, products(id, is_available)')
+        .select('product_id, quantity, selected_size, selected_color, products(id, is_available)')
         .eq('order_id', order.id);
 
       if (itemsError) throw itemsError;
@@ -262,18 +262,18 @@ export default function OrdersScreen() {
 
       const { data: existingCart } = await supabase
         .from('carts')
-        .select('id, product_id, quantity, selected_size, selected_color, selected_option')
+        .select('id, product_id, quantity, selected_size, selected_color')
         .eq('user_id', profile.id);
 
       const existingMap = new Map<string, any>();
       (existingCart || []).forEach((row: any) => {
-        const key = `${row.product_id}|${row.selected_size || ''}|${row.selected_color || ''}|${row.selected_option || ''}`;
+        const key = `${row.product_id}|${row.selected_size || ''}|${row.selected_color || ''}`;
         existingMap.set(key, row);
       });
 
       let addedCount = 0;
       for (const item of validItems) {
-        const key = `${item.product_id}|${item.selected_size || ''}|${item.selected_color || ''}|${item.selected_option || ''}`;
+        const key = `${item.product_id}|${item.selected_size || ''}|${item.selected_color || ''}`;
         const existing = existingMap.get(key);
 
         if (existing) {
@@ -288,8 +288,6 @@ export default function OrdersScreen() {
             quantity: item.quantity,
             selected_size: item.selected_size || null,
             selected_color: item.selected_color || null,
-            selected_option: item.selected_option || null,
-            option_price: item.option_price || null,
           });
         }
         addedCount++;
