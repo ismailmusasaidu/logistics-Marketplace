@@ -94,7 +94,7 @@ export default function TabLayout() {
         options={{
           title: 'Cart',
           tabBarIcon: ({ size, color }) => <CartIconWithBadge size={size} color={color} />,
-          href: isCustomer ? '/(marketplace)/cart' : null,
+          href: !isGuest && isCustomer ? '/(marketplace)/cart' : null,
         }}
       />
 
@@ -103,7 +103,7 @@ export default function TabLayout() {
         options={{
           title: 'Wishlist',
           tabBarIcon: ({ size, color }) => <WishlistIconWithBadge size={size} color={color} />,
-          href: isCustomer ? '/(marketplace)/wishlist' : null,
+          href: !isGuest && isCustomer ? '/(marketplace)/wishlist' : null,
         }}
       />
 
@@ -112,7 +112,7 @@ export default function TabLayout() {
         options={{
           title: 'Orders',
           tabBarIcon: ({ size, color }) => <Package size={size} color={color} />,
-          href: isCustomer ? '/(marketplace)/orders' : null,
+          href: !isGuest && isCustomer ? '/(marketplace)/orders' : null,
         }}
       />
 
@@ -121,7 +121,7 @@ export default function TabLayout() {
         options={{
           title: 'Stores',
           tabBarIcon: ({ size, color }) => <Store size={size} color={color} />,
-          href: isCustomer ? '/(marketplace)/stores' as any : null,
+          href: !isGuest && isCustomer ? '/(marketplace)/stores' as any : null,
         }}
       />
 
