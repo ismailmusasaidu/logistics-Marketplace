@@ -31,8 +31,6 @@ interface CartItemWithProduct {
   product_id: string;
   selected_size: string | null;
   selected_color: string | null;
-  selected_option: string | null;
-  option_price: number | null;
   product: {
     id: string;
     name: string;
@@ -379,8 +377,6 @@ export default function CheckoutScreen() {
           product_id,
           selected_size,
           selected_color,
-          selected_option,
-          option_price,
           products (
             id,
             name,
@@ -403,8 +399,6 @@ export default function CheckoutScreen() {
         product_id: item.product_id,
         selected_size: item.selected_size ?? null,
         selected_color: item.selected_color ?? null,
-        selected_option: item.selected_option ?? null,
-        option_price: item.option_price ?? null,
         product: item.products,
       }));
 
@@ -437,7 +431,7 @@ export default function CheckoutScreen() {
   };
 
   const getEffectiveUnitPrice = (item: CartItemWithProduct) => {
-    const basePrice = item.option_price ?? item.product.price;
+    const basePrice = item.product.price;
     if (item.product.discount_active && item.product.discount_percentage > 0) {
       return basePrice * (1 - item.product.discount_percentage / 100);
     }
@@ -920,7 +914,7 @@ export default function CheckoutScreen() {
       for (const vendorId of vendorIds) {
         const vendorItems = vendorGroups[vendorId];
         const vendorSubtotal = vendorItems.reduce((sum, item) => {
-          const unitPrice = item.option_price ?? item.product.price;
+          const unitPrice = item.product.price;
           return sum + unitPrice * item.quantity;
         }, 0);
         const vendorTotal = vendorSubtotal + sharedDeliveryFee + sharedWeightSurcharge - sharedDiscount;
@@ -1475,11 +1469,11 @@ export default function CheckoutScreen() {
           <Text style={styles.sectionTitle}>Order Summary</Text>
           <View style={styles.summaryCard}>
             {cartItems.map((item) => {
-              const unitPrice = item.option_price ?? item.product.price;
+              const unitPrice = item.product.price;
               return (
                 <View key={item.id} style={styles.summaryRow}>
                   <Text style={styles.summaryText}>
-                    {item.product.name}{item.selected_option ? ` (${item.selected_option})` : ''} x{item.quantity}
+                    {item.product.name} x{item.quantity}
                   </Text>
                   <Text style={styles.summaryPrice}>
                     ₦{(unitPrice * item.quantity).toFixed(2)}

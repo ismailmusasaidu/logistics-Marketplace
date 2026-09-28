@@ -1,0 +1,56 @@
+[functions.assign-rider]
+verify_jwt = true
+
+[functions.auth-email-hook]
+verify_jwt = false
+
+[functions.calculate-distance]
+verify_jwt = false
+
+[functions.create-virtual-account]
+verify_jwt = true
+
+[functions.credit-wallet]
+verify_jwt = true
+
+[functions.debit-wallet]
+verify_jwt = true
+
+[functions.email-confirm-redirect]
+verify_jwt = false
+
+[functions.get-wallet-balance]
+verify_jwt = true
+
+[functions.initialize-payment]
+verify_jwt = true
+
+[functions.initialize-wallet-funding]
+verify_jwt = true
+
+[functions.password-reset-redirect]
+verify_jwt = false
+
+[functions.paystack-webhook]
+verify_jwt = false
+
+[functions.process-withdrawal]
+verify_jwt = true
+
+[functions.reassign-rider]
+verify_jwt = true
+
+[functions.resolve-bank-account]
+verify_jwt = true
+
+[functions.send-email]
+verify_jwt = true
+
+[functions.verify-payment]
+verify_jwt = true
+
+[functions.verify-wallet-funding]
+verify_jwt = true
+
+[functions.wallet-history]
+verify_jwt = true
