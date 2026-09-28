@@ -7,8 +7,11 @@ const corsHeaders = {
 };
 
 interface DistanceRequest {
-  pickupAddress: string;
-  deliveryAddress: string;
+  pickupAddress?: string;
+  deliveryAddress?: string;
+  mode?: 'distance' | 'reverse-geocode';
+  lat?: number;
+  lng?: number;
 }
 
 interface DistanceMatrixResult {
@@ -118,7 +121,42 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { pickupAddress, deliveryAddress }: DistanceRequest = await req.json();
+    const body: DistanceRequest = await req.json();
+
+    // Reverse-geocode mode: convert lat/lng to a readable address
+    if (body.mode === 'reverse-geocode') {
+      if (body.lat == null || body.lng == null) {
+        return new Response(
+          JSON.stringify({ error: 'Missing required fields for reverse-geocode: lat, lng' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const apiKey = Deno.env.get('GOOGLE_MAPS_API_KEY');
+      if (!apiKey) {
+        throw new Error('Google Maps API key not configured.');
+      }
+
+      const geoUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${body.lat},${body.lng}&key=${apiKey}&region=ng&result_type=street_address|route|neighborhood|sublocality|locality|administrative_area_level_2|administrative_area_level_1`;
+      const geoRes = await fetch(geoUrl);
+      const geoData = await geoRes.json();
+
+      if (geoData.status === 'OK' && geoData.results?.length > 0) {
+        const formatted = geoData.results[0].formatted_address as string;
+        return new Response(
+          JSON.stringify({ address: formatted }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const fallback = `${body.lat.toFixed(5)}, ${body.lng.toFixed(5)}`;
+      return new Response(
+        JSON.stringify({ address: fallback, warning: 'Could not resolve to a street address. Raw coordinates used.' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { pickupAddress, deliveryAddress } = body;
 
     if (!pickupAddress || !deliveryAddress) {
       return new Response(

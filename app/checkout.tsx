@@ -103,6 +103,58 @@ export default function CheckoutScreen() {
       showToast('Could not copy', 'error');
     }
   };
+
+  const useCurrentLocation = async () => {
+    setLocationError('');
+    setLocating(true);
+
+    try {
+      if (Platform.OS !== 'web' || !navigator?.geolocation) {
+        setLocationError('Location access is not available on this device.');
+        return;
+      }
+
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 60000,
+        });
+      });
+
+      const { latitude, longitude } = position.coords;
+
+      const functionUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/calculate-distance`;
+      const res = await fetch(functionUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'reverse-geocode', lat: latitude, lng: longitude }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setLocationError(data.error || 'Could not determine your address from your location.');
+        return;
+      }
+
+      setDeliveryAddress(data.address);
+      if (data.warning) {
+        setLocationError(data.warning);
+      }
+    } catch (err: any) {
+      if (err?.code === 1) {
+        setLocationError('Location access was denied. Please enable location permissions in your browser settings.');
+      } else if (err?.code === 2) {
+        setLocationError('Your location could not be determined. Check your GPS or network connection.');
+      } else if (err?.code === 3) {
+        setLocationError('Location request timed out. Please try again.');
+      } else {
+        setLocationError('Could not get your current location. Please enter your address manually.');
+      }
+    } finally {
+      setLocating(false);
+    }
+  };
   const [cartItems, setCartItems] = useState<CartItemWithProduct[]>([]);
   const [deliveryType, setDeliveryType] = useState<'pickup' | 'delivery'>('pickup');
   const [deliveryAddress, setDeliveryAddress] = useState('');
@@ -140,6 +192,8 @@ export default function CheckoutScreen() {
   const [selectedSpeed, setSelectedSpeed] = useState<DeliverySpeedOption | null>(null);
   const [weightSurchargeTiers, setWeightSurchargeTiers] = useState<WeightSurchargeTier[]>([]);
   const [manualZoneSelected, setManualZoneSelected] = useState<DeliveryZone | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState('');
 
   useEffect(() => {
     fetchCartItems();
@@ -1286,6 +1340,28 @@ export default function CheckoutScreen() {
                   numberOfLines={3}
                 />
               </View>
+
+              <TouchableOpacity
+                style={styles.useLocationButton}
+                onPress={useCurrentLocation}
+                disabled={locating}
+                activeOpacity={0.7}
+              >
+                {locating ? (
+                  <ActivityIndicator size="small" color="#ff8c00" />
+                ) : (
+                  <MapPin size={18} color="#ff8c00" />
+                )}
+                <Text style={styles.useLocationButtonText}>
+                  {locating ? 'Getting your location...' : 'Use my current location'}
+                </Text>
+              </TouchableOpacity>
+
+              {locationError ? (
+                <View style={styles.locationErrorCard}>
+                  <Text style={styles.locationErrorText}>{locationError}</Text>
+                </View>
+              ) : null}
 
               <View style={styles.addressDescContainer}>
                 <View style={styles.addressDescIconBox}>
@@ -3474,5 +3550,37 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.bold,
     color: '#b45309',
     marginLeft: 8,
+  },
+  useLocationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#fff4e6',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginTop: 10,
+    borderWidth: 1.5,
+    borderColor: '#ff8c00',
+    ...Platform.select({ web: { transition: 'background-color 0.2s' } as any }),
+  },
+  useLocationButtonText: {
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
+    color: '#c2410c',
+  },
+  locationErrorCard: {
+    backgroundColor: '#fef2f2',
+    padding: 12,
+    borderRadius: 10,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#fca5a5',
+  },
+  locationErrorText: {
+    fontSize: 13,
+    fontFamily: Fonts.medium,
+    color: '#991b1b',
+    lineHeight: 18,
   },
 });
