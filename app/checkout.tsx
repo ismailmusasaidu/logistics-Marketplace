@@ -105,19 +105,78 @@ export default function CheckoutScreen() {
     }
   };
 
+  const reverseGeocodeWeb = async (latitude: number, longitude: number): Promise<string> => {
+    // Try edge function first (uses Google Maps if available)
+    try {
+      const functionUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/calculate-distance`;
+      const res = await fetch(functionUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'reverse-geocode', lat: latitude, lng: longitude }),
+      });
+      const data = await res.json();
+      if (res.ok && data.address) {
+        return data.address;
+      }
+    } catch (e) {
+      console.error('Edge function reverse geocode failed:', e);
+    }
+
+    // Fallback: free OpenStreetMap Nominatim API (works from the browser)
+    try {
+      const nomUrl = `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&zoom=18&addressdetails=1`;
+      const nomRes = await fetch(nomUrl, {
+        headers: { 'User-Agent': 'DanHausa-Delivery-App/1.0' },
+      });
+      const nomData = await nomRes.json();
+      if (nomData?.display_name) {
+        const parts = nomData.display_name.split(',').slice(0, 4);
+        return parts.join(',').trim();
+      }
+    } catch (e) {
+      console.error('Nominatim reverse geocode failed:', e);
+    }
+
+    return `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+  };
+
   const useCurrentLocation = async () => {
     setLocationError('');
     setLocating(true);
 
     try {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setLocationError('No problem! Location access was skipped. You can type your address manually above or pick your delivery zone from the list below.');
-        return;
-      }
+      let latitude: number;
+      let longitude: number;
 
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      const { latitude, longitude } = loc.coords;
+      if (Platform.OS === 'web') {
+        // On web, use browser's native geolocation API which shows the "Allow location?" popup
+        if (!navigator?.geolocation) {
+          setLocationError('Your browser does not support location access. Please type your address manually above or pick your delivery zone below.');
+          return;
+        }
+
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 60000,
+          });
+        });
+
+        latitude = position.coords.latitude;
+        longitude = position.coords.longitude;
+      } else {
+        // On native, use expo-location
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          setLocationError('No problem! Location access was skipped. You can type your address manually above or pick your delivery zone from the list below.');
+          return;
+        }
+
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        latitude = loc.coords.latitude;
+        longitude = loc.coords.longitude;
+      }
 
       let address: string;
 
@@ -131,32 +190,19 @@ export default function CheckoutScreen() {
           address = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
         }
       } else {
-        const functionUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/calculate-distance`;
-        const res = await fetch(functionUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode: 'reverse-geocode', lat: latitude, lng: longitude }),
-        });
-        const data = await res.json();
-
-        if (!res.ok) {
-          setLocationError(data.error || 'Could not determine your address from your location.');
-          return;
-        }
-
-        address = data.address;
-        if (data.warning) {
-          setLocationError(data.warning);
-        }
+        address = await reverseGeocodeWeb(latitude, longitude);
       }
 
       setDeliveryAddress(address);
     } catch (err: any) {
-      const msg = err?.message || '';
-      if (msg.toLowerCase().includes('permission') || msg.toLowerCase().includes('denied')) {
+      if (err?.code === 1) {
         setLocationError('No problem! Location access was skipped. You can type your address manually above or pick your delivery zone from the list below.');
+      } else if (err?.code === 2) {
+        setLocationError('Your location could not be determined. Check your GPS or network connection, or type your address manually above.');
+      } else if (err?.code === 3) {
+        setLocationError('Location request timed out. Please try again or type your address manually above.');
       } else {
-        setLocationError('Could not get your current location. Please enter your address manually.');
+        setLocationError('Could not get your current location. Please enter your address manually above.');
       }
     } finally {
       setLocating(false);
