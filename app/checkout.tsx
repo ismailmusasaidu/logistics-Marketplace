@@ -144,15 +144,33 @@ export default function CheckoutScreen() {
     setLocationError('');
     setLocating(true);
 
+    // Guard: never let the spinner hang forever
+    const timeoutId = setTimeout(() => {
+      setLocating(false);
+      setLocationError((prev) => prev || 'Location request timed out. Please try again or type your address manually above.');
+    }, 20000);
+
     try {
       let latitude: number;
       let longitude: number;
 
       if (Platform.OS === 'web') {
-        // On web, use browser's native geolocation API which shows the "Allow location?" popup
         if (!navigator?.geolocation) {
           setLocationError('Your browser does not support location access. Please type your address manually above or pick your delivery zone below.');
           return;
+        }
+
+        // Check if permission was previously denied — browser won't show the popup again
+        try {
+          if (navigator.permissions) {
+            const permResult = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
+            if (permResult.state === 'denied') {
+              setLocationError('Location access was blocked previously. To re-enable it, click the lock or settings icon in your browser address bar, allow location access for this site, then try again. Or type your address manually above / pick a delivery zone below.');
+              return;
+            }
+          }
+        } catch (e) {
+          // permissions API not available — continue anyway
         }
 
         const position = await new Promise<GeolocationPosition>((resolve, reject) => {
@@ -205,6 +223,7 @@ export default function CheckoutScreen() {
         setLocationError('Could not get your current location. Please enter your address manually above.');
       }
     } finally {
+      clearTimeout(timeoutId);
       setLocating(false);
     }
   };
