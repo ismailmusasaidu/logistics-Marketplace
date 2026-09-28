@@ -11,10 +11,11 @@ import {
   Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Package, Clock, CircleCheck as CheckCircle, Truck, Circle as XCircle, ShoppingBag, Search, X, Star, Receipt, RotateCcw, RefreshCw, CircleAlert as AlertCircle } from 'lucide-react-native';
+import { Package, Clock, CircleCheck as CheckCircle, Truck, Circle as XCircle, ShoppingBag, Search, X, Star, Receipt, RotateCcw, RefreshCw, CircleAlert as AlertCircle, ShoppingCart } from 'lucide-react-native';
 import { supabase } from '@/lib/marketplace/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useToast } from '@/contexts/ToastContext';
 import { Order, OrderStatus, OrderItem, Product } from '@/types/database';
 import { router } from 'expo-router';
 import ReviewForm from '@/components/marketplace/ReviewForm';
@@ -23,6 +24,7 @@ import ReturnRequestModal from '@/components/marketplace/ReturnRequestModal';
 import EmptyState from '@/components/EmptyState';
 import { Fonts } from '@/constants/fonts';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { cartEvents } from '@/lib/marketplace/cartEvents';
 
 const statusIcons: Record<OrderStatus, any> = {
   pending: Clock,
@@ -49,6 +51,7 @@ interface OrderItemWithProduct extends OrderItem {
 export default function OrdersScreen() {
   const { profile } = useAuth();
   const { colors } = useTheme();
+  const { showToast } = useToast();
   const insets = useSafeAreaInsets();
   const { maxContentWidth } = useResponsiveLayout();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -61,6 +64,7 @@ export default function OrdersScreen() {
   const [returnOrder, setReturnOrder] = useState<Order | null>(null);
   const [returnOrderItems, setReturnOrderItems] = useState<any[]>([]);
   const [orderReturns, setOrderReturns] = useState<Record<string, { status: string; return_type: string; admin_notes: string | null }>>({});
+  const [reorderingOrderId, setReorderingOrderId] = useState<string | null>(null);
 
   const statusColors: Record<OrderStatus, string> = {
     pending: colors.statusPending,
@@ -235,6 +239,79 @@ export default function OrdersScreen() {
     setReturnOrder(order);
   };
 
+  const handleReorder = async (order: Order) => {
+    if (!profile) return;
+    setReorderingOrderId(order.id);
+    try {
+      const { data: items, error: itemsError } = await supabase
+        .from('order_items')
+        .select('product_id, quantity, selected_size, selected_color, selected_option, option_price, products(id, is_active)')
+        .eq('order_id', order.id);
+
+      if (itemsError) throw itemsError;
+
+      const validItems = (items || []).filter(
+        (item: any) => item.product_id && item.products && item.products.is_active !== false
+      );
+      const skippedCount = (items || []).length - validItems.length;
+
+      if (validItems.length === 0) {
+        showToast('None of the items from this order are available anymore.', 'error');
+        return;
+      }
+
+      const { data: existingCart } = await supabase
+        .from('carts')
+        .select('id, product_id, quantity, selected_size, selected_color, selected_option')
+        .eq('user_id', profile.id);
+
+      const existingMap = new Map<string, any>();
+      (existingCart || []).forEach((row: any) => {
+        const key = `${row.product_id}|${row.selected_size || ''}|${row.selected_color || ''}|${row.selected_option || ''}`;
+        existingMap.set(key, row);
+      });
+
+      let addedCount = 0;
+      for (const item of validItems) {
+        const key = `${item.product_id}|${item.selected_size || ''}|${item.selected_color || ''}|${item.selected_option || ''}`;
+        const existing = existingMap.get(key);
+
+        if (existing) {
+          await supabase
+            .from('carts')
+            .update({ quantity: existing.quantity + item.quantity })
+            .eq('id', existing.id);
+        } else {
+          await supabase.from('carts').insert({
+            user_id: profile.id,
+            product_id: item.product_id,
+            quantity: item.quantity,
+            selected_size: item.selected_size || null,
+            selected_color: item.selected_color || null,
+            selected_option: item.selected_option || null,
+            option_price: item.option_price || null,
+          });
+        }
+        addedCount++;
+      }
+
+      cartEvents.emit();
+
+      if (skippedCount > 0) {
+        showToast(`${addedCount} item${addedCount !== 1 ? 's' : ''} added to cart. ${skippedCount} item${skippedCount !== 1 ? 's' : ''} no longer available.`, 'warning');
+      } else {
+        showToast(`${addedCount} item${addedCount !== 1 ? 's' : ''} added to cart.`, 'success');
+      }
+
+      router.push('/(marketplace)/cart');
+    } catch (error) {
+      console.error('Error reordering:', error);
+      showToast('Could not reorder items. Please try again.', 'error');
+    } finally {
+      setReorderingOrderId(null);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -389,6 +466,19 @@ export default function OrdersScreen() {
             <Receipt size={18} color={colors.primary} />
             <Text style={[styles.receiptButtonText, { color: colors.primary }]}>View Receipt</Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.receiptButton, { flex: 1, backgroundColor: colors.surfaceSecondary, borderColor: colors.borderLight, opacity: reorderingOrderId === item.id ? 0.6 : 1 }]}
+            onPress={() => handleReorder(item)}
+            disabled={reorderingOrderId === item.id}
+            activeOpacity={0.7}
+          >
+            {reorderingOrderId === item.id ? (
+              <ActivityIndicator size="small" color={colors.text} />
+            ) : (
+              <ShoppingCart size={18} color={colors.text} />
+            )}
+            <Text style={[styles.receiptButtonText, { color: colors.text }]}>Reorder</Text>
+          </TouchableOpacity>
           {item.status === 'delivered' && (
             canRequestReturn ? (
               <TouchableOpacity
@@ -450,7 +540,7 @@ export default function OrdersScreen() {
         )}
       </View>
     );
-  }, [orderItems, orderReturns, statusColors, colors, handleViewReceipt, handleOpenReturn, formatDate, getStatusLabel, setReviewProduct]);
+  }, [orderItems, orderReturns, statusColors, colors, handleViewReceipt, handleOpenReturn, handleReorder, reorderingOrderId, formatDate, getStatusLabel, setReviewProduct]);
 
   if (loading) {
     return (
