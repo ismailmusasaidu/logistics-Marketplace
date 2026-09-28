@@ -39,7 +39,7 @@ import { Fonts } from '@/constants/fonts';
 const PAGE_SIZE = 16;
 
 export default function CustomerHome() {
-  const { profile } = useAuth();
+  const { profile, session } = useAuth();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { columns, maxContentWidth } = useResponsiveLayout();
@@ -343,13 +343,15 @@ export default function CustomerHome() {
       <View style={styles.bannerSection}>
         <PromoBannerSlider />
       </View>
-      <VendorLeaderboard
-        onVendorPress={(vendorId, name) => {
-          setSelectedVendorId(vendorId);
-          setSelectedVendorName(name);
-          setVendorStoreVisible(true);
-        }}
-      />
+      {session && profile && (
+        <VendorLeaderboard
+          onVendorPress={(vendorId, name) => {
+            setSelectedVendorId(vendorId);
+            setSelectedVendorName(name);
+            setVendorStoreVisible(true);
+          }}
+        />
+      )}
     </View>
   ), []);
 
