@@ -112,7 +112,7 @@ export default function CheckoutScreen() {
     try {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        setLocationError('Location access was denied. Please enable location permissions in your browser or device settings to use this feature.');
+        setLocationError('No problem! Location access was skipped. You can type your address manually above or pick your delivery zone from the list below.');
         return;
       }
 
@@ -154,7 +154,7 @@ export default function CheckoutScreen() {
     } catch (err: any) {
       const msg = err?.message || '';
       if (msg.toLowerCase().includes('permission') || msg.toLowerCase().includes('denied')) {
-        setLocationError('Location access was denied. Please enable location permissions in your browser or device settings.');
+        setLocationError('No problem! Location access was skipped. You can type your address manually above or pick your delivery zone from the list below.');
       } else {
         setLocationError('Could not get your current location. Please enter your address manually.');
       }
@@ -1422,8 +1422,9 @@ export default function CheckoutScreen() {
               </TouchableOpacity>
 
               {locationError ? (
-                <View style={styles.locationErrorCard}>
-                  <Text style={styles.locationErrorText}>{locationError}</Text>
+                <View style={styles.locationInfoCard}>
+                  <MapPin size={16} color="#0369a1" />
+                  <Text style={styles.locationInfoText}>{locationError}</Text>
                 </View>
               ) : null}
 
@@ -1519,7 +1520,7 @@ export default function CheckoutScreen() {
                 </View>
               )}
 
-              {geocodeError && distanceKm === null && zones.length > 0 && (
+              {(geocodeError || locationError) && distanceKm === null && zones.length > 0 && (
                 <View style={styles.manualZoneSection}>
                   <Text style={styles.manualZoneTitle}>Select Your Delivery Zone</Text>
                   <Text style={styles.manualZoneHint}>We couldn't resolve your address automatically. Pick the zone that best matches your area to get a delivery fee.</Text>
@@ -3633,18 +3634,22 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.semiBold,
     color: '#c2410c',
   },
-  locationErrorCard: {
-    backgroundColor: '#fef2f2',
+  locationInfoCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#f0f9ff',
     padding: 12,
     borderRadius: 10,
     marginTop: 8,
     borderWidth: 1,
-    borderColor: '#fca5a5',
+    borderColor: '#bae6fd',
   },
-  locationErrorText: {
+  locationInfoText: {
+    flex: 1,
     fontSize: 13,
     fontFamily: Fonts.medium,
-    color: '#991b1b',
+    color: '#0c4a6e',
     lineHeight: 18,
   },
 });
