@@ -12,6 +12,7 @@ import {
   Platform,
   Linking,
 } from 'react-native';
+import * as Location from 'expo-location';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
 import { Package, Truck, MapPin, CreditCard, ChevronLeft, CircleCheck as CheckCircle, Clock, Wallet, Building2, Banknote, Copy, CalendarClock, User, Phone, Navigation, FileText } from 'lucide-react-native';
@@ -109,45 +110,51 @@ export default function CheckoutScreen() {
     setLocating(true);
 
     try {
-      if (Platform.OS !== 'web' || !navigator?.geolocation) {
-        setLocationError('Location access is not available on this device.');
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setLocationError('Location access was denied. Please enable location permissions in your browser or device settings to use this feature.');
         return;
       }
 
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 60000,
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const { latitude, longitude } = loc.coords;
+
+      let address: string;
+
+      if (Platform.OS !== 'web') {
+        const results = await Location.reverseGeocodeAsync({ latitude, longitude });
+        if (results && results.length > 0) {
+          const r = results[0];
+          const parts = [r.name, r.street, r.district, r.city, r.region].filter(Boolean);
+          address = parts.slice(0, 4).join(', ');
+        } else {
+          address = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+        }
+      } else {
+        const functionUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/calculate-distance`;
+        const res = await fetch(functionUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode: 'reverse-geocode', lat: latitude, lng: longitude }),
         });
-      });
+        const data = await res.json();
 
-      const { latitude, longitude } = position.coords;
+        if (!res.ok) {
+          setLocationError(data.error || 'Could not determine your address from your location.');
+          return;
+        }
 
-      const functionUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/calculate-distance`;
-      const res = await fetch(functionUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: 'reverse-geocode', lat: latitude, lng: longitude }),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setLocationError(data.error || 'Could not determine your address from your location.');
-        return;
+        address = data.address;
+        if (data.warning) {
+          setLocationError(data.warning);
+        }
       }
 
-      setDeliveryAddress(data.address);
-      if (data.warning) {
-        setLocationError(data.warning);
-      }
+      setDeliveryAddress(address);
     } catch (err: any) {
-      if (err?.code === 1) {
-        setLocationError('Location access was denied. Please enable location permissions in your browser settings.');
-      } else if (err?.code === 2) {
-        setLocationError('Your location could not be determined. Check your GPS or network connection.');
-      } else if (err?.code === 3) {
-        setLocationError('Location request timed out. Please try again.');
+      const msg = err?.message || '';
+      if (msg.toLowerCase().includes('permission') || msg.toLowerCase().includes('denied')) {
+        setLocationError('Location access was denied. Please enable location permissions in your browser or device settings.');
       } else {
         setLocationError('Could not get your current location. Please enter your address manually.');
       }
