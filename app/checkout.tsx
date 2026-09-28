@@ -381,33 +381,90 @@ export default function CheckoutScreen() {
       setGeocoding(true);
       setGeocodeError('');
 
-      const apiUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/calculate-distance`;
+      const normalizeAddress = (addr: string): string => {
+        const trimmed = addr.trim();
+        if (/\bNigeria\b/i.test(trimmed)) return trimmed;
+        return `${trimmed}, Nigeria`;
+      };
 
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
-        },
-        body: JSON.stringify({
-          pickupAddress: storePickupAddress,
-          deliveryAddress: customerAddress,
-        }),
-      });
+      const normalizedPickup = normalizeAddress(storePickupAddress);
+      const normalizedDelivery = normalizeAddress(customerAddress);
 
-      const data = await response.json();
+      // Try edge function first (uses Google Maps if billing is enabled)
+      try {
+        const apiUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/calculate-distance`;
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            pickupAddress: normalizedPickup,
+            deliveryAddress: normalizedDelivery,
+          }),
+        });
 
-      if (data.distance !== undefined) {
-        setDistanceKm(data.distance);
-        setGeocodeError('');
-        setManualZoneSelected(null);
-      } else if (data.error) {
-        setGeocodeError(data.error);
-        setDistanceKm(null);
-      } else {
-        setGeocodeError('Address not found. Please check and try again.');
-        setDistanceKm(null);
+        const data = await response.json();
+
+        if (data.distance !== undefined && data.distance > 0) {
+          setDistanceKm(data.distance);
+          setGeocodeError('');
+          setManualZoneSelected(null);
+          return;
+        }
+      } catch (e) {
+        console.error('Edge function distance failed, falling back to client-side:', e);
       }
+
+      // Client-side fallback: geocode both addresses with Nominatim and compute Haversine distance
+      const geocode = async (address: string): Promise<{ lat: number; lng: number } | null> => {
+        try {
+          const nomUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1&countrycodes=ng`;
+          const res = await fetch(nomUrl, {
+            headers: { 'User-Agent': 'DanHausa-Delivery-App/1.0' },
+          });
+          const json = await res.json();
+          if (Array.isArray(json) && json.length > 0 && json[0].lat && json[0].lon) {
+            return { lat: parseFloat(json[0].lat), lng: parseFloat(json[0].lon) };
+          }
+        } catch (e) {
+          console.error('Client-side geocode failed for', address, e);
+        }
+        return null;
+      };
+
+      const [pickupCoord, deliveryCoord] = await Promise.all([
+        geocode(normalizedPickup),
+        geocode(normalizedDelivery),
+      ]);
+
+      if (!pickupCoord || !deliveryCoord) {
+        setGeocodeError('Unable to find address. Please use a more detailed address with area name and city (e.g., "10 Admiralty Way, Lekki Phase 1, Lagos").');
+        setDistanceKm(null);
+        return;
+      }
+
+      // Haversine formula
+      const R = 6371;
+      const dLat = (deliveryCoord.lat - pickupCoord.lat) * Math.PI / 180;
+      const dLng = (deliveryCoord.lng - pickupCoord.lng) * Math.PI / 180;
+      const a = Math.sin(dLat / 2) ** 2 +
+        Math.cos(pickupCoord.lat * Math.PI / 180) * Math.cos(deliveryCoord.lat * Math.PI / 180) *
+        Math.sin(dLng / 2) ** 2;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      const straightLineKm = Math.round(R * c * 10) / 10;
+      const estimatedKm = Math.round(straightLineKm * 1.3 * 10) / 10;
+
+      if (estimatedKm <= 0) {
+        setGeocodeError('Unable to calculate distance for this address. Please try a more detailed address.');
+        setDistanceKm(null);
+        return;
+      }
+
+      setDistanceKm(estimatedKm);
+      setGeocodeError('');
+      setManualZoneSelected(null);
     } catch (error) {
       console.error('Distance calculation error:', error);
       setGeocodeError('Failed to calculate distance. Please try again.');
