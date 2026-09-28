@@ -25,6 +25,7 @@ import { Fonts } from '@/constants/fonts';
 import { sendMarketplaceOrderPlacedEmail } from '@/lib/emailService';
 import { cartEvents } from '@/lib/marketplace/cartEvents';
 import { useToast } from '@/contexts/ToastContext';
+import MapPickerModal, { MapPickerResult } from '@/components/MapPickerModal';
 
 interface CartItemWithProduct {
   id: string;
@@ -231,6 +232,13 @@ export default function CheckoutScreen() {
       setLocating(false);
     }
   };
+  const handleMapPickerSelect = (result: MapPickerResult) => {
+    setShowMapPicker(false);
+    gpsCalculationRef.current = true;
+    setDeliveryAddress(result.address);
+    calculateDistanceFromCoordinates(result.lat, result.lng);
+  };
+
   const [cartItems, setCartItems] = useState<CartItemWithProduct[]>([]);
   const [deliveryType, setDeliveryType] = useState<'pickup' | 'delivery'>('pickup');
   const [deliveryAddress, setDeliveryAddress] = useState('');
@@ -270,6 +278,7 @@ export default function CheckoutScreen() {
   const [manualZoneSelected, setManualZoneSelected] = useState<DeliveryZone | null>(null);
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState('');
+  const [showMapPicker, setShowMapPicker] = useState(false);
 
   useEffect(() => {
     fetchCartItems();
@@ -1593,6 +1602,23 @@ export default function CheckoutScreen() {
                   {locating ? 'Getting your location...' : 'Use my current location'}
                 </Text>
               </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.useLocationButton}
+                onPress={() => setShowMapPicker(true)}
+                activeOpacity={0.7}
+              >
+                <MapPin size={18} color="#ff8c00" />
+                <Text style={styles.useLocationButtonText}>
+                  Pick from map
+                </Text>
+              </TouchableOpacity>
+
+              <MapPickerModal
+                visible={showMapPicker}
+                onClose={() => setShowMapPicker(false)}
+                onSelect={handleMapPickerSelect}
+              />
 
               {locationError ? (
                 <View style={styles.locationInfoCard}>
