@@ -58,9 +58,9 @@
     "react-native-worklets": "0.13.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.25.2",
-    "@types/react": "~19.1.10",
+    "@babel/core": "^7.29.7",
+    "@types/react": "~19.3.0",
     "baseline-browser-mapping": "^2.9.11",
-    "typescript": "~5.9.2"
+    "typescript": "~6.0.3"
   }
 }
