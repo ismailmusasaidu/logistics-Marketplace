@@ -387,6 +387,7 @@ export default function ProductDetailModal({
               showsVerticalScrollIndicator={false}
               bounces={false}
               contentContainerStyle={styles.scrollContent}
+              {...(Platform.OS === 'ios' ? { delaysContentTouches: false } : {})}
             >
               {/* Image Gallery */}
               <View style={styles.imageContainer}>
@@ -415,7 +416,7 @@ export default function ProductDetailModal({
                 />
 
                 {/* Gradient overlay at bottom of image */}
-                <View style={styles.imageGradient} />
+                <View style={styles.imageGradient} pointerEvents="none" />
 
                 {/* Close button */}
                 <TouchableOpacity style={styles.closeButton} onPress={onClose} activeOpacity={0.85}>
@@ -428,21 +429,21 @@ export default function ProductDetailModal({
                 </TouchableOpacity>
 
                 {/* Zoom hint */}
-                <View style={styles.zoomIndicator}>
+                <View style={styles.zoomIndicator} pointerEvents="none">
                   <ZoomIn size={14} color="#fff" />
                   <Text style={styles.zoomText}>Tap to zoom</Text>
                 </View>
 
                 {/* Discount badge on image */}
                 {hasDiscount && (
-                  <View style={styles.imageDiscountBadge}>
+                  <View style={styles.imageDiscountBadge} pointerEvents="none">
                     <Text style={styles.imageDiscountBadgeText}>-{currentProduct.discount_percentage}%</Text>
                   </View>
                 )}
 
                 {/* Pagination dots */}
                 {images.length > 1 && (
-                  <View style={styles.pagination}>
+                  <View style={styles.pagination} pointerEvents="none">
                     {images.map((_, index) => (
                       <View
                         key={index}
@@ -457,7 +458,7 @@ export default function ProductDetailModal({
 
                 {/* Image counter */}
                 {images.length > 1 && (
-                  <View style={styles.imageCounter}>
+                  <View style={styles.imageCounter} pointerEvents="none">
                     <Text style={styles.imageCounterText}>{currentImageIndex + 1} / {images.length}</Text>
                   </View>
                 )}
