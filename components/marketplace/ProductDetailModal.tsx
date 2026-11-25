@@ -75,9 +75,53 @@ export default function ProductDetailModal({
   const [selectedPricingOption, setSelectedPricingOption] = useState<{ label: string; price: number } | null>(null);
   const [showReturnPolicy, setShowReturnPolicy] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const flatListRef = useRef<FlatList>(null);
   const fullScreenFlatListRef = useRef<FlatList>(null);
   const autoPlayTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const fetchVendorInfoFor = async (p: Product) => {
+    try {
+      const { data, error } = await supabase
+        .from('vendors')
+        .select('business_name, city, state, rating')
+        .eq('user_id', p.vendor_id)
+        .maybeSingle();
+      if (error) throw error;
+      setVendorInfo(data);
+    } catch (error) {
+      console.error('Error fetching vendor:', error);
+    }
+  };
+
+  const fetchProductImagesFor = async (p: Product) => {
+    try {
+      const { data, error } = await supabase
+        .from('product_images')
+        .select('*')
+        .eq('product_id', p.id)
+        .order('display_order');
+      if (error) throw error;
+      if (data && data.length > 0) {
+        setImages(data);
+      } else {
+        setImages([{
+          id: 'default',
+          image_url: p.image_url || 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg',
+          display_order: 0,
+          is_primary: true,
+        }]);
+      }
+    } catch (error) {
+      console.error('Error fetching product images:', error);
+      setImages([{
+        id: 'default',
+        image_url: p.image_url || 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg',
+        display_order: 0,
+        is_primary: true,
+      }]);
+    }
+  };
 
   const fetchVendorInfo = async () => {
     if (!product) return;
@@ -282,6 +326,24 @@ export default function ProductDetailModal({
     }
   };
 
+  const fetchRelatedProducts = async (p: Product) => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('category_id', p.category_id)
+        .eq('is_available', true)
+        .neq('id', p.id)
+        .order('rating', { ascending: false })
+        .limit(6);
+      if (error) throw error;
+      setRelatedProducts((data as Product[]) || []);
+    } catch (err) {
+      console.error('Error fetching related products:', err);
+      setRelatedProducts([]);
+    }
+  };
+
   const fetchFullProduct = async (productId: string) => {
     try {
       const { data, error } = await supabase
@@ -301,9 +363,11 @@ export default function ProductDetailModal({
     if (visible && product) {
       setCurrentProduct(product);
       setCurrentImageIndex(0);
+      setRelatedProducts([]);
       fetchVendorInfo();
       fetchProductImages();
       fetchFullProduct(product.id);
+      fetchRelatedProducts(product);
 
       const subscription = supabase
         .channel(`product_${product.id}`)
@@ -333,6 +397,7 @@ export default function ProductDetailModal({
       setSelectedColor(null);
       setSelectedPricingOption(null);
       setDescriptionExpanded(false);
+      setRelatedProducts([]);
     }
   }, [visible, product]);
 
@@ -738,6 +803,63 @@ export default function ProductDetailModal({
                     onEditReview={handleEditReview}
                   />
                 </View>
+
+                {relatedProducts.length > 0 && (
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>You may also like</Text>
+                    <View style={styles.relatedGrid}>
+                      {relatedProducts.map((item) => {
+                        const itemHasDiscount = item.discount_active && item.discount_percentage > 0;
+                        const itemPrice = itemHasDiscount
+                          ? item.price * (1 - item.discount_percentage / 100)
+                          : item.price;
+                        return (
+                          <TouchableOpacity
+                            key={item.id}
+                            style={styles.relatedCard}
+                            activeOpacity={0.9}
+                            onPress={() => {
+                              setCurrentProduct(item);
+                              setCurrentImageIndex(0);
+                              setSelectedSize(null);
+                              setSelectedColor(null);
+                              setSelectedPricingOption(null);
+                              setQuantity(1);
+                              setDescriptionExpanded(false);
+                              setImages([]);
+                              fetchVendorInfoFor(item);
+                              fetchProductImagesFor(item);
+                              fetchFullProduct(item.id);
+                              fetchRelatedProducts(item);
+                              flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+                            }}
+                          >
+                            <Image
+                              source={{ uri: item.image_url || 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg' }}
+                              style={styles.relatedImage}
+                              resizeMode="cover"
+                            />
+                            {itemHasDiscount && (
+                              <View style={styles.relatedBadge}>
+                                <Text style={styles.relatedBadgeText}>-{item.discount_percentage}%</Text>
+                              </View>
+                            )}
+                            <View style={styles.relatedBody}>
+                              <Text style={styles.relatedName} numberOfLines={2}>{item.name}</Text>
+                              <View style={styles.relatedPriceRow}>
+                                <Text style={styles.relatedPrice}>₦{itemPrice.toLocaleString('en-NG', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</Text>
+                                <View style={styles.relatedRatingPill}>
+                                  <Star size={10} color="#f59e0b" fill="#f59e0b" />
+                                  <Text style={styles.relatedRatingText}>{item.rating.toFixed(1)}</Text>
+                                </View>
+                              </View>
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                )}
 
                 <View style={styles.bottomSpacing} />
               </View>
@@ -1604,6 +1726,75 @@ const styles = StyleSheet.create({
 
   bottomSpacing: {
     height: 28,
+  },
+
+  /* ── Related products ─────────────────────────────────────────── */
+  relatedGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -5,
+  },
+  relatedCard: {
+    width: '50%',
+    paddingHorizontal: 5,
+    marginBottom: 12,
+  },
+  relatedImage: {
+    width: '100%',
+    aspectRatio: 1,
+    borderRadius: 14,
+    backgroundColor: '#f3f0eb',
+  },
+  relatedBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 13,
+    backgroundColor: '#ef4444',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  relatedBadgeText: {
+    fontSize: 10,
+    fontFamily: Fonts.bold,
+    color: '#ffffff',
+  },
+  relatedBody: {
+    paddingTop: 8,
+    gap: 4,
+  },
+  relatedName: {
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
+    color: '#1a1a1a',
+    lineHeight: 17,
+    minHeight: 34,
+  },
+  relatedPriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  relatedPrice: {
+    fontSize: 14,
+    fontFamily: Fonts.bold,
+    color: '#0f0f0f',
+  },
+  relatedRatingPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#fffbeb',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#fde68a',
+  },
+  relatedRatingText: {
+    fontSize: 10,
+    fontFamily: Fonts.bold,
+    color: '#92400e',
   },
 
   /* ── Footer CTA ──────────────────────────────────────────────── */
