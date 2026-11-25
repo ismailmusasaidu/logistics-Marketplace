@@ -9,7 +9,7 @@ import {
   Animated,
   Platform,
 } from 'react-native';
-import { Search, Clock, X, TrendingUp, ArrowUpLeft } from 'lucide-react-native';
+import { Search, Clock, X, TrendingUp, ArrowUpLeft, Flame } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/marketplace/supabase';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -29,6 +29,7 @@ interface Suggestion {
   type: 'history' | 'product' | 'trending';
   text: string;
   id?: string;
+  rank?: number;
 }
 
 export default function SearchAutocomplete({
@@ -101,9 +102,9 @@ export default function SearchAutocomplete({
     try {
       const { data } = await supabase
         .from('search_logs')
-        .select('query')
+        .select('query, count')
         .order('count', { ascending: false })
-        .limit(5);
+        .limit(8);
       if (data) setTrending(data.map((r: any) => r.query));
     } catch {}
   };
@@ -111,8 +112,8 @@ export default function SearchAutocomplete({
   const buildDefaultSuggestions = useCallback(() => {
     const items: Suggestion[] = [];
     history.slice(0, 5).forEach(h => items.push({ type: 'history', text: h }));
-    trending.slice(0, 3).forEach(t => {
-      if (!history.includes(t)) items.push({ type: 'trending', text: t });
+    trending.slice(0, 5).forEach((t, i) => {
+      if (!history.includes(t)) items.push({ type: 'trending', text: t, rank: i + 1 });
     });
     setSuggestions(items);
   }, [history, trending]);
@@ -168,6 +169,9 @@ export default function SearchAutocomplete({
   };
 
   const showDropdown = focused && suggestions.length > 0;
+  const isEmptySearch = !value.trim();
+  const trendingSuggestions = suggestions.filter(s => s.type === 'trending');
+  const otherSuggestions = suggestions.filter(s => s.type !== 'trending');
 
   return (
     <View style={styles.wrapper}>
@@ -213,7 +217,7 @@ export default function SearchAutocomplete({
             },
           ]}
         >
-          {history.length > 0 && !value.trim() && (
+          {isEmptySearch && history.length > 0 && (
             <View style={styles.dropdownHeader}>
               <Text style={[styles.dropdownLabel, { color: colors.textMuted }]}>Recent</Text>
               <TouchableOpacity onPress={clearHistory}>
@@ -225,36 +229,66 @@ export default function SearchAutocomplete({
           <FlatList
             data={suggestions}
             keyExtractor={(item, i) => `${item.type}-${item.text}-${i}`}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={[styles.suggestionRow, { borderBottomColor: colors.borderLight }]}
-                onPress={() => handleSelect(item.text)}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.iconWrap, { backgroundColor: colors.surfaceSecondary }]}>
-                  {item.type === 'history' && <Clock size={14} color={colors.textMuted} />}
-                  {item.type === 'trending' && <TrendingUp size={14} color={colors.primary} />}
-                  {item.type === 'product' && <Search size={14} color={colors.textSecondary} />}
-                </View>
-                <Text style={[styles.suggestionText, { color: colors.text }]} numberOfLines={1}>
-                  {item.text}
-                </Text>
-                {item.type === 'history' && (
+            renderItem={({ item, index }) => {
+              const showTrendingHeader =
+                isEmptySearch &&
+                item.type === 'trending' &&
+                (index === 0 || suggestions[index - 1].type !== 'trending');
+
+              return (
+                <>
+                  {showTrendingHeader && (
+                    <View style={[styles.trendingHeader, { borderBottomColor: colors.borderLight }]}>
+                      <Flame size={13} color="#f97316" />
+                      <Text style={[styles.trendingHeaderText, { color: colors.textMuted }]}>
+                        Trending Searches
+                      </Text>
+                    </View>
+                  )}
                   <TouchableOpacity
-                    onPress={(e) => { e.stopPropagation(); removeHistoryItem(item.text); }}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    style={styles.removeBtn}
+                    style={[styles.suggestionRow, { borderBottomColor: colors.borderLight }]}
+                    onPress={() => handleSelect(item.text)}
+                    activeOpacity={0.7}
                   >
-                    <X size={12} color={colors.textMuted} />
+                    <View style={[
+                      styles.iconWrap,
+                      { backgroundColor: item.type === 'trending' ? 'rgba(249,115,22,0.1)' : colors.surfaceSecondary },
+                    ]}>
+                      {item.type === 'history' && <Clock size={14} color={colors.textMuted} />}
+                      {item.type === 'trending' && (
+                        item.rank && item.rank <= 3 ? (
+                          <Text style={styles.rankText}>{item.rank}</Text>
+                        ) : (
+                          <TrendingUp size={14} color="#f97316" />
+                        )
+                      )}
+                      {item.type === 'product' && <Search size={14} color={colors.textSecondary} />}
+                    </View>
+                    <Text style={[
+                      styles.suggestionText,
+                      { color: colors.text },
+                      item.type === 'trending' && item.rank === 1 && styles.topTrendingText,
+                    ]} numberOfLines={1}>
+                      {item.text}
+                    </Text>
+                    {item.type === 'history' && (
+                      <TouchableOpacity
+                        onPress={(e) => { e.stopPropagation(); removeHistoryItem(item.text); }}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        style={styles.removeBtn}
+                      >
+                        <X size={12} color={colors.textMuted} />
+                      </TouchableOpacity>
+                    )}
+                    {item.type !== 'history' && (
+                      <ArrowUpLeft size={14} color={colors.textMuted} style={styles.fillIcon} />
+                    )}
                   </TouchableOpacity>
-                )}
-                {item.type !== 'history' && (
-                  <ArrowUpLeft size={14} color={colors.textMuted} style={styles.fillIcon} />
-                )}
-              </TouchableOpacity>
-            )}
+                </>
+              );
+            }}
             keyboardShouldPersistTaps="always"
-            style={{ maxHeight: 280 }}
+            style={{ maxHeight: 360 }}
           />
         </Animated.View>
       )}
@@ -317,6 +351,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'SpaceGrotesk-Medium',
   },
+  trendingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderBottomWidth: 1,
+  },
+  trendingHeaderText: {
+    fontSize: 11,
+    fontFamily: 'SpaceGrotesk-SemiBold',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
   suggestionRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -332,6 +380,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
+  },
+  rankText: {
+    fontSize: 13,
+    fontFamily: 'SpaceGrotesk-Bold',
+    color: '#f97316',
+  },
+  topTrendingText: {
+    fontFamily: 'SpaceGrotesk-SemiBold',
   },
   suggestionText: {
     flex: 1,
