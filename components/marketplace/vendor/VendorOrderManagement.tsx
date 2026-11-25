@@ -449,10 +449,10 @@ export default function VendorOrderManagement({ onBack }: VendorOrderManagementP
             <View style={{ paddingVertical: 16, alignItems: 'center' }}>
               <ActivityIndicator size="small" color="#ff8c00" />
             </View>
-          ) : null
+          ) : undefined
         }
         ListEmptyComponent={
-          loading ? null : (
+          loading ? undefined : (
             <View style={styles.emptyContainer}>
               <View style={styles.emptyIconWrap}>
                 {searchQuery ? <Search size={48} color="#d6d3d1" /> : <Package size={48} color="#d6d3d1" />}
@@ -1018,7 +1018,7 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
   },
   updatingOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -1026,7 +1026,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
   },
   detailPage: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: '#f8f5f0',
     zIndex: 10,
   },

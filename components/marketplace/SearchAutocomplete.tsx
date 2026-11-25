@@ -44,7 +44,7 @@ export default function SearchAutocomplete({
   const [trending, setTrending] = useState<string[]>([]);
   const dropdownAnim = useRef(new Animated.Value(0)).current;
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<React.ComponentRef<typeof TextInput> | null>(null);
 
   useEffect(() => {
     loadHistory();

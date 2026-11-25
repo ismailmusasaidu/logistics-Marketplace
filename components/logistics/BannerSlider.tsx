@@ -43,7 +43,7 @@ export default function LogisticsBannerSlider({ onModalAdvert }: BannerSliderPro
   const [banners, setBanners] = useState<LogisticsAdvert[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [cardWidth, setCardWidth] = useState(0);
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<React.ComponentRef<typeof ScrollView> | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isUserScrolling = useRef(false);
   const shimmerAnim = useRef(new Animated.Value(0)).current;
@@ -230,8 +230,8 @@ const styles = StyleSheet.create({
       ? { boxShadow: '0 6px 24px rgba(0,0,0,0.16)' } as any
       : { shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.16, shadowRadius: 18, elevation: 8 }),
   },
-  cardBg: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
-  overlay: { ...StyleSheet.absoluteFillObject, padding: 14, justifyContent: 'space-between' },
+  cardBg: { ...StyleSheet.absoluteFill, width: '100%', height: '100%' },
+  overlay: { ...StyleSheet.absoluteFill, padding: 14, justifyContent: 'space-between' },
   cardGloss: {
     position: 'absolute', top: 0, left: 0, right: 0, height: 60,
     backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 18,

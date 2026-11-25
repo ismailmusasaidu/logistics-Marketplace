@@ -434,9 +434,9 @@ export default function VendorListTab() {
                 <ActivityIndicator size="small" color={colors.primary} />
                 <Text style={[styles.footerText, { color: colors.textMuted }]}>Loading more stores...</Text>
               </View>
-            ) : hasMore ? null : vendors.length > PAGE_SIZE ? (
+            ) : hasMore ? undefined : vendors.length > PAGE_SIZE ? (
               <Text style={[styles.endText, { color: colors.textMuted }]}>All stores loaded</Text>
-            ) : null
+            ) : undefined
           }
         />
       )}
@@ -844,7 +844,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   filterSheet: {

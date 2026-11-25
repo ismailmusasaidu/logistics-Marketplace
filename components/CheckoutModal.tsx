@@ -628,7 +628,7 @@ export function CheckoutModal({ visible, onClose, onConfirm, pricing, userId, us
       transparent
       onRequestClose={() => setShowCalendar(false)}>
       <View style={styles.calendarOverlay}>
-        <TouchableOpacity style={StyleSheet.absoluteFillObject} onPress={() => setShowCalendar(false)} />
+        <TouchableOpacity style={StyleSheet.absoluteFill} onPress={() => setShowCalendar(false)} />
         <View style={styles.calendarContainer}>
           <View style={styles.calendarHeader}>
             <TouchableOpacity onPress={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1))} style={styles.calendarNavBtn}>

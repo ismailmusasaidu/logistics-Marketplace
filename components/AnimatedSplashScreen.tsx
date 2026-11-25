@@ -272,14 +272,14 @@ function LoadingDot({ delay }: { delay: number }) {
 
 const styles = StyleSheet.create({
   container: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 9999,
   },
   bgWrap: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   bgGradientTop: {
     position: 'absolute',
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0faf4',
   },
   decorDots: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     pointerEvents: 'none',
   },
   dot: {

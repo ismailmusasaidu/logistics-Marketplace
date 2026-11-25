@@ -33,7 +33,7 @@ export default function MapPickerModal({
   initialLat = 9.0566,
   initialLng = 7.4969,
 }: MapPickerModalProps) {
-  const webViewRef = useRef<WebView>(null);
+  const webViewRef = useRef<React.ComponentRef<typeof WebView> | null>(null);
   const [loading, setLoading] = useState(true);
 
   const handleMessage = useCallback(
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#e5e7eb',
   },
   loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#fff',

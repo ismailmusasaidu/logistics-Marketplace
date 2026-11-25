@@ -344,7 +344,7 @@ export default function VendorStorePage({ visible, vendorId, vendorName, onClose
                 </View>
               ) : !hasMore && products.length > 0 ? (
                 <Text style={[styles.endLabel, { color: colors.textMuted }]}>All products loaded</Text>
-              ) : null
+              ) : undefined
             }
             renderItem={renderItem}
           />

@@ -86,7 +86,7 @@ export default function TabLayout() {
         name="cart"
         options={{
           title: 'Cart',
-          tabBarIcon: ({ size, color }) => <CartIconWithBadge size={size} color={color} />,
+          tabBarIcon: ({ size, color }) => <CartIconWithBadge size={size} color={color as string} />,
           href: !isGuest && isCustomer ? '/(marketplace)/cart' : null,
         }}
       />
@@ -95,7 +95,7 @@ export default function TabLayout() {
         name="wishlist"
         options={{
           title: 'Wishlist',
-          tabBarIcon: ({ size, color }) => <WishlistIconWithBadge size={size} color={color} />,
+          tabBarIcon: ({ size, color }) => <WishlistIconWithBadge size={size} color={color as string} />,
           href: !isGuest && isCustomer ? '/(marketplace)/wishlist' : null,
         }}
       />

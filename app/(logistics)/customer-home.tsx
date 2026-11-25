@@ -1250,7 +1250,7 @@ export default function CustomerHome() {
           style={styles.modalOverlay}
           behavior="padding"
           keyboardVerticalOffset={0}>
-          <TouchableOpacity style={StyleSheet.absoluteFillObject} activeOpacity={1} onPress={() => { setModalVisible(false); setFieldErrors({}); }} />
+          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => { setModalVisible(false); setFieldErrors({}); }} />
           <View style={[styles.modalContent, { backgroundColor: colors.backgroundSecondary }]}>
             <View style={styles.modalHandle} />
             <LinearGradient

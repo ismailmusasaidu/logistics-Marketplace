@@ -138,7 +138,7 @@ export default function AdModal({ visible, advert, onClose }: AdModalProps) {
             colors={[bgStart, bgEnd]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
           />
 
           {advert.image_url && (
@@ -147,7 +147,7 @@ export default function AdModal({ visible, advert, onClose }: AdModalProps) {
 
           <LinearGradient
             colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0)', 'rgba(0,0,0,0.75)']}
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
           />
 
           <TouchableOpacity
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
     height,
   },
   bgImage: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     width: '100%',
     height: '100%',
   },

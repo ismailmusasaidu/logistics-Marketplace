@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: 11, fontFamily: Fonts.bold, color: '#fff', letterSpacing: 0.8, textTransform: 'uppercase' },
   imgWrap: { width: '100%', height: 220, position: 'relative' },
   heroImg: { width: '100%', height: '100%' },
-  imgGrad: { ...StyleSheet.absoluteFillObject },
+  imgGrad: { ...StyleSheet.absoluteFill },
   noImgHero: {
     width: '100%', height: 180,
     alignItems: 'center', justifyContent: 'center',

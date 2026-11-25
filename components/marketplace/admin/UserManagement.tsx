@@ -592,7 +592,7 @@ export default function UserManagement({ onBack }: UserManagementProps) {
             <View style={styles.footerLoader}>
               <ActivityIndicator size="small" color="#ff8c00" />
             </View>
-          ) : null
+          ) : undefined
         }
         ListEmptyComponent={
           <View style={styles.emptyState}>

@@ -78,7 +78,7 @@ export default function RiderHome() {
   const [togglingStatus, setTogglingStatus] = useState(false);
   const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
   const [historySearch, setHistorySearch] = useState('');
-  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const [toast, setToast] = useState<{
     visible: boolean;
